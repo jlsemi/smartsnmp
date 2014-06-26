@@ -1,0 +1,28 @@
+language: c
+
+env:
+  matrix:
+    - "LUA=lua5.1 TRANSPORT=libevent"
+    - "LUA=lua5.1 TRANSPORT=uloop"
+
+install:
+  - "sudo apt-get install -y $LUA $lib$LUA-0-dev"
+  - "if [ $TRANSPORT = 'libevent' ]; then 
+        sudo apt-get install -y libevent-dev ; 
+    fi"
+  - "if [ $TRANSPORT = 'uloop' ]; then 
+        rm -rf libubox &&
+        git clone http://git.openwrt.org/project/libubox.git &&
+        ( 
+            cd libubox &&
+            cmake . && 
+            make
+        );
+    fi"
+
+script:
+  - "if [ $TRANSPORT = 'uloop' ]; then 
+        export LDFLAGS='-L./libubox' && 
+        export CFLAGS='-I.';
+    fi"
+  - "scons --transport=$TRANSPORT"
