@@ -4,7 +4,7 @@ SmartSNMP - A Smart SNMP Agent
 [![Build Status](https://travis-ci.org/credosemi/smartsnmp.svg?branch=master)](https://travis-ci.org/credosemi/smartsnmp)
 
 **SmartSNMP** is a minimal easy-config agent for network management based on SNMPv2c
- and written in C99 and Lua5.1. It can run on both PC system like Linux and 
+and written in C99 and Lua5.1. It can run on both PC system like Linux and 
 FreeBSD and embedded system such as OpenWRT and also on both platform of 32-bit 
 and 64-bit. It can be compiled to a file with size of 20K in terms of option 
 '-Os'.
@@ -18,7 +18,7 @@ Configure and Interfaces
 ------------------------
 
 One of the biggest bonuses (aka smartest features) of this agent is that you can
- write your own private mib and loaded by it only if you learn to write a lua 
+write your own private mib and loaded by it only if you learn to write a lua 
 file as shown at files in the example directory.
 
 There are two interfaces for the register and unregister of you mib nodes as
@@ -34,7 +34,7 @@ test samples are shown at tests/test.sh.
 Build
 -----
 
-    cd snmp_agent
+    cd smartsnmp
     scons
 
 You may select different transport protocol by this command:
@@ -50,7 +50,7 @@ Test
 
 Server port:
 
-    sudo ./snmp example/init.lua
+    sudo ./snmpd example/init.lua
 
 Client port:
 
