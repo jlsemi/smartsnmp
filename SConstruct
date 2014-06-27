@@ -17,6 +17,7 @@
 
 import os
 
+# options 
 AddOption(
   '--transport',
   dest='transport',
@@ -24,8 +25,74 @@ AddOption(
   type='string',
   nargs=1,
   action='store',
-  metavar='libevent OR uloop',
-  help='choose a transport'
+  metavar='[libevent|uloop]',
+  help='transport you want to use'
+)
+
+AddOption(
+  '--with-cflags',
+  dest='cflags',
+  default = '',
+  type='string',
+  nargs=1,
+  action='store',
+  metavar='CFLAGS',
+  help='use CFLAGS as compile time arguments (will ignore CFLAGS env)'
+)
+
+AddOption(
+  '--with-ldflags',
+  dest='ldflags',
+  default = '',
+  type='string',
+  nargs=1,
+  action='store',
+  metavar='LDFLAGS',
+  help='use LDFLAGS as link time arguments to ld (will ignore LDFLAGS env)'
+)
+
+AddOption(
+  '--with-libs',
+  dest='libs',
+  default = '',
+  type='string',
+  nargs=1,
+  action='store',
+  metavar='LIBS',
+  help='use LIBS as link time arguments to ld'
+)
+
+AddOption(
+  '--with-liblua',
+  dest='liblua_dir',
+  default = '',
+  type='string',
+  nargs=1,
+  action='store',
+  metavar='DIR',
+  help='use liblua in DIR'
+)
+
+AddOption(
+  '--with-libubox',
+  dest='libubox_dir',
+  default = '',
+  type='string',
+  nargs=1,
+  action='store',
+  metavar='DIR',
+  help='use libubox in DIR (only for transport is uloop)'
+)
+
+AddOption(
+  '--with-libevent',
+  dest='libevent_dir',
+  default = '',
+  type='string',
+  nargs=1,
+  action='store',
+  metavar='DIR',
+  help='use libevent in DIR (only for transport is libevent)'
 )
 
 env = Environment(
@@ -34,20 +101,41 @@ env = Environment(
   CFLAGS = '-std=c99 -Wall -Os -Iinclude ',
 )
 
-# Detect CC/CFLAGS/LINKFLAGS/LDFLAGS environments
+# handle options/environment varibles.
 if os.environ.has_key('CC'):
   env.Replace(CC = os.environ['CC'])
 
-if os.environ.has_key('CFLAGS'):
+# CFLAGS
+if GetOption("cflags") is not "":
+  env.Append(CFLAGS = GetOption("cflags"))
+elif os.environ.has_key('CFLAGS'):
   env.Append(CFLAGS = os.environ['CFLAGS'])
 
-if os.environ.has_key('LINKFLAGS'):
+# LDFLAGS
+if GetOption("ldflags") is not "":
+  env.Replace(LINKFLAGS = GetOption("ldflags"))
+elif os.environ.has_key('LDFLAGS'):
+  env.Replace(LINKFLAGS = os.environ['LDFLAGS'])
+elif os.environ.has_key('LINKFLAGS'):
   env.Replace(LINKFLAGS = os.environ['LINKFLAGS'])
 
-if os.environ.has_key('LDFLAGS'):
-  env.Replace(LINKFLAGS = os.environ['LDFLAGS'])
+# LIBS
+if GetOption("libs") is not "":
+  env.Append(LIBS = GetOption("libs"))
 
-# Transport select
+# liblua
+if GetOption("liblua_dir") is not "":
+  env.Append(LIBPATH = [GetOption("liblua_dir")])
+
+# libevent
+if GetOption("libevent_dir") is not "":
+  env.Append(LIBPATH = [GetOption("libevent_dir")])
+
+# libubox
+if GetOption("libubox_dir") is not "":
+  env.Append(LIBPATH = [GetOption("libubox_dir")])
+
+# transport select
 if GetOption("transport") == 'libevent':
   env.Append(LIBS = ['event'])
   transport_src = env.Glob("src/c/libevent_transport.c")
@@ -56,7 +144,6 @@ else:
   transport_src = env.Glob("src/c/uloop_transport.c")
 
 # autoconf
-
 conf = Configure(env)
 
 # find liblua

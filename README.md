@@ -31,28 +31,75 @@ SmartSNMP is based on SNMPv2c so it can response 5 kinds of request operations
 from client: snmpget, snmpgetnext, snmpset, snmpbulkget and snmpwalk. Revelant 
 test samples are shown at tests/test.sh.
 
+Dependencies
+------------
+
+- Lua 5.1
+- One of transports
+  - libevent
+  - libubox/uloop (for OpenWrt)
+
 Build
 -----
-
-    cd smartsnmp
-    scons
-
-You may select different transport protocol by this command:
-
-    scons --transport=T  # T can be 'libevent' or 'uloop' by now
 
 Different transport modules need respective libraries. In libevent transport you
 need to install libevent and in uloop you need to install libubox. Especially, 
 on Ubuntu you should install liblua5.1 while on others liblua is needed.
 
-Test
-----
+Assume you are using Ubuntu and the transport is libevent
 
-Server port:
+    # lua5.1
+    sudo apt-get install -y lua5.1 liblua5.1-0-dev
+
+    # for libevent transport
+    sudo apt-get install -y libevent-dev
+
+    # scons & git
+    sudo apt-get install -y scons git
+
+    # clone with git
+    git clone https://github.com/credosemi/smartsnmp.git
+    
+    # build
+    cd smartsnmp
+    scons
+
+For more build options, type:
+
+    scons --help
+
+You will get:
+
+    ... SCons Options ...
+    Local Options:
+      --transport=[libevent|uloop]
+                                  transport you want to use
+      --with-cflags=CFLAGS        use CFLAGS as compile time arguments (will
+                                    ignore CFLAGS env)
+      --with-ldflags=LDFLAGS      use LDFLAGS as link time arguments to ld (will
+                                    ignore LDFLAGS env)
+      --with-libs=LIBS            use LIBS as link time arguments to ld
+      --with-liblua=DIR           use liblua in DIR
+      --with-libubox=DIR          use libubox in DIR (only for transport is uloop)
+      --with-libevent=DIR         use libevent in DIR (only for transport is
+                                    libevent)
+
+You can specify any options you need to build the project.
+
+_Installing scripts will coming soon._
+
+Test script
+-----------
+
+Net-SNMP utils need be installed before you run test scripts (on Ubuntu).
+
+    sudo apt-get install -y snmp
+
+To run SNMP agent:
 
     sudo ./snmpd example/init.lua
 
-Client port:
+Test agent in another terminal:
 
     ./tests/test.sh
 
