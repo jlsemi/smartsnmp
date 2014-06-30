@@ -19,13 +19,16 @@
 
 package.path = package.path .. ";src/lua/?.lua;example/?.lua"
 
-require "mib"
+mib = require "mib"
 sysGroup = require "system"
 ifGroup = require "interfaces"
 ipGroup = require "ip"
 tcpGroup = require "tcp"
 udpGroup = require "udp"
 mib_lib = require "mib_lib"
+
+mib.SetRoCommunity('public')
+mib.SetRwCommunity('private')
 
 mib_group_register({1,3,6,1, 2,1, 1}, sysGroup, 'sysGroup')
 mib_group_register({1,3,6,1, 2,1, 2}, ifGroup, 'ifGroup')

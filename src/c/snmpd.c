@@ -49,9 +49,8 @@ lua_mib_node_reg(lua_State *L)
   /* Get oid length */
   inst_id_len = lua_objlen(L, 1);
 
-  inst_id = xmalloc(inst_id_len * sizeof(oid_t));
-
   /* Get oid */
+  inst_id = xmalloc(inst_id_len * sizeof(oid_t));
   for (i = 0; i < inst_id_len; i++) {
     lua_rawgeti(L, 1, i + 1);
     inst_id[i] = lua_tointeger(L, -1);
@@ -83,9 +82,8 @@ lua_mib_node_unreg(lua_State *L)
   /* Get oid length */
   inst_id_len = lua_objlen(L, 1);
 
-  inst_id = xmalloc(inst_id_len * sizeof(oid_t));
-
   /* Get oid */
+  inst_id = xmalloc(inst_id_len * sizeof(oid_t));
   for (i = 0; i < inst_id_len; i++) {
     lua_rawgeti(L, 1, i + 1);
     inst_id[i] = lua_tointeger(L, -1);
@@ -151,10 +149,52 @@ traceback(lua_State *L)
   return 1;
 }
 
+static int
+verify_path(const char *path)
+{
+	char c;
+
+	goto inside;
+	for (; ;) {
+		if (!c)
+			return 1;
+		if (c == '/') {
+inside:
+			c = *path++;
+			if (c != '/' && c != '.' && c != '\0')
+				continue;
+			return 0;
+		}
+		c = *path++;
+	}
+}
+
 int
 main(int argc, char **argv)
 {
-  if (argc != 2) {
+  /* Defalut port */
+  int port = 161;
+  const char *conf = NULL;
+
+  while (--argc > 0) {
+    ++argv;
+
+    if (verify_path(*argv)) {
+      const char *str = &((*argv)[strlen(*argv) - 4]); 
+      if (!strcmp(str, ".lua"))
+        conf = *argv;
+    }
+
+    if (!strcmp(*argv, "-p") || !strcmp(*argv, "--port")) {
+      if (--argc == 0)
+        usage("snmpd [-p|--port 161]");
+      port = atoi(*(++argv));
+      if (port == 0)
+        perror("What's the port number on earth?");
+    }
+  }
+
+  if (conf == NULL) {
     usage("snmpd init.lua");
   }
 
@@ -165,13 +205,15 @@ main(int argc, char **argv)
   L = luaL_newstate();
   luaL_openlibs(L);
 
+  /* Open Lua environment */
   /* Register mib_lib into lua */
   luaL_register(L, "mib_lib", mib_lib);
 
   lua_pushcfunction(L, traceback);
 
+  /* Open Lua environment */
   /* Load mib-node config file */
-  if (luaL_loadfile(L, argv[1])) {
+  if (luaL_loadfile(L, conf)) {
     fprintf(stderr, "Lua do file fail: %s\n", lua_tostring(L, -1));
     exit(-1);
   } else if (lua_pcall(L, 0, 0, lua_gettop(L) - 1)) {
@@ -179,7 +221,7 @@ main(int argc, char **argv)
   }
 
   /* Init and run transport module */
-  transport_init(161, snmpd_receive);
+  transport_init(port, snmpd_receive);
   transport_running();
 
   lua_close(L);

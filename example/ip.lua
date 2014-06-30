@@ -76,6 +76,7 @@ ipNetToMediaType = {
 }
 
 ipGroup = {
+     rwcommunity = 'ipprivate',
      [1]  = mib.Int(1),
      [2]  = mib.Int(64),
      [3]  = mib.ConstInt(669874),
