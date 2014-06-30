@@ -33,6 +33,7 @@ int
 mib_instance_search(struct oid_search_res *ret_oid)
 {
   int i;
+  char *community;
   Variable *var = &ret_oid->var;
   lua_State *L = snmp_datagram.lua_state;
 
@@ -43,7 +44,10 @@ mib_instance_search(struct oid_search_res *ret_oid)
   /* op */
   lua_pushinteger(L, ret_oid->request);
   /* Community authorization */
-  lua_pushstring(L, snmp_datagram.community);
+  community = xcalloc(snmp_datagram.comm_len + 1, sizeof(char));
+  memcpy(community, snmp_datagram.community, snmp_datagram.comm_len);
+  lua_pushstring(L, community);
+  free(community);
   /* req_sub_oid */
   lua_newtable(L);
   for (i = 0; i < ret_oid->inst_id_len; i++) {
