@@ -86,6 +86,7 @@ sys_or_uptimes = {
 }
 
 sysGroup = {
+    rocommunity = 'public',
     [sysDesc]         = mib.ConstString(sh_call("uname -a")),
     [sysObjectID]     = mib.ConstOid({1,3,6,1,4,1,8072,3,1}),
     [sysUpTime]       = mib.ConstTimeticks(sys_up_time()),

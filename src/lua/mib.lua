@@ -76,6 +76,16 @@ SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
 
 mib = {}
 
+function mib.SetRoCommunity(s)
+    assert(type(s) == 'string')
+    mib.rocommunity = s
+end
+
+function mib.SetRwCommunity(s)
+    assert(type(s) == 'string')
+    mib.rwcommunity = s
+end
+
 -- String value for RO.
 function mib.ConstString(s)
     assert(type(s) == 'string' or type(s) == 'function', 'Argument must be string or function type')
@@ -474,7 +484,7 @@ function group_index_table_generator(group, name)
 end
 
 -- Search and operation
-function mib_node_search(group, group_index_table, op, req_sub_oid, req_val, req_val_type)
+function mib_node_search(group, group_index_table, op, community, req_sub_oid, req_val, req_val_type)
     local rsp_sub_oid = nil
     local rsp_val = nil
     local rsp_val_type = nil
@@ -494,6 +504,18 @@ function mib_node_search(group, group_index_table, op, req_sub_oid, req_val, req
         rsp_sub_oid = req_sub_oid
         rsp_val = req_val
         rsp_val_type = req_val_type
+
+        -- priority for local group community string
+        if group.rwcommunity ~= community then
+            -- Global community
+            if mib.rwcommunity ~= nil and mib.rwcommunity ~= '' and mib.rwcommunity ~= community then
+                return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
+            end
+            -- Local community
+            if group.rwcommunity ~= nil and group.rwcommunity ~= '' then
+                return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
+            end
+        end
 
         local obj_no = req_sub_oid[1]
         local dim = effective_object_index(group_index_table, obj_no)
@@ -540,6 +562,18 @@ function mib_node_search(group, group_index_table, op, req_sub_oid, req_val, req
     -- get operation
     handlers[SNMP_REQ_GET] = function ()
         rsp_sub_oid = req_sub_oid
+
+        -- priority for local group community string
+        if group.rocommunity ~= community then
+            -- Global community
+            if mib.rocommunity ~= nil and mib.rocommunity ~= '' and mib.rocommunity ~= community then
+                return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
+            end
+            -- Local community
+            if group.rocommunity ~= nil and group.rocommunity ~= '' then
+                return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
+            end
+        end
 
         local obj_no = req_sub_oid[1]
         local dim = effective_object_index(group_index_table, obj_no)
@@ -593,6 +627,18 @@ function mib_node_search(group, group_index_table, op, req_sub_oid, req_val, req
     -- get next operation
     handlers[SNMP_REQ_GETNEXT] = function ()
         rsp_sub_oid = req_sub_oid
+        
+        -- priority for local group community string
+        if group.rocommunity ~= community then
+            -- Global community
+            if mib.rocommunity ~= nil and mib.rocommunity ~= '' and mib.rocommunity ~= community then
+                return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
+            end
+            -- Local community
+            if group.rocommunity ~= nil and group.rocommunity ~= '' then
+                return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
+            end
+        end
 
         local i = 1
         local variable = nil
@@ -637,7 +683,7 @@ function mib_node_search(group, group_index_table, op, req_sub_oid, req_val, req
         until variable.access ~= MIB_ACES_UNA
 
         if next(rsp_sub_oid) == nil then
-            return BER_TAG_NO_SUCH_OBJ, req_sub_oid, nil, nil
+            return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
         end
 
         if (type(rsp_val) == 'function') then rsp_val = rsp_val() end
@@ -651,8 +697,8 @@ end
 -- Register interfaces
 function mib_group_register(oid, group, name)
     local group_indexes = group_index_table_generator(group, name)
-    local mib_search_handler = function (op, req_sub_oid, req_val, req_val_type)
-    	return mib_node_search(group, group_indexes, op, req_sub_oid, req_val, req_val_type)
+    local mib_search_handler = function (op, community, req_sub_oid, req_val, req_val_type)
+    	return mib_node_search(group, group_indexes, op, community, req_sub_oid, req_val, req_val_type)
     end
     _G[name] = mib_search_handler
     mib_lib.mib_node_reg(oid, name)

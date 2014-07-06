@@ -33,6 +33,7 @@ int
 mib_instance_search(struct oid_search_res *ret_oid)
 {
   int i;
+  char *community;
   Variable *var = &ret_oid->var;
   lua_State *L = snmp_datagram.lua_state;
 
@@ -42,6 +43,11 @@ mib_instance_search(struct oid_search_res *ret_oid)
   lua_getglobal(L, ret_oid->callback);
   /* op */
   lua_pushinteger(L, ret_oid->request);
+  /* Community authorization */
+  community = xcalloc(snmp_datagram.comm_len + 1, sizeof(char));
+  memcpy(community, snmp_datagram.community, snmp_datagram.comm_len);
+  lua_pushstring(L, community);
+  free(community);
   /* req_sub_oid */
   lua_newtable(L);
   for (i = 0; i < ret_oid->inst_id_len; i++) {
@@ -90,7 +96,7 @@ mib_instance_search(struct oid_search_res *ret_oid)
     lua_pushnil(L);
   }
 
-  if (lua_pcall(L, 4, 4, 0) != 0) {
+  if (lua_pcall(L, 5, 4, 0) != 0) {
     CREDO_SNMP_LOG(SNMP_LOG_ERROR, "Lua call function %s fail\n", ret_oid->callback);
     ret_oid->exist_state = BER_TAG_NO_SUCH_OBJ;
     return 0;
@@ -233,6 +239,12 @@ snmp_get(struct snmp_datagram *sdg)
     mib_tree_search(vb_in->oid, vb_in->oid_len, &ret_oid);
 
     if (ret_oid.exist_state) {
+      /* Community authorization */
+      if (ret_oid.exist_state == SNMP_ERR_STAT_AUTHORIZATION) {
+        CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: Community authorization failure\n");
+        snmp_msg_clear(sdg);
+        return;
+      }
       /* not exist */
       vb_out = xmalloc(sizeof(*vb_out));
       vb_out->oid = ret_oid.oid;
@@ -289,6 +301,12 @@ snmp_getnext(struct snmp_datagram *sdg)
     mib_tree_search_next(vb_in->oid, vb_in->oid_len, &ret_oid);
 
     if (ret_oid.exist_state) {
+      /* Community authorization */
+      if (ret_oid.exist_state == SNMP_ERR_STAT_AUTHORIZATION) {
+        CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: Community authorization failure\n");
+        snmp_msg_clear(sdg);
+        return;
+      }
       /* This situation is only for traversal when end-of-mib-tree */
       vb_out = xmalloc(sizeof(*vb_out));
       vb_out->oid = ret_oid.oid;
@@ -346,6 +364,13 @@ snmp_set(struct snmp_datagram *sdg)
 
     /* Search at the input oid and set it */
     mib_tree_search(vb_in->oid, vb_in->oid_len, &ret_oid);
+
+    /* Community authorization */
+    if (ret_oid.exist_state == SNMP_ERR_STAT_AUTHORIZATION) {
+      CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: Community authorization failure\n");
+      snmp_msg_clear(sdg);
+      return;
+    }
 
     vb_out = xmalloc(sizeof(*vb_out) + vb_in->value_len);
     vb_out->oid = ret_oid.oid;
@@ -413,6 +438,12 @@ snmp_bulkget(struct snmp_datagram *sdg)
       vb_in->oid_len = ret_oid.id_len;
 
       if (ret_oid.exist_state) {
+        /* Community authorization */
+        if (ret_oid.exist_state == SNMP_ERR_STAT_AUTHORIZATION) {
+          CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: Community authorization failure\n");
+          snmp_msg_clear(sdg);
+          return;
+        }
         /* This situation is only for traversal when end-of-mib-tree */
         vb_out = xmalloc(sizeof(*vb_out));
         vb_out->oid = ret_oid.oid;
