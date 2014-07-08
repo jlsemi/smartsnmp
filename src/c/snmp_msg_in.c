@@ -33,7 +33,6 @@ int
 mib_instance_search(struct oid_search_res *ret_oid)
 {
   int i;
-  char *community;
   Variable *var = &ret_oid->var;
   lua_State *L = snmp_datagram.lua_state;
 
@@ -44,10 +43,7 @@ mib_instance_search(struct oid_search_res *ret_oid)
   /* op */
   lua_pushinteger(L, ret_oid->request);
   /* Community authorization */
-  community = xcalloc(snmp_datagram.comm_len + 1, sizeof(char));
-  memcpy(community, snmp_datagram.community, snmp_datagram.comm_len);
-  lua_pushstring(L, community);
-  free(community);
+  lua_pushstring(L, snmp_datagram.community);
   /* req_sub_oid */
   lua_newtable(L);
   for (i = 0; i < ret_oid->inst_id_len; i++) {
@@ -690,7 +686,7 @@ asn1_decode(struct snmp_datagram *sdg)
     goto DECODE_FINISH;
   }
   buffer += ber_length_dec(buffer, &sdg->comm_len);
-  sdg->community = xmalloc(sdg->comm_len * sizeof(octstr_t));
+  sdg->community = xcalloc(sdg->comm_len + 1, sizeof(octstr_t));
   ber_value_dec(buffer, sdg->comm_len, BER_TAG_OCTSTR, sdg->community);
   buffer += sdg->comm_len;
 
