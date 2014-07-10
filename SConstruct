@@ -98,7 +98,7 @@ AddOption(
 env = Environment(
   ENV = os.environ,
   LIBS = ['m', 'dl'],
-  CFLAGS = '-std=c99 -Wall -Os -Iinclude ',
+  CFLAGS = '-std=c99 -Wall -Os -g -Iinclude ',
 )
 
 # handle options/environment varibles.
@@ -138,10 +138,10 @@ if GetOption("libubox_dir") is not "":
 # transport select
 if GetOption("transport") == 'libevent':
   env.Append(LIBS = ['event'])
-  transport_src = env.Glob("src/c/libevent_transport.c")
+  transport_src = env.Glob("src/libevent_transport.c")
 else:
   env.Append(LIBS = ['ubox'])
-  transport_src = env.Glob("src/c/uloop_transport.c")
+  transport_src = env.Glob("src/uloop_transport.c")
 
 # autoconf
 conf = Configure(env)
@@ -167,5 +167,5 @@ else:
 
 env = conf.Finish()
 
-src = env.Glob("src/c/asn1_*.c") + env.Glob("src/c/snmp_msg_*.c") + env.Glob("src/c/ans1_*.c") + env.Glob("src/c/snmpd.c") + env.Glob("src/c/mib.c") + transport_src
-snmpd = env.Program('snmpd', src)
+src = env.Glob("src/asn1_*.c") + env.Glob("src/snmp_msg_*.c") + env.Glob("src/ans1_*.c") + env.Glob("src/snmpd.c") + env.Glob("src/mib.c") + transport_src
+snmpd = env.SharedLibrary('lualib/core', src, SHLIBPREFIX = '')

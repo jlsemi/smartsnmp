@@ -17,7 +17,7 @@
 -- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 -- 
 
-local mib = require "mib"
+local mib = require "lualib.mib"
 
 tcpConnState = { 5,6,8,5,5,11,6,2,11,5, }
 

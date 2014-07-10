@@ -17,7 +17,7 @@
 -- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 -- 
 
-local mib = require "mib"
+local mib = require "lualib.mib"
 
 udpInDatagrams  = 1
 udpNoPorts      = 2
