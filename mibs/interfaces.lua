@@ -17,7 +17,7 @@
 -- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 -- 
 
-local mib = require "lualib.mib"
+local mib = require "smartsnmp"
 
 ifndex = { 1, 2, 3, 4, 5 }
 

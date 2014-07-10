@@ -17,24 +17,47 @@
 -- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 -- 
 
-package.path = package.path .. ";src/lua/?.lua;example/?.lua"
+local mib = require "smartsnmp"
 
-mib = require "mib"
-sysGroup = require "system"
-ifGroup = require "interfaces"
-ipGroup = require "ip"
-tcpGroup = require "tcp"
-udpGroup = require "udp"
-mib_lib = require "mib_lib"
+udpInDatagrams  = 1
+udpNoPorts      = 2
+udpInErrors     = 3
+udpOutDatagrams = 4
+udpTable        = 5
 
-mib.SetRoCommunity('public')
-mib.SetRwCommunity('private')
+udpLocalAddress = {
+    {0,0,0,0},
+    {0,0,0,0},
+    {0,0,0,0},
+    {0,0,0,0},
+    {0,0,0,0},
+    {0,0,0,0},
+    {127,0,0,1},
+    {192,168,122,1},
+}
 
-mib_group_register({1,3,6,1, 2,1, 1}, sysGroup, 'sysGroup')
-mib_group_register({1,3,6,1, 2,1, 2}, ifGroup, 'ifGroup')
-mib_group_register({1,3,6,1, 2,1, 4}, ipGroup, 'ipGroup')
-mib_group_register({1,3,6,1, 2,1, 6}, tcpGroup, 'tcpGroup')
-mib_group_register({1,3,6,1, 2,1, 7}, udpGroup, 'udpGroup')
+udpLocalPort = {
+    67,
+    68,
+    161,
+    5353,
+    44681,
+    51586,
+    53,
+    53,
+}
 
---mib_group_unregister({1,3,6,1, 2,1, 1})
---mib_group_unregister({1,3,6,1, 2})
+udpGroup = {
+    [udpInDatagrams]  = mib.ConstCount(33954),
+    [udpNoPorts]      = mib.ConstCount(751),
+    [udpInErrors]     = mib.ConstCount(0),
+    [udpOutDatagrams] = mib.ConstCount(35207),
+    [udpTable] = {
+        [1] = {
+            [1] = mib.ConstIpaddrList(udpLocalAddress),
+            [2] = mib.ConstIntList(udpLocalPort),
+        }
+    }
+}
+
+return udpGroup

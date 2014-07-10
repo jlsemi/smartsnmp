@@ -97,7 +97,7 @@ Net-SNMP utils need be installed before you run test scripts (on Ubuntu).
 
 To run SNMP agent:
 
-    sudo ./snmpd example/init.lua
+    sodo ./run_snmpd
 
 Test agent in another terminal:
 
