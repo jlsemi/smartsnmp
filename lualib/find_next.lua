@@ -107,6 +107,7 @@ local test_matrix_find_next = function (t, max_dim, input, expect_out)
     return soutput == sexpout
 end
 
+--[[
 
 -- test cases
 local x = {}
@@ -146,7 +147,6 @@ assert(test_matrix_find_next(y, 4, {5,8,2,4},    {5,8,2,888}     ))
 assert(test_matrix_find_next(y, 4, {5,8,2,888},  {}              ))
 assert(test_matrix_find_next(y, 4, {2,5,1,8},    {2,8,2,1}       ))
 
---[[
 ]]--
 
 return matrix_find_next

@@ -378,10 +378,19 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
   return node;
 }
 
+/* Check if mib root node is initialized */
+static inline void
+mib_tree_init_check(void)
+{
+  if (internet_group.sub_id == NULL || internet_group.sub_ptr == NULL)
+    die("Mib tree not init yet!");
+}
+
 /* Test a newly allocated group node. */
 static inline int
 is_raw_group_node(struct mib_group_node *gn)
 {
+  assert(gn->sub_id != NULL);
   return gn->sub_id[0] == 0 && gn->sub_id_cnt == 0;
 }
 
@@ -632,7 +641,7 @@ __mib_tree_delete(struct node_pair *pair)
   }
 }
 
-void
+static void
 mib_tree_delete(const oid_t *oid, uint32_t id_len)
 {
   struct node_pair pair;
@@ -659,6 +668,7 @@ mib_tree_group_insert(const oid_t *oid, uint32_t id_len)
   /* Init something */
   pair.parent = pair.child = NULL;
   node = (struct mib_node *)&internet_group;
+
   oid += INTERNET_PREFIX_LENGTH;
   id_len -= INTERNET_PREFIX_LENGTH;
 
@@ -788,6 +798,8 @@ mib_node_reg(const oid_t *oid, uint32_t len, const char *lua_callback)
   struct mib_group_node *gn;
   struct mib_instance_node *in;
 
+  mib_tree_init_check();
+
   gn = mib_tree_group_insert(oid, len - 1);
   if (gn == NULL) {
     goto NODE_REG_FAIL;
@@ -809,9 +821,12 @@ NODE_REG_FAIL:
   return -1;
 }
 
+/* Unregister node(s) in mib-tree according to oid. */
 void
 mib_node_unreg(const oid_t *oid, uint32_t len)
 {
+  mib_tree_init_check();
+
   mib_tree_delete(oid, len);
 }
 

@@ -17,7 +17,8 @@
 -- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 --
 
-local matrix_find_next = require "find_next"
+local matrix_find_next = require "lualib.find_next"
+local core = require "lualib.core"
 
 -- Access
 MIB_ACES_UNA        = 0
@@ -695,18 +696,18 @@ function mib_node_search(group, group_index_table, op, community, req_sub_oid, r
 end
 
 -- Register interfaces
-function mib_group_register(oid, group, name)
+function mib.group_node_register(oid, group, name)
     local group_indexes = group_index_table_generator(group, name)
     local mib_search_handler = function (op, community, req_sub_oid, req_val, req_val_type)
     	return mib_node_search(group, group_indexes, op, community, req_sub_oid, req_val, req_val_type)
     end
     _G[name] = mib_search_handler
-    mib_lib.mib_node_reg(oid, name)
+    core.mib_node_reg(oid, name)
 end
 
 -- Unregister interfaces
-function mib_group_unregister(oid)
-    mib_lib.mib_node_unreg(oid)
+function mib.group_node_unregister(oid)
+    core.mib_node_unreg(oid)
 end
 
 return mib
