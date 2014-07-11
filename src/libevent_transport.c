@@ -37,6 +37,8 @@
 static TRANSPORT_RECEIVER le_receiver;
 
 static struct event_base *event_base;
+static struct event *snmp_recv_event;
+static struct event *snmp_send_event;
 static int sock;
 struct sockaddr_in *client_sin;
 
@@ -53,7 +55,7 @@ static void
 udp_write_cb(const int sock, short int which, void *arg)
 {
   struct send_data_entry * entry;
-  struct event *send_event;
+
   if (!TAILQ_EMPTY(&send_queue_head)) {
     entry = TAILQ_FIRST(&send_queue_head);
 
@@ -68,10 +70,13 @@ udp_write_cb(const int sock, short int which, void *arg)
     free(entry->client_sin);
     free(entry);
 
+    /* Free send event */
+    event_free(snmp_send_event);
+
     /* if there is other data to be sent, register another EV_WRITE event */
     if (!TAILQ_EMPTY(&send_queue_head)) {
-      send_event = event_new(event_base, sock, EV_WRITE, udp_write_cb, NULL);
-      event_add(send_event, NULL);
+      snmp_send_event = event_new(event_base, sock, EV_WRITE, udp_write_cb, NULL);
+      event_add(snmp_send_event, NULL);
     }
   }
 }
@@ -111,7 +116,6 @@ void
 transport_send(uint8_t * buf, int len)
 {
   struct send_data_entry * entry;
-  struct event *send_event;
 
   entry = malloc(sizeof(struct send_data_entry));
   if (entry == NULL) {
@@ -126,19 +130,18 @@ transport_send(uint8_t * buf, int len)
   /* Insert to tail */
   TAILQ_INSERT_TAIL(&send_queue_head, entry, entries);
 
-  send_event = event_new(event_base, sock, EV_WRITE, udp_write_cb, NULL);
-  event_add(send_event, NULL);
+  /* Send event comes with UPD packet */
+  snmp_send_event = event_new(event_base, sock, EV_WRITE, udp_write_cb, NULL);
+  event_add(snmp_send_event, NULL);
 }
 
 void
 transport_running(void)
 {
-  struct event * snmp_recv_event;
-
   /* Initialize libevent */
   event_base = event_base_new();
 
-  /* Add the UDP event */
+  /* Receive event can be added only once. */
   snmp_recv_event = event_new(event_base, sock, EV_READ | EV_PERSIST, udp_read_cb, NULL);
   event_add(snmp_recv_event, NULL);
 

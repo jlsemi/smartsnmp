@@ -194,8 +194,6 @@ snmp_msg_clear(struct snmp_datagram *sdg)
   snmp_vb_list_free(&sdg->vb_out_list);
   sdg->vb_in_cnt = 0;
   sdg->vb_out_cnt = 0;
-  free(sdg->version);
-  free(sdg->community);
 }
 
 static void
@@ -668,25 +666,28 @@ asn1_decode(struct snmp_datagram *sdg)
   buffer = sdg->recv_buf + tag_len;
   buffer += ber_length_dec(buffer, &snmp_datagram.data_len);
 
-  /* version */
+  /* Version */
   if (*buffer++ != BER_TAG_INT) {
     CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: %d\n", SNMP_ERR_PDU_TYPE);
     dec_fail = 1;
     goto DECODE_FINISH;
   }
   buffer += ber_length_dec(buffer, &sdg->ver_len);
-  sdg->version = xmalloc(sizeof(integer_t));
-  ber_value_dec(buffer, sdg->ver_len, BER_TAG_INT, sdg->version);
+  ber_value_dec(buffer, sdg->ver_len, BER_TAG_INT, &sdg->version);
   buffer += sdg->ver_len;
 
-  /* community */
+  /* Community */
   if (*buffer++ != BER_TAG_OCTSTR) {
     CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: %d\n", SNMP_ERR_PDU_TYPE);
     dec_fail = 1;
     goto DECODE_FINISH;
   }
   buffer += ber_length_dec(buffer, &sdg->comm_len);
-  sdg->community = xcalloc(sdg->comm_len + 1, sizeof(octstr_t));
+  if (sdg->comm_len + 1 >= sizeof(sdg->community)) {
+    CREDO_SNMP_LOG(SNMP_LOG_ERROR, "Community string too long\n");
+    dec_fail = 1;
+    goto DECODE_FINISH;
+  }
   ber_value_dec(buffer, sdg->comm_len, BER_TAG_OCTSTR, sdg->community);
   buffer += sdg->comm_len;
 
