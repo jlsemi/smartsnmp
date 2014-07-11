@@ -1,4 +1,5 @@
--- getopt_alt.lua from http://lua-users.org/wiki/AlternativeGetOpthttp://lua-users.org/wiki/AlternativeGetOpt
+------------------------------------------------------------------------------
+-- getopt_alt.lua from http://lua-users.org/wiki/AlternativeGetOpt
 
 -- getopt, POSIX style command line argument parser
 -- param arg contains the command line arguments in a standard table.
@@ -12,7 +13,11 @@
 --   -cdaone ==> opts["c"]==true opts["d"]==true opts["a"]=="one"
 -- note POSIX demands the parser ends at the first non option
 --      this behavior isn't implemented.
-local getopt = function (arg, options)
+------------------------------------------------------------------------------
+
+local utils = {}
+
+utils.getopt = function (arg, options)
   local tab = {}
   for k, v in ipairs(arg) do
     if string.sub( v, 1, 2) == "--" then
@@ -43,4 +48,15 @@ local getopt = function (arg, options)
   return tab
 end
 
-return getopt
+------------------------------------------------------------------------------
+-- convert oid string to oid lua table
+------------------------------------------------------------------------------
+utils.str2oid = function (s)
+    local oid = {}
+    for n in string.gmatch(s, '%d+') do
+        table.insert(oid, tonumber(n))
+    end
+    return oid
+end
+
+return utils

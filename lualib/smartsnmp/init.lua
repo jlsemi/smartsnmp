@@ -726,7 +726,7 @@ _M.set_rw_community = function (s)
 end
 
 -- register a group of snmp mib nodes
-_M.regiseter_mib_group = function (oid, group, name)
+_M.register_mib_group = function (oid, group, name)
     local group_indexes = group_index_table_generator(group, name)
     local mib_search_handler = function (op, community, req_sub_oid, req_val, req_val_type)
     	return mib_node_search(group, group_indexes, op, community, req_sub_oid, req_val, req_val_type)
@@ -738,7 +738,7 @@ _M.regiseter_mib_group = function (oid, group, name)
 end
 
 -- unregister a group of snmp mib nodes
-_M.unregiseter_mib_group = function(oid)
+_M.unregister_mib_group = function(oid)
     core.mib_node_unreg(oid)
 end
 
