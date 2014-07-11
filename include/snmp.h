@@ -160,10 +160,10 @@ struct snmp_datagram {
 
   uint32_t data_len;
   /* version */
-  integer_t *version;
+  integer_t version;
   uint32_t ver_len;
   /* community */
-  octstr_t *community;
+  octstr_t community[41];
   uint32_t comm_len;
 
   struct pdu_hdr pdu_hdr;

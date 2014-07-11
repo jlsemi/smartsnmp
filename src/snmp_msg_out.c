@@ -66,7 +66,7 @@ asn1_encode(struct snmp_datagram *sdg)
   /* Version */
   *buf++ = BER_TAG_INT;
   buf += ber_length_enc(sdg->ver_len, buf);
-  buf += ber_value_enc(sdg->version, 1, BER_TAG_INT, buf);
+  buf += ber_value_enc(&sdg->version, 1, BER_TAG_INT, buf);
 
   /* Community */
   *buf++ = BER_TAG_OCTSTR;
