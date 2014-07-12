@@ -15,28 +15,49 @@
 -- You should have received a copy of the GNU General Public License along
 -- with this program; if not, write to the Free Software Foundation, Inc.,
 -- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
--- local mib = require "lualib.mib"
---
+-- 
 
-local snmpd = require "lualib.core"
-local sysGroup = require "example.system"
-local ifGroup = require "example.interfaces"
-local ipGroup = require "example.ip"
-local tcpGroup = require "example.tcp"
-local udpGroup = require "example.udp"
+local mib = require "smartsnmp"
 
-local port = 161
-snmpd.init(port)
+udpInDatagrams  = 1
+udpNoPorts      = 2
+udpInErrors     = 3
+udpOutDatagrams = 4
+udpTable        = 5
 
-mib.SetRoCommunity('public')
-mib.SetRwCommunity('private')
+udpLocalAddress = {
+    {0,0,0,0},
+    {0,0,0,0},
+    {0,0,0,0},
+    {0,0,0,0},
+    {0,0,0,0},
+    {0,0,0,0},
+    {127,0,0,1},
+    {192,168,122,1},
+}
 
-mib.group_node_register({1,3,6,1, 2,1, 1}, sysGroup, 'sysGroup')
-mib.group_node_register({1,3,6,1, 2,1, 2}, ifGroup, 'ifGroup')
-mib.group_node_register({1,3,6,1, 2,1, 4}, ipGroup, 'ipGroup')
-mib.group_node_register({1,3,6,1, 2,1, 6}, tcpGroup, 'tcpGroup')
-mib.group_node_register({1,3,6,1, 2,1, 7}, udpGroup, 'udpGroup')
+udpLocalPort = {
+    67,
+    68,
+    161,
+    5353,
+    44681,
+    51586,
+    53,
+    53,
+}
 
-snmpd.run()
+udpGroup = {
+    [udpInDatagrams]  = mib.ConstCount(33954),
+    [udpNoPorts]      = mib.ConstCount(751),
+    [udpInErrors]     = mib.ConstCount(0),
+    [udpOutDatagrams] = mib.ConstCount(35207),
+    [udpTable] = {
+        [1] = {
+            [1] = mib.ConstIpaddrList(udpLocalAddress),
+            [2] = mib.ConstIntList(udpLocalPort),
+        }
+    }
+}
 
-return snmpd
+return udpGroup

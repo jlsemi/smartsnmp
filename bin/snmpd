@@ -1,0 +1,122 @@
+#!/usr/bin/env lua
+-- 
+-- This file is part of SmartSNMP
+-- Copyright (C) 2014, Credo Semiconductor Inc.
+-- 
+-- This program is free software; you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation; either version 2 of the License, or
+-- (at your option) any later version.
+-- 
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+-- 
+-- You should have received a copy of the GNU General Public License along
+-- with this program; if not, write to the Free Software Foundation, Inc.,
+-- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+-- local mib = require "lualib.mib"
+--
+
+local snmpd = require "smartsnmp"
+local utils = require "smartsnmp.utils"
+
+-- default configuration file
+local config_file = 'config/smartsnmp.conf'
+
+-------------------------------------------------------------------------------
+-- parse arguments
+-------------------------------------------------------------------------------
+
+local opts = utils.getopt( arg, "pc" )
+for k, v in pairs(opts) do
+    if k == 'c' and type(v) == 'string' then
+        config_file = v
+    end
+end
+
+-------------------------------------------------------------------------------
+-- load configuration file
+-------------------------------------------------------------------------------
+
+-- load mib module file
+local config_chunk, err = loadfile(config_file)
+if config_chunk == nil then
+    print("Failed to open configuration file.")
+    print(err)
+    os.exit(-1)
+end
+
+local status, config = pcall(config_chunk)
+if status == false then
+    print("Failed to load configuration file.")
+    print(config)
+    os.exit(-1)
+end
+
+-- check configurations
+if type(port) ~= 'number' then
+    print("Can't get listen port number for SNMP agent, please check your configuration file!")
+    os.exit(-1)
+end
+
+if type(ro_community) ~= 'string' then
+    print("Can't get read only community for SNMP agent, please check your configuration file!")
+    os.exit(-1)
+end
+
+if type(rw_community) ~= 'string' then
+    print("Can't get read and write only community for SNMP agent, please check your configuration file!")
+    os.exit(-1)
+end
+
+if type(mib_module_path) ~= 'string' then
+    print("Can't get mib_module_path for SNMP agent, please check your configuration file!")
+    os.exit(-1)
+end
+
+if type(mib_modules) ~= 'table' then
+    print("Can't get mib_modules for SNMP agent, please check your configuration file!")
+    os.exit(-1)
+end
+
+-------------------------------------------------------------------------------
+-- setup snmp agent, load mib modules and run it.
+-------------------------------------------------------------------------------
+
+snmpd.init(port)
+
+snmpd.set_ro_community(ro_community)
+snmpd.set_rw_community(rw_community)
+
+-- load mib module with error handling
+local register_mib_module = function(oid_str, mib_module_name)
+    -- TODO: check if oid is illegal
+    local oid = utils.str2oid(oid_str)
+    local mib_module_file = mib_module_path..'/'..mib_module_name..'.lua'
+
+    -- load mib module file
+    local mib_module, err = loadfile(mib_module_file)
+    if mib_module == nil then
+        return false, err
+    end
+
+    local status, mib_group_or_err = pcall(mib_module)
+    if status == false then
+        return false, mib_group_or_err
+    end
+
+    return pcall(snmpd.register_mib_group, oid, mib_group_or_err, mib_module_name)
+end
+
+for oid_str, mib_module_name in pairs(mib_modules) do
+    status, err = register_mib_module(oid_str, mib_module_name)
+    if status ~= true then
+        print("Failed to load MIB module: "..mib_module_name)
+        print(err)
+    end
+end
+
+snmpd.start()
+

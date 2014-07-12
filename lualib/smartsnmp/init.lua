@@ -17,8 +17,17 @@
 -- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 --
 
-local matrix_find_next = require "lualib.find_next"
-local core = require "lualib.core"
+local core = require "smartsnmp.core"
+local matrix_find_next = require "smartsnmp.find_next"
+
+local _M = {}
+_M.core = core
+_M._NAME = "smartsnmp"
+_M._VERSION = "dev"
+
+-- 
+-- Constant Values for SNMP
+--
 
 -- Access
 MIB_ACES_UNA        = 0
@@ -75,106 +84,98 @@ SNMP_ERR_STAT_AUTHORIZATION       = 16
 SNMP_ERR_STAT_NOT_WRITABLE        = 17
 SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
 
-mib = {}
-
-function mib.SetRoCommunity(s)
-    assert(type(s) == 'string')
-    mib.rocommunity = s
-end
-
-function mib.SetRwCommunity(s)
-    assert(type(s) == 'string')
-    mib.rwcommunity = s
-end
+--
+-- Generators for declare SNMP MIB Node
+--
 
 -- String value for RO.
-function mib.ConstString(s)
+function _M.ConstString(s)
     assert(type(s) == 'string' or type(s) == 'function', 'Argument must be string or function type')
     return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RO, value = s }
 end
 
 -- String value for RW.
-function mib.String(s)
+function _M.String(s)
     assert(type(s) == 'string', 'Argument must be string type')
     return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RW, value = s }
 end
 
 -- Integer value for RO.
-function mib.ConstInt(i)
+function _M.ConstInt(i)
     assert(type(i) == 'number' or type(i) == 'function', 'Argument must be integer or function type')
     return { tag = BER_TAG_INT, access = MIB_ACES_RO, value = i }
 end
 
 -- Integer value for RW.
-function mib.Int(i)
+function _M.Int(i)
     assert(type(i) == 'number', 'Argument must be integer type')
     return { tag = BER_TAG_INT, access = MIB_ACES_RW, value = i }
 end
 
 -- Count value for RO.
-function mib.ConstCount(c)
+function _M.ConstCount(c)
     assert(type(c) == 'number' or type(c) == 'functcon', 'Argument must be count or functcon type')
     return { tag = BER_TAG_CNT, access = MIB_ACES_RO, value = c }
 end
 
 -- Count value for RW.
-function mib.Count(c)
+function _M.Count(c)
     assert(type(c) == 'number', 'Argument must be count type')
     return { tag = BER_TAG_CNT, access = MIB_ACES_RW, value = c }
 end
 
 -- IP address value for RO.
-function mib.ConstIpaddr(ip)
+function _M.ConstIpaddr(ip)
     assert((type(ip) == 'table' and (#ip == 4 or #ip == 6)) or type(ip) == 'functcon', 'Argument must be IP address or functcon type')
     for k in pairs(ip) do assert(type(ip[k]) == 'number', 'Argument must be IP address') end
     return { tag = BER_TAG_IPADDR, access = MIB_ACES_RO, value = ip }
 end
 
 -- IP address value for RW.
-function mib.Ipaddr(ip)
+function _M.Ipaddr(ip)
     assert(type(ip) == 'table' and (#ip == 4 or #ip == 6), 'Argument must be IP address type')
     for k in pairs(ip) do assert(type(ip[k]) == 'number', 'Argument must be IP address') end
     return { tag = BER_TAG_IPADDR, access = MIB_ACES_RW, value = ip }
 end
 
 -- Oid value for RO.
-function mib.ConstOid(o)
+function _M.ConstOid(o)
     assert(type(o) == 'table' or type(o) == 'function', 'Argument must be oid array or function type')
     return { tag = BER_TAG_OBJID, access = MIB_ACES_RO, value = o }
 end
 
 -- Oid value for RW.
-function mib.Oid(o)
+function _M.Oid(o)
     assert(type(o) == 'table', 'Argument must be oid array type')
     return { tag = BER_TAG_OBJID, access = MIB_ACES_RW, value = o }
 end
 
 -- Timeticks value for RO.
-function mib.ConstTimeticks(t)
+function _M.ConstTimeticks(t)
     assert(type(t) == 'number' or type(t) == 'function', 'Argument must be timeticks or function type')
     return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RO, value = t }
 end
 
 -- Timeticks value for RW.
-function mib.Timeticks(t)
+function _M.Timeticks(t)
     assert(type(t) == 'number', 'Argument must be timeticks type')
     return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RW, value = t }
 end
 
 -- Gauge value for RO.
-function mib.ConstGauge(g)
+function _M.ConstGauge(g)
     assert(type(g) == 'number' or type(g) == 'function', 'Argument must be gauge or function type')
     return { tag = BER_TAG_GAU, access = MIB_ACES_RO, value = g }
 end
 
 -- Gauge value for RW.
-function mib.Gauge(g)
+function _M.Gauge(g)
     assert(type(g) == 'number', 'Argument must be gauge type')
     return { tag = BER_TAG_GAU, access = MIB_ACES_RW, value = g }
 end
 
 -- Auto incremented indexes.
-function mib.AutoIndex(n)
+function _M.AutoIndex(n)
     assert(type(n) == 'number', 'Argument must be integer type')
     local it = {}
     for i = 1, n do it[i] = i end
@@ -182,7 +183,7 @@ function mib.AutoIndex(n)
 end
 
 -- Integer list for RO.
-function mib.ConstIntList(it)
+function _M.ConstIntList(it)
     assert(type(it) == 'table', 'Argument must be array format')
     for k in pairs(it) do
         if type(it[k]) == 'function' then it[k] = it[k]() end
@@ -192,7 +193,7 @@ function mib.ConstIntList(it)
 end
 
 -- Integer list for RW.
-function mib.IntList(it)
+function _M.IntList(it)
     assert(type(it) == 'table', 'Argument must be array format')
     for k in pairs(it) do
         if type(it[k]) == 'function' then it[k] = it[k]() end
@@ -202,7 +203,7 @@ function mib.IntList(it)
 end
 
 -- Count list for RO.
-function mib.ConstCountList(ct)
+function _M.ConstCountList(ct)
     assert(type(ct) == 'table', 'Argument must be array format')
     for k in pairs(ct) do
         if type(ct[k]) == 'function' then ct[k] = ct[k]() end
@@ -212,7 +213,7 @@ function mib.ConstCountList(ct)
 end
 
 -- Count list for RW.
-function mib.CountList(ct)
+function _M.CountList(ct)
     assert(type(ct) == 'table', 'Argument must be array format')
     for k in pairs(ct) do
         if type(ct[k]) == 'function' then ct[k] = ct[k]() end
@@ -222,7 +223,7 @@ function mib.CountList(ct)
 end
 
 -- String list for RO.
-function mib.ConstStringList(st)
+function _M.ConstStringList(st)
     assert(type(st) == 'table', 'Argument must be array format')
     for k in pairs(st) do
         if type(st[k]) == 'function' then st[k] = st[k]() end
@@ -232,7 +233,7 @@ function mib.ConstStringList(st)
 end
 
 -- String list for RW.
-function mib.StringList(st)
+function _M.StringList(st)
     assert(type(st) == 'table', 'Argument must be array format')
     for k in pairs(st) do
         if type(st[k]) == 'function' then st[k] = st[k]() end
@@ -242,7 +243,7 @@ function mib.StringList(st)
 end
 
 -- Oid list for RO.
-function mib.ConstOidList(ot)
+function _M.ConstOidList(ot)
     assert(type(ot) == 'table', 'Argument must be array format')
     for k in pairs(ot) do
         if type(ot[k]) == 'function' then ot[k] = ot[k]() end
@@ -252,7 +253,7 @@ function mib.ConstOidList(ot)
 end
 
 -- Oid list for RW.
-function mib.OidList(ot)
+function _M.OidList(ot)
     assert(type(ot) == 'table', 'Argument must be array format')
     for k in pairs(ot) do
         if type(ot[k]) == 'function' then ot[k] = ot[k]() end
@@ -262,7 +263,7 @@ function mib.OidList(ot)
 end
 
 -- Ip address list for RO.
-function mib.ConstIpaddrList(ipt)
+function _M.ConstIpaddrList(ipt)
     assert(type(ipt) == 'table', 'Argument must be array format')
     for _, ip in pairs(ipt) do
         if type(ip) == 'function' then ip = ip() end
@@ -273,7 +274,7 @@ function mib.ConstIpaddrList(ipt)
 end
 
 -- Ip address list for RW.
-function mib.IpaddrList(ipt)
+function _M.IpaddrList(ipt)
     assert(type(ipt) == 'table', 'Argument must be array format')
     for _, ip in pairs(ipt) do
         if type(ip) == 'function' then ip = ip() end
@@ -284,7 +285,7 @@ function mib.IpaddrList(ipt)
 end
 
 -- Gauge list for RO.
-function mib.ConstGaugeList(gt)
+function _M.ConstGaugeList(gt)
     assert(type(gt) == 'table', 'Argument must be array format')
     for k in pairs(gt) do
         if type(gt[k]) == 'function' then gt[k] = gt[k]() end
@@ -294,7 +295,7 @@ function mib.ConstGaugeList(gt)
 end
 
 -- Gauge list for RW.
-function mib.GaugeList(gt)
+function _M.GaugeList(gt)
     assert(type(gt) == 'table', 'Argument must be array format')
     for k in pairs(gt) do
         if type(gt[k]) == 'function' then gt[k] = gt[k]() end
@@ -304,7 +305,7 @@ function mib.GaugeList(gt)
 end
 
 -- Timeticks list for RO.
-function mib.ConstTimeticksList(tt)
+function _M.ConstTimeticksList(tt)
     assert(type(tt) == 'table', 'Argument must be array format')
     for k in pairs(tt) do
         if type(tt[k]) == 'function' then tt[k] = tt[k]() end
@@ -314,7 +315,7 @@ function mib.ConstTimeticksList(tt)
 end
 
 -- Timeticks list for RW.
-function mib.TimeticksList(tt)
+function _M.TimeticksList(tt)
     assert(type(tt) == 'table', 'Argument must be array format')
     for k in pairs(tt) do
         if type(tt[k]) == 'function' then tt[k] = tt[k]() end
@@ -323,7 +324,10 @@ function mib.TimeticksList(tt)
     return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RW, value = tt }
 end
 
--- Writing algorithm in lua really sucks, though we still have lots of jobs to do ...
+--
+-- Helper functions
+--
+
 --[[
   It is supposed to generate an index container for a mib group node in which
   several scalar nodes next to each other make up a 2 dim matrix({{obj_no, ...},{0}} )
@@ -370,7 +374,7 @@ end
   Currently we don't support IP address as an instance index.
 ]]--
 
-function check_group_index_table(it)
+local check_group_index_table = function (it)
     for i, v in ipairs(it) do
         if #v == 2 then
            print(unpack(v[1]))
@@ -383,7 +387,7 @@ function check_group_index_table(it)
     end
 end
 
-function group_index_table_generator(group, name)
+local group_index_table_generator = function (group, name)
     assert(type(group) == 'table', string.format('Group should be container'))
     assert(type(name) == 'string', string.format('What is the group\'s name?'))
 
@@ -485,7 +489,7 @@ function group_index_table_generator(group, name)
 end
 
 -- Search and operation
-function mib_node_search(group, group_index_table, op, community, req_sub_oid, req_val, req_val_type)
+local mib_node_search = function (group, group_index_table, op, community, req_sub_oid, req_val, req_val_type)
     local rsp_sub_oid = nil
     local rsp_val = nil
     local rsp_val_type = nil
@@ -509,7 +513,7 @@ function mib_node_search(group, group_index_table, op, community, req_sub_oid, r
         -- priority for local group community string
         if group.rwcommunity ~= community then
             -- Global community
-            if mib.rwcommunity ~= nil and mib.rwcommunity ~= '' and mib.rwcommunity ~= community then
+            if _M.rwcommunity ~= nil and _M.rwcommunity ~= '' and _M.rwcommunity ~= community then
                 return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- Local community
@@ -567,7 +571,7 @@ function mib_node_search(group, group_index_table, op, community, req_sub_oid, r
         -- priority for local group community string
         if group.rocommunity ~= community then
             -- Global community
-            if mib.rocommunity ~= nil and mib.rocommunity ~= '' and mib.rocommunity ~= community then
+            if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
                 return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- Local community
@@ -632,7 +636,7 @@ function mib_node_search(group, group_index_table, op, community, req_sub_oid, r
         -- priority for local group community string
         if group.rocommunity ~= community then
             -- Global community
-            if mib.rocommunity ~= nil and mib.rocommunity ~= '' and mib.rocommunity ~= community then
+            if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
                 return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- Local community
@@ -695,19 +699,47 @@ function mib_node_search(group, group_index_table, op, community, req_sub_oid, r
     return H()
 end
 
--- Register interfaces
-function mib.group_node_register(oid, group, name)
+--
+-- User Interface
+--
+
+-- initialize snmp agent
+_M.init = function (port)
+    core.init(port)
+end
+
+-- start snmp agent
+_M.start = function ()
+    core.run()
+end
+
+-- set read only community
+_M.set_ro_community = function (s)
+    assert(type(s) == 'string')
+    _M.rocommunity = s
+end
+
+-- set read/write community
+_M.set_rw_community = function (s)
+    assert(type(s) == 'string')
+    _M.rwcommunity = s
+end
+
+-- register a group of snmp mib nodes
+_M.register_mib_group = function (oid, group, name)
     local group_indexes = group_index_table_generator(group, name)
     local mib_search_handler = function (op, community, req_sub_oid, req_val, req_val_type)
     	return mib_node_search(group, group_indexes, op, community, req_sub_oid, req_val, req_val_type)
     end
+
+    -- TODO: register handler by function directly instead of use global name
     _G[name] = mib_search_handler
     core.mib_node_reg(oid, name)
 end
 
--- Unregister interfaces
-function mib.group_node_unregister(oid)
+-- unregister a group of snmp mib nodes
+_M.unregister_mib_group = function(oid)
     core.mib_node_unreg(oid)
 end
 
-return mib
+return _M

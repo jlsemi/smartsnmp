@@ -17,7 +17,7 @@
 -- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 -- 
 
-local mib = require "lualib.mib"
+local mib = require "smartsnmp"
 
 ipAdEntAddr = {
     {10,2,12,164},

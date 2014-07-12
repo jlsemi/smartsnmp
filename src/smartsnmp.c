@@ -147,7 +147,7 @@ static const luaL_Reg snmpd_func[] = {
 
 /* Init snmp agent from lua */
 int
-luaopen_lualib_core(lua_State *L)
+luaopen_smartsnmp_core(lua_State *L)
 {
   /* Store lua environment */
   l_state = L;
