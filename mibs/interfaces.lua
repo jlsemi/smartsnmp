@@ -19,9 +19,11 @@
 
 local mib = require "smartsnmp"
 
-ifndex = { 1, 2, 3, 4, 5 }
+ifNumber_ = 5
 
-ifDescr = {
+ifndex_ = { 1, 2, 3, 4, 5 }
+
+ifDescr_ = {
     'lo',
     'eth0',
     'eth1',
@@ -29,13 +31,13 @@ ifDescr = {
     'virbr0',
 }
 
-ifType = { 24, 6, 6, 6, 6 }
+ifType_ = { 24, 6, 6, 6, 6 }
 
-ifMtu = { 65535, 1500, 1500, 1500, 1500 }
+ifMtu_ = { 65535, 1500, 1500, 1500, 1500 }
 
-ifSpeed = { 10000000, 100000000, 100000000, 0, 0 }
+ifSpeed_ = { 10000000, 100000000, 100000000, 0, 0 }
 
-ifPhysAddress = {
+ifPhysAddress_ = {
     '',
     '001f1633e721',
     '8cae4cfe179c',
@@ -43,9 +45,9 @@ ifPhysAddress = {
     '160a8074ee77',
 }
 
-ifAdminStatus = { 1, 1, 1, 2, 1 }
+ifAdminStatus_ = { 1, 1, 1, 2, 1 }
 
-ifOpenStatus = { 1, 1, 1, 2, 2 }
+ifOpenStatus_ = { 1, 1, 1, 2, 2 }
 
 local last_changed_time = 0
 
@@ -57,7 +59,7 @@ function mib_interfaces_startup(time)
     last_changed_time = time
 end
 
-ifLastChange = {
+ifLastChange_ = {
     if_last_changed_time(),
     if_last_changed_time(),
     if_last_changed_time(),
@@ -65,7 +67,7 @@ ifLastChange = {
     if_last_changed_time(),
 }
 
-ifInOctets = {
+ifInOctets_ = {
     2449205,
     672549159,
     4914346,
@@ -73,7 +75,7 @@ ifInOctets = {
     0,
 }
 
-ifSpecific = {
+ifSpecific_ = {
     {0,0},
     {0,0},
     {0,0},
@@ -84,19 +86,19 @@ ifSpecific = {
 mib_interfaces_startup(os.time())
 
 ifGroup = {
-    [1]  = mib.ConstInt(5),
+    [1]  = mib.ConstInt(function () return ifNumber_ end),
     [2] = {
         [1] = {
-            [1] = mib.ConstIntList(ifndex),
-            [2] = mib.ConstStringList(ifDescr),
-            [3] = mib.ConstIntList(ifType),
-            [4] = mib.ConstIntList(ifMtu),
-            [5] = mib.ConstIntList(ifSpeed),
-            [6] = mib.ConstStringList(ifPhysAddress),
-            [7] = mib.IntList(ifAdminStatus),
-            [8] = mib.ConstIntList(ifOpenStatus),
-            [9] = mib.ConstTimeticksList(ifLastChange),
-            [22] = mib.ConstOidList(ifSpecific),
+            [1] = mib.ConstIndex(function () return ifndex_ end),
+            [2] = mib.ConstString(function (i) return ifDescr_[i] end),
+            [3] = mib.ConstInt(function (i) return ifType_[i] end),
+            [4] = mib.ConstInt(function (i) return ifMtu_[i] end),
+            [5] = mib.ConstInt(function (i) return ifSpeed_[i] end),
+            [6] = mib.ConstString(function (i) return ifPhysAddress_[i] end),
+            [7] = mib.Int(function (i) return ifAdminStatus_[i] end, function (i, v) ifAdminStatus_[i] = v end),
+            [8] = mib.ConstInt(function (i) return ifOpenStatus_[i] end),
+            [9] = mib.ConstTimeticks(function (i) return ifLastChange_[i] end),
+            [22] = mib.ConstOid(function (i) return ifSpecific_[i] end),
         }
     }
 }

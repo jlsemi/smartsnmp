@@ -59,11 +59,11 @@ local startup_time = 0
 local or_last_changed_time = 0
 
 local function sys_up_time()
-    return function() return os.difftime(os.time(), startup_time) * 100 end
+    return os.difftime(os.time(), startup_time) * 100
 end
 
 local function last_changed_time()
-    return function() return os.difftime(os.time(), or_last_changed_time) * 100 end
+    return os.difftime(os.time(), or_last_changed_time) * 100
 end
 
 function mib_system_startup(time)
@@ -73,34 +73,32 @@ end
 
 mib_system_startup(os.time())
 
-sys_or_ids = {
+sys_or_index = mib.AutoIndex(1)
+
+sys_or_ids_ = {
     { 1,3,6,1,6,3,10,3,1,1 },
 }
 
-sys_or_descs = {
+sys_or_descs_ = {
     "The SNMP Management Architecture MIB",
-}
-
-sys_or_uptimes = {
-    sys_up_time(),
 }
 
 sysGroup = {
     rocommunity = 'public',
-    [sysDesc]         = mib.ConstString(sh_call("uname -a")),
-    [sysObjectID]     = mib.ConstOid({1,3,6,1,4,1,8072,3,1}),
-    [sysUpTime]       = mib.ConstTimeticks(sys_up_time()),
-    [sysContact]      = mib.ConstString("Me <Me@example.org>"),
-    [sysName]         = mib.ConstString("ThinkPad X200"),
-    [sysLocation]     = mib.ConstString("Shanghai"),
-    [sysServices]     = mib.ConstInt(72),
-    [sysORLastChange] = mib.ConstTimeticks(last_changed_time()),
+    [sysDesc]         = mib.ConstString(function () return sh_call("uname -a") end),
+    [sysObjectID]     = mib.ConstOid(function () return {1,3,6,1,4,1,8072,3,1} end),
+    [sysUpTime]       = mib.ConstTimeticks(sys_up_time),
+    [sysContact]      = mib.ConstString(function () return "Me <Me@example.org>" end),
+    [sysName]         = mib.ConstString(function () return "ThinkPad X200" end),
+    [sysLocation]     = mib.ConstString(function () return "Shanghai" end),
+    [sysServices]     = mib.ConstInt(function () return 72 end),
+    [sysORLastChange] = mib.ConstTimeticks(last_changed_time),
     [sysORTable]      = {
         [sysOREntry]  = {
-            [sysORIndex]  = mib.AutoIndex(1),
-            [sysORID]     = mib.ConstOidList(sys_or_ids),
-            [sysORDesc]   = mib.ConstStringList(sys_or_descs),
-            [sysORUpTime] = mib.ConstTimeticksList(sys_or_uptimes),
+            [sysORIndex]  = mib.AutoIndexUna(1),
+            [sysORID]     = mib.ConstOid(function (i) return sys_or_ids_[i] end),
+            [sysORDesc]   = mib.ConstString(function (i) return sys_or_descs_[i] end),
+            [sysORUpTime] = mib.ConstTimeticks(sys_up_time),
         }
     }
 }

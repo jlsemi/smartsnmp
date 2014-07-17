@@ -33,6 +33,7 @@ _M._VERSION = "dev"
 MIB_ACES_UNA        = 0
 MIB_ACES_RO         = 1
 MIB_ACES_RW         = 2
+MIB_ACES_RC         = 2
 
 -- SNMP request
 SNMP_REQ_GET        = 0xA0
@@ -88,90 +89,96 @@ SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
 -- Generators for declare SNMP MIB Node
 --
 
--- String value for RO.
-function _M.ConstString(s)
-    assert(type(s) == 'string' or type(s) == 'function', 'Argument must be string or function type')
-    return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RO, value = s }
+-- String get/set function.
+function _M.ConstString(g)
+    assert(type(g) == 'function', 'Argument must be function type')
+    return { index_key = false, tag = BER_TAG_OCTSTR, access = MIB_ACES_RO, get_f = g, set_f = nil }
 end
 
--- String value for RW.
-function _M.String(s)
-    assert(type(s) == 'string', 'Argument must be string type')
-    return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RW, value = s }
+-- String get/set function.
+function _M.String(g, s)
+    assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
+    return { index_key = false, tag = BER_TAG_OCTSTR, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
--- Integer value for RO.
-function _M.ConstInt(i)
-    assert(type(i) == 'number' or type(i) == 'function', 'Argument must be integer or function type')
-    return { tag = BER_TAG_INT, access = MIB_ACES_RO, value = i }
+-- Integer get/set function.
+function _M.ConstInt(g)
+    assert(type(g) == 'function', 'Argument must be function type')
+    return { index_key = false, tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = g, set_f = nil }
 end
 
--- Integer value for RW.
-function _M.Int(i)
-    assert(type(i) == 'number', 'Argument must be integer type')
-    return { tag = BER_TAG_INT, access = MIB_ACES_RW, value = i }
+-- Integer get/set function.
+function _M.Int(g, s)
+    assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
+    return { index_key = false, tag = BER_TAG_INT, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
--- Count value for RO.
-function _M.ConstCount(c)
-    assert(type(c) == 'number' or type(c) == 'functcon', 'Argument must be count or functcon type')
-    return { tag = BER_TAG_CNT, access = MIB_ACES_RO, value = c }
+-- Count get/set function.
+function _M.ConstCount(g)
+    assert(type(g) == 'function', 'Argument must be function type')
+    return { index_key = false, tag = BER_TAG_CNT, access = MIB_ACES_RO, get_f = g, set_f = nil }
 end
 
--- Count value for RW.
-function _M.Count(c)
-    assert(type(c) == 'number', 'Argument must be count type')
-    return { tag = BER_TAG_CNT, access = MIB_ACES_RW, value = c }
+-- Count get/set function.
+function _M.Count(g, s)
+    assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
+    return { index_key = false, tag = BER_TAG_CNT, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
--- IP address value for RO.
-function _M.ConstIpaddr(ip)
-    assert((type(ip) == 'table' and (#ip == 4 or #ip == 6)) or type(ip) == 'functcon', 'Argument must be IP address or functcon type')
-    for k in pairs(ip) do assert(type(ip[k]) == 'number', 'Argument must be IP address') end
-    return { tag = BER_TAG_IPADDR, access = MIB_ACES_RO, value = ip }
+-- IP address get/set function.
+function _M.ConstIpaddr(g)
+    assert(type(g) == 'function', 'Argument must be function type')
+    return { index_key = false, tag = BER_TAG_IPADDR, access = MIB_ACES_RO, get_f = g, set_f = nil }
 end
 
--- IP address value for RW.
+-- IP address get/set function.
 function _M.Ipaddr(ip)
-    assert(type(ip) == 'table' and (#ip == 4 or #ip == 6), 'Argument must be IP address type')
-    for k in pairs(ip) do assert(type(ip[k]) == 'number', 'Argument must be IP address') end
-    return { tag = BER_TAG_IPADDR, access = MIB_ACES_RW, value = ip }
+    assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
+    return { index_key = false, tag = BER_TAG_IPADDR, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
--- Oid value for RO.
-function _M.ConstOid(o)
-    assert(type(o) == 'table' or type(o) == 'function', 'Argument must be oid array or function type')
-    return { tag = BER_TAG_OBJID, access = MIB_ACES_RO, value = o }
+-- Oid get/set function for RO.
+function _M.ConstOid(g)
+    assert(type(g) == 'function', 'Argument must be function type')
+    return { index_key = false, tag = BER_TAG_OBJID, access = MIB_ACES_RO, get_f = g, set_f = nil }
 end
 
--- Oid value for RW.
-function _M.Oid(o)
-    assert(type(o) == 'table', 'Argument must be oid array type')
-    return { tag = BER_TAG_OBJID, access = MIB_ACES_RW, value = o }
+-- Oid get/set function.
+function _M.Oid(g, s)
+    assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
+    return { index_key = false, tag = BER_TAG_OBJID, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
--- Timeticks value for RO.
-function _M.ConstTimeticks(t)
-    assert(type(t) == 'number' or type(t) == 'function', 'Argument must be timeticks or function type')
-    return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RO, value = t }
+-- Timeticks get/set function.
+function _M.ConstTimeticks(g)
+    assert(type(g) == 'function', 'Argument must be function type')
+    return { index_key = false, tag = BER_TAG_TIMETICKS, access = MIB_ACES_RO, get_f = g, set_f = nil }
 end
 
--- Timeticks value for RW.
-function _M.Timeticks(t)
-    assert(type(t) == 'number', 'Argument must be timeticks type')
-    return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RW, value = t }
+-- Timeticks get/set function.
+function _M.Timeticks(g, s)
+    assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
+    return { index_key = false, tag = BER_TAG_TIMETICKS, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
--- Gauge value for RO.
+-- Gauge get/set function.
 function _M.ConstGauge(g)
-    assert(type(g) == 'number' or type(g) == 'function', 'Argument must be gauge or function type')
-    return { tag = BER_TAG_GAU, access = MIB_ACES_RO, value = g }
+    assert(type(g) == 'function', 'Argument must be function type')
+    return { index_key = false, tag = BER_TAG_GAU, access = MIB_ACES_RO, get_f = g, set_f = nil }
 end
 
--- Gauge value for RW.
-function _M.Gauge(g)
-    assert(type(g) == 'number', 'Argument must be gauge type')
-    return { tag = BER_TAG_GAU, access = MIB_ACES_RW, value = g }
+-- Gauge get/set function.
+function _M.Gauge(g, s)
+    assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
+    return { index_key = false, tag = BER_TAG_GAU, access = MIB_ACES_RW, get_f = g, set_f = s }
+end
+
+-- Auto incremented indexes.
+function _M.AutoIndexUna(n)
+    assert(type(n) == 'number', 'Argument must be integer type')
+    local it = {}
+    for i = 1, n do it[i] = i end
+    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_UNA, get_f = function () return it end, set_f = nil }
 end
 
 -- Auto incremented indexes.
@@ -179,151 +186,25 @@ function _M.AutoIndex(n)
     assert(type(n) == 'number', 'Argument must be integer type')
     local it = {}
     for i = 1, n do it[i] = i end
-    return { tag = BER_TAG_INT, access = MIB_ACES_UNA, value = it }
+    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = function () return it end, set_f = nil }
 end
 
--- Integer list for RO.
-function _M.ConstIntList(it)
-    assert(type(it) == 'table', 'Argument must be array format')
-    for k in pairs(it) do
-        if type(it[k]) == 'function' then it[k] = it[k]() end
-        assert(type(it[k]) == 'number', 'Each element must be integer type')
+-- Index get/set function
+function _M.ConstIndex(g)
+    assert(type(g) == 'function', 'Argument must be function type')
+    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = g, set_f = nil }
+end
+
+--[[
+-- Read-Create list
+function _M.ReadCreateList(f, status)
+    assert(type(f) == 'function' and type(status) == 'table', 'Arguments must be (\'function\'\, \'arrary\') format')
+    for k in pairs(status) do
+        assert(type(status[k]) == 'number', 'Each element must be integer type')
     end
-    return { tag = BER_TAG_INT, access = MIB_ACES_RO, value = it }
+    return { get_f = f, tag = BER_TAG_INT, access = MIB_ACES_RC, get_f = status }
 end
-
--- Integer list for RW.
-function _M.IntList(it)
-    assert(type(it) == 'table', 'Argument must be array format')
-    for k in pairs(it) do
-        if type(it[k]) == 'function' then it[k] = it[k]() end
-        assert(type(it[k]) == 'number', 'Each element must be integer type')
-    end
-    return { tag = BER_TAG_INT, access = MIB_ACES_RW, value = it }
-end
-
--- Count list for RO.
-function _M.ConstCountList(ct)
-    assert(type(ct) == 'table', 'Argument must be array format')
-    for k in pairs(ct) do
-        if type(ct[k]) == 'function' then ct[k] = ct[k]() end
-        assert(type(ct[k]) == 'number', 'Each element must be count type')
-    end
-    return { tag = BER_TAG_CNT, access = MIB_ACES_RO, value = ct }
-end
-
--- Count list for RW.
-function _M.CountList(ct)
-    assert(type(ct) == 'table', 'Argument must be array format')
-    for k in pairs(ct) do
-        if type(ct[k]) == 'function' then ct[k] = ct[k]() end
-        assert(type(ct[k]) == 'number', 'Each element must be count type')
-    end
-    return { tag = BER_TAG_CNT, access = MIB_ACES_RW, value = ct }
-end
-
--- String list for RO.
-function _M.ConstStringList(st)
-    assert(type(st) == 'table', 'Argument must be array format')
-    for k in pairs(st) do
-        if type(st[k]) == 'function' then st[k] = st[k]() end
-        assert(type(st[k]) == 'string', 'Each element must be string type')
-    end
-    return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RO, value = st }
-end
-
--- String list for RW.
-function _M.StringList(st)
-    assert(type(st) == 'table', 'Argument must be array format')
-    for k in pairs(st) do
-        if type(st[k]) == 'function' then st[k] = st[k]() end
-        assert(type(st[k]) == 'string', 'Each element must be string type')
-    end
-    return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RW, value = st }
-end
-
--- Oid list for RO.
-function _M.ConstOidList(ot)
-    assert(type(ot) == 'table', 'Argument must be array format')
-    for k in pairs(ot) do
-        if type(ot[k]) == 'function' then ot[k] = ot[k]() end
-        assert(type(ot[k]) == 'table', 'Each element must be oid array type')
-    end
-    return { tag = BER_TAG_OBJID, access = MIB_ACES_RO, value = ot }
-end
-
--- Oid list for RW.
-function _M.OidList(ot)
-    assert(type(ot) == 'table', 'Argument must be array format')
-    for k in pairs(ot) do
-        if type(ot[k]) == 'function' then ot[k] = ot[k]() end
-        assert(type(ot[k]) == 'table', 'Each element must be oid array type')
-    end
-    return { tag = BER_TAG_OBJID, access = MIB_ACES_RW, value = ot }
-end
-
--- Ip address list for RO.
-function _M.ConstIpaddrList(ipt)
-    assert(type(ipt) == 'table', 'Argument must be array format')
-    for _, ip in pairs(ipt) do
-        if type(ip) == 'function' then ip = ip() end
-        assert(type(ip) == 'table' and (#ip == 4 or #ip == 6), 'Each element must be ip address type')
-        for k in pairs(ip) do assert(type(ip[k]) == 'number', 'Each element must be ip address type') end
-    end
-    return { tag = BER_TAG_IPADDR, access = MIB_ACES_RO, value = ipt }
-end
-
--- Ip address list for RW.
-function _M.IpaddrList(ipt)
-    assert(type(ipt) == 'table', 'Argument must be array format')
-    for _, ip in pairs(ipt) do
-        if type(ip) == 'function' then ip = ip() end
-        assert(type(ip) == 'table' and (#ip == 4 or #ip == 6), 'Each element must be ip address type')
-        for k in pairs(ip) do assert(type(ip[k]) == 'number', 'Each element must be ip address type') end
-    end
-    return { tag = BER_TAG_IPADDR, access = MIB_ACES_RW, value = ipt }
-end
-
--- Gauge list for RO.
-function _M.ConstGaugeList(gt)
-    assert(type(gt) == 'table', 'Argument must be array format')
-    for k in pairs(gt) do
-        if type(gt[k]) == 'function' then gt[k] = gt[k]() end
-        assert(type(gt[k]) == 'number', 'Each element must be gauge type')
-    end
-    return { tag = BER_TAG_GAU, access = MIB_ACES_RO, value = gt }
-end
-
--- Gauge list for RW.
-function _M.GaugeList(gt)
-    assert(type(gt) == 'table', 'Argument must be array format')
-    for k in pairs(gt) do
-        if type(gt[k]) == 'function' then gt[k] = gt[k]() end
-        assert(type(gt[k]) == 'number', 'Each element must be gauge type')
-    end
-    return { tag = BER_TAG_GAU, access = MIB_ACES_RW, value = gt }
-end
-
--- Timeticks list for RO.
-function _M.ConstTimeticksList(tt)
-    assert(type(tt) == 'table', 'Argument must be array format')
-    for k in pairs(tt) do
-        if type(tt[k]) == 'function' then tt[k] = tt[k]() end
-        assert(type(tt[k]) == 'number', 'Each element must be timeticks type')
-    end
-    return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RO, value = tt }
-end
-
--- Timeticks list for RW.
-function _M.TimeticksList(tt)
-    assert(type(tt) == 'table', 'Argument must be array format')
-    for k in pairs(tt) do
-        if type(tt[k]) == 'function' then tt[k] = tt[k]() end
-        assert(type(tt[k]) == 'number', 'Each element must be timeticks type')
-    end
-    return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RW, value = tt }
-end
-
+]]--
 --
 -- Helper functions
 --
@@ -369,21 +250,15 @@ end
   is assumed to be at most one id number element. If you want extra entries you
   may create extra revelant tables.
 
-  2. The 4th dim(inst_no) in matrix of a table node representing instance
+  2. The 4th dim and on(inst_no) in matrix of a table node representing instance
   index is assumed to be one id number each element instead of sequence of oids.
   Currently we don't support IP address as an instance index.
 ]]--
 
+-- For debug print
 local check_group_index_table = function (it)
     for i, v in ipairs(it) do
-        if #v == 2 then
-           print(unpack(v[1]))
-        elseif #v == 4 then
-           print(unpack(v[1]))
-           print(unpack(v[2]))
-           print(unpack(v[3]))
-           print(unpack(v[4]))
-        else assert(false) end
+        for i in ipairs(v) do print(unpack(v[i])) end
     end
 end
 
@@ -393,51 +268,59 @@ local group_index_table_generator = function (group, name)
 
     local group_indexes = {}  -- result to produce
     local scalar_indexes = {{},{0}}  -- 2 dimensions matrix
-    local table_indexes = {{},{},{},{}}  -- 4 dimensions matrix
+    local table_indexes = {}  -- N dimensions matrix
 
     for obj_no in pairs(group) do
+
         if type(obj_no) == 'number' then
-            if group[obj_no].value == nil then
+            if group[obj_no].get_f == nil then
                 -- table
-                table_indexes = {{},{},{},{}}
-                table.insert(table_indexes[1], obj_no)
+                table_indexes = {}
+                local dim1 = { obj_no }
+                table.insert(table_indexes, dim1)
 
                 local tab = group[obj_no]
-                assert(tab.value == nil, string.format('%s[%d]: Table should be container not variable', name, obj_no))
+                assert(tab.get_f == nil, string.format('%s[%d]: Table should be container not variable', name, obj_no))
                 -- For simplicity, we hold at most one entry each table.
                 -- If you want multiple entries you may create revelant number of tables.
                 assert(#tab <= 1, string.format('%s[%d]: Sorry but for simplicity, each table can hold one entry at most', name, obj_no))
                 local entry_no, entry = next(tab)
-                assert(entry.value == nil, string.format('%s[%d][%d]: Entry should be container not variable', name, obj_no, entry_no))
+                assert(entry.get_f == nil, string.format('%s[%d][%d]: Entry should be container not variable', name, obj_no, entry_no))
                 if type(entry_no) == 'number' then
-                    table.insert(table_indexes[2], entry_no)
+                    local dim2 = { entry_no }
+                    table.insert(table_indexes, dim2)
                 end
 
                 if entry ~= nil then
-                    -- list
-                    local _, index_list = next(entry)
-                    if index_list ~= nil then
-                        -- Check if all variables in the same entry have the same value number.
-                        for list_no, list in pairs(entry) do
-                            if type(list_no) == 'number' then
-                                assert(list.value ~= nil, string.format('%s[%d][%d][%d]: List should be variable not container', name, obj_no, entry_no, list_no))
-                                assert(#index_list.value == #list.value, string.format('%s[%d][%d][%d]: All variables in a entry must have the same value count', name, obj_no, entry_no, list_no))
-                                table.insert(table_indexes[3], list_no)
-                            end
+                    -- list_no
+                    local dim3 = {}
+                    for list_no in pairs(entry) do
+                        if type(list_no) == 'number' then
+                            table.insert(dim3, list_no)
                         end
+                    end
+                    table.insert(table_indexes, dim3)
 
-                        -- instance
-                        for inst_no in pairs(index_list.value) do
-                            if type(inst_no) == 'number' then
-                                table.insert(table_indexes[4], inst_no)
+                    -- index list
+                    for _, list in ipairs(entry) do
+                        if list.index_key == true then
+                            -- instance
+                            local it = list.get_f()
+                            local dimN = {}
+                            for _, inst_no in pairs(it) do
+                                if type(inst_no) == 'number' then
+                                    table.insert(dimN, inst_no)
+                                end
                             end
+                            table.insert(table_indexes, dimN)
                         end
                     end
                 end
 
-                table.sort(table_indexes[2])
-                table.sort(table_indexes[3])
-                table.sort(table_indexes[4])
+                -- Sort group index table
+                for i in ipairs(table_indexes) do
+                    table.sort(table_indexes[i])
+                end
 
                 -- Insertion sort.
                 local inserted = false
@@ -510,7 +393,7 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
         rsp_val = req_val
         rsp_val_type = req_val_type
 
-        -- priority for local group community string
+        -- Priority for local group community string
         if group.rwcommunity ~= community then
             -- Global community
             if _M.rwcommunity ~= nil and _M.rwcommunity ~= '' and _M.rwcommunity ~= community then
@@ -536,8 +419,8 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
                 return SNMP_ERR_STAT_WRONG_TYPE, rsp_sub_oid, rsp_val, rsp_val_type
             end
 
-            scalar.value = rsp_val
-        elseif dim == 4 then
+            scalar.set_f(rsp_val)
+        elseif dim >= 4 then
             -- table
             local table_no = obj_no
             local entry_no = req_sub_oid[2]
@@ -549,16 +432,17 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
             -- check access
             local variable = tab[entry_no][list_no]
             local inst_no = req_sub_oid[4]
-            if variable.access == MIB_ACES_UNA or inst_no == nil or variable.value[inst_no] == nil then
+            if variable.access == MIB_ACES_UNA or inst_no == nil then
                 return SNMP_ERR_STAT_ON_ACCESS, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- check type
             if rsp_val_type ~= variable.tag then
                 return SNMP_ERR_STAT_WRONG_TYPE, rsp_sub_oid, rsp_val, rsp_val_type
             end
-            variable.value[inst_no] = rsp_val
+
+            variable.set_f(inst_no, rsp_val)
         else
-            return SNMP_ERR_STAT_ON_ACCESS, rsp_sub_oid, rsp_val, rsp_val_type
+            return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, rsp_val, rsp_val_type
         end
 
         return 0, rsp_sub_oid, rsp_val, rsp_val_type
@@ -583,19 +467,19 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
         local obj_no = req_sub_oid[1]
         local dim = effective_object_index(group_index_table, obj_no)
         if dim == 2 then
-            -- scalar
+            -- Scalar
             local scalar = group[obj_no]
-            -- check access
+            -- Check access
             if scalar.access == MIB_ACES_UNA then
                 return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
             end
-            -- check existence
+            -- Check existence
             if not(#req_sub_oid == 2 and req_sub_oid[2] == 0) then
                 return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
             end
-            rsp_val = scalar.value
+            rsp_val = scalar.get_f()
             rsp_val_type = scalar.tag
-        elseif dim == 4 then
+        elseif dim >= 4 then
             -- table
             local table_no = obj_no
             local entry_no = req_sub_oid[2]
@@ -604,18 +488,24 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
             if #req_sub_oid < 3 or tab[entry_no] == nil or tab[entry_no][list_no] == nil then
                 return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
             end
-            -- check access
+            -- Check access
             local variable = tab[entry_no][list_no]
             if variable.access == MIB_ACES_UNA then
                 return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
             end
-            -- check existence
+            -- Check instance existence
             local inst_no = req_sub_oid[4]
-            if inst_no == nil or variable.value[inst_no] == nil then
+            if inst_no == nil then
                 return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
             end
+            -- Get instance value
+            if variable.index_key == true then
+                local it = variable.get_f()
+                rsp_val = it[inst_no]
+            else
+                rsp_val = variable.get_f(inst_no)
+            end
 
-            rsp_val = variable.value[inst_no]
             rsp_val_type = variable.tag
         else
             return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
@@ -625,7 +515,6 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
             return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
         end
 
-        if (type(rsp_val) == 'function') then rsp_val = rsp_val() end
         return 0, rsp_sub_oid, rsp_val, rsp_val_type
     end
 
@@ -633,7 +522,7 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
     handlers[SNMP_REQ_GETNEXT] = function ()
         rsp_sub_oid = req_sub_oid
         
-        -- priority for local group community string
+        -- Priority for local group community string
         if group.rocommunity ~= community then
             -- Global community
             if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
@@ -648,7 +537,6 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
         local i = 1
         local variable = nil
         repeat
-            -- Why Lua not support 'continue' statement?
             repeat
                 rsp_sub_oid = matrix_find_next(group_index_table[i], rsp_sub_oid, 1, #group_index_table[i])
                 if next(rsp_sub_oid) == nil then
@@ -666,23 +554,31 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
                 -- scalar
                 local scalar_no = rsp_sub_oid[1]
                 variable = group[scalar_no]
-                rsp_val = variable.value
+                rsp_val = variable.get_f()
                 rsp_val_type = variable.tag
-            elseif #rsp_sub_oid == 4 then
+            elseif #rsp_sub_oid >= 4 then
                 -- table
                 local table_no = rsp_sub_oid[1]
                 local entry_no = rsp_sub_oid[2]
                 local list_no  = rsp_sub_oid[3]
                 local inst_no  = rsp_sub_oid[4]
+
                 variable = group[table_no][entry_no][list_no]
-                rsp_val = variable.value[inst_no]
+                -- get instance value
+                if variable.index_key == true then
+                    local it = variable.get_f()
+                    rsp_val = it[inst_no]
+                else
+                    rsp_val = variable.get_f(inst_no)
+                end
                 rsp_val_type = variable.tag
+
                 if variable.access == MIB_ACES_UNA then
                     rsp_sub_oid[3] = rsp_sub_oid[3] + 1
                     rsp_sub_oid[4] = 0
                 end
             else
-                assert(false, 'Neigther a scalar variable nor a table')
+                assert(false, 'Neighter a scalar variable nor a table')
             end
         -- Unaccessable node is ignored in getnext traversal.
         until variable.access ~= MIB_ACES_UNA
@@ -691,7 +587,6 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
             return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
         end
 
-        if (type(rsp_val) == 'function') then rsp_val = rsp_val() end
         return 0, rsp_sub_oid, rsp_val, rsp_val_type
     end
 
@@ -725,8 +620,8 @@ _M.set_rw_community = function (s)
     _M.rwcommunity = s
 end
 
--- register a group of snmp mib nodes
-_M.register_mib_group = function (oid, group, name)
+-- generate group index table for dictionary sequence.
+_M.dictionary_indexes_generate = function (group, name)
     local group_indexes = group_index_table_generator(group, name)
     local mib_search_handler = function (op, community, req_sub_oid, req_val, req_val_type)
     	return mib_node_search(group, group_indexes, op, community, req_sub_oid, req_val, req_val_type)
@@ -734,6 +629,11 @@ _M.register_mib_group = function (oid, group, name)
 
     -- TODO: register handler by function directly instead of use global name
     _G[name] = mib_search_handler
+end
+
+-- register a group of snmp mib nodes
+_M.register_mib_group = function (oid, group, name)
+    _M.dictionary_indexes_generate(group, name)
     core.mib_node_reg(oid, name)
 end
 
