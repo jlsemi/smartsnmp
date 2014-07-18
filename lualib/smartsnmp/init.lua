@@ -527,11 +527,12 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
         local i = 1
         local variable = nil
         repeat
+            if next(group_index_table) == nil then
+                rsp_sub_oid = {}
+                break
+            end
+
             repeat
-                if next(group_index_table) == nil then
-                    rsp_sub_oid = {}
-                    break
-                end
                 rsp_sub_oid = matrix_find_next(group_index_table[i], rsp_sub_oid, 1, #group_index_table[i])
                 if next(rsp_sub_oid) == nil then
                     i = i + 1
