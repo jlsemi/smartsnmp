@@ -195,16 +195,6 @@ function _M.ConstIndex(g)
     return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = g, set_f = nil }
 end
 
---[[
--- Read-Create list
-function _M.ReadCreateList(f, status)
-    assert(type(f) == 'function' and type(status) == 'table', 'Arguments must be (\'function\'\, \'arrary\') format')
-    for k in pairs(status) do
-        assert(type(status[k]) == 'number', 'Each element must be integer type')
-    end
-    return { get_f = f, tag = BER_TAG_INT, access = MIB_ACES_RC, get_f = status }
-end
-]]--
 --
 -- Helper functions
 --
@@ -538,6 +528,10 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
         local variable = nil
         repeat
             repeat
+                if next(group_index_table) == nil then
+                    rsp_sub_oid = {}
+                    break
+                end
                 rsp_sub_oid = matrix_find_next(group_index_table[i], rsp_sub_oid, 1, #group_index_table[i])
                 if next(rsp_sub_oid) == nil then
                     i = i + 1
