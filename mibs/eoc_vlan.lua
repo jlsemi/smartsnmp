@@ -20,41 +20,41 @@
 local mib = require "smartsnmp"
 
 -- scalar index
-eocVLANVersionNumber      = 1
-eocVLANMaxVID             = 2
-eocVLANMaxSupportedVLANs  = 3
-eocVLANCreatedVLANNumber  = 4
-eocVLANVIDList            = 5
-eocVLANNextFreeVID        = 6
+local eocVLANVersionNumber      = 1
+local eocVLANMaxVID             = 2
+local eocVLANMaxSupportedVLANs  = 3
+local eocVLANCreatedVLANNumber  = 4
+local eocVLANVIDList            = 5
+local eocVLANNextFreeVID        = 6
 
-eocVLANTable          = 7
-eocVLANEntry          = 1
+local eocVLANTable          = 7
+local eocVLANEntry          = 1
 
 -- table index
-eocVLANPortTable      = 8
+local eocVLANPortTable      = 8
 -- entry index
-eocVLANPortEntry      = 1
+local eocVLANPortEntry      = 1
 -- list index
-eocVLANPortCBATCardIndex   = 1
-eocVLANPortCNUIndex        = 2
-eocVLANPortIndex           = 3
-eocVLANPortPVID            = 4
-eocVLANPortTPID            = 5
-eocVLANPortPrio            = 6
-eocVLANPortVIDList         = 7
-eocVLANPortUntaggedVIDList = 8
-eocVLANPortMode            = 9
+local eocPortCBATCardIndex   = 1
+local eocPortCNUIndex        = 2
+local eocVLANPortIndex           = 3
+local eocVLANPortPVID            = 4
+local eocVLANPortTPID            = 5
+local eocVLANPortPrio            = 6
+local eocVLANPortVIDList         = 7
+local eocVLANPortUntaggedVIDList = 8
+local eocVLANPortMode            = 9
 
 -- value
-eocVLANVersionNumber_      = 1
-eocVLANMaxVID_             = 101
-eocVLANMaxSupportedVLANs_  = 10
-eocVLANCreatedVLANNumber_  = 8
-eocVLANVIDList_            = "0123456789"
-eocVLANNextFreeVID_        = 2
+local eocVLANVersionNumber_      = 1
+local eocVLANMaxVID_             = 101
+local eocVLANMaxSupportedVLANs_  = 10
+local eocVLANCreatedVLANNumber_  = 8
+local eocVLANVIDList_            = "0123456789"
+local eocVLANNextFreeVID_        = 2
 
-eocVLANIndex_         = {1, 2, 3, 4, 5, 6, 7}
-eocVLANName_          = {
+local eocVLANIndex_         = {1, 2, 3, 4, 5, 6, 7}
+local eocVLANName_          = {
     '0123456789987654321012345678998765432100123456789987654321001234567899876543210123',
     '0123456789987654321012345678998765432100123456789987654321001234567899876543210123',
     '0123456789987654321012345678998765432100123456789987654321001234567899876543210123',
@@ -63,12 +63,12 @@ eocVLANName_          = {
     '0123456789987654321012345678998765432100123456789987654321001234567899876543210123',
     '0123456789987654321012345678998765432100123456789987654321001234567899876543210123',
 }
-eocMulticastVLANFlag_ = {1, 2, 1, 2, 1, 2, 1}
-eocVLANRowStatus_     = {1, 1, 1, 1, 4, 5, 6}
+local eocMulticastVLANFlag_ = {1, 2, 1, 2, 1, 2, 1}
+local eocVLANRowStatus_     = {1, 1, 1, 1, 4, 5, 6}
 
-eocVLANGroup = {}
+local eocVLANGroup = {}
 
-local function row_status_set(inst_no, status)
+local row_status_set = function (inst_no, status)
     if status == 1 then
         eocVLANIndex_[inst_no] = inst_no
         if eocVLANRowStatus_[inst_no] == nil then
@@ -105,6 +105,21 @@ eocVLANGroup = {
             [4] = mib.Int(function (i) return eocVLANRowStatus_[i] end, row_status_set),
         }
     },
+--[[
+    [eocVLANPortTable] = {
+        [eocVLANPortEntry] = {
+            [eocVLANCBATCardIndex]
+            [eocVLANCNUIndex]
+            [eocVLANPortIndex]
+            [eocVLANPortPVID]
+            --[eocVLANPortTPID]
+            --[eocVLANPortPrio]
+            [eocVLANPortVIDList]
+            [eocVLANPortUntaggedVIDList]
+            --[eocVLANPortMode]
+        }
+    }
+]]
 }
 
 return eocVLANGroup

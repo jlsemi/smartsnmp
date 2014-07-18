@@ -20,26 +20,26 @@
 local mib = require "smartsnmp"
 
 -- scalar index
-sysDesc             = 1
-sysObjectID         = 2
-sysUpTime           = 3
-sysContact          = 4
-sysName             = 5
-sysLocation         = 6
-sysServices         = 7
-sysORLastChange     = 8
+local sysDesc             = 1
+local sysObjectID         = 2
+local sysUpTime           = 3
+local sysContact          = 4
+local sysName             = 5
+local sysLocation         = 6
+local sysServices         = 7
+local sysORLastChange     = 8
 
 -- table index
-sysORTable          = 9
+local sysORTable          = 9
 
 -- entry index
-sysOREntry          = 1
+local sysOREntry          = 1
 
 -- list index
-sysORIndex          = 1
-sysORID             = 2
-sysORDesc           = 3
-sysORUpTime         = 4
+local sysORIndex          = 1
+local sysORID             = 2
+local sysORDesc           = 3
+local sysORUpTime         = 4
 
 local function sh_call(command)
     if type(command) ~= 'string' then
@@ -66,24 +66,22 @@ local function last_changed_time()
     return os.difftime(os.time(), or_last_changed_time) * 100
 end
 
-function mib_system_startup(time)
+local function mib_system_startup(time)
     startup_time = time
     or_last_changed_time = time
 end
 
 mib_system_startup(os.time())
 
-sys_or_index = mib.AutoIndex(1)
-
-sys_or_ids_ = {
+local sys_or_ids_ = {
     { 1,3,6,1,6,3,10,3,1,1 },
 }
 
-sys_or_descs_ = {
+local sys_or_descs_ = {
     "The SNMP Management Architecture MIB",
 }
 
-sysGroup = {
+local sysGroup = {
     rocommunity = 'public',
     [sysDesc]         = mib.ConstString(function () return sh_call("uname -a") end),
     [sysObjectID]     = mib.ConstOid(function () return {1,3,6,1,4,1,8072,3,1} end),

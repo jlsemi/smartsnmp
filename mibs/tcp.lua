@@ -19,22 +19,22 @@
 
 local mib = require "smartsnmp"
 
-tcpRtoAlgorithm_ = 1
-tcpRtoMin_ = 200
-tcpRtoMax_ = 120000
-tcpMaxConn_ = -1 
-tcpActiveOpens_ = 19390
-tcpPassiveOpens_ = 0
-tcpAttemptFails_ = 4058
-tcpEstabResets_ = 64
-tcpCurrEstab_ = 44
-tcpInSegs_ = 380765
-tcpOUtSegs_ = 384402
-tcpRetransSegs_ = 37724
+local tcpRtoAlgorithm_ = 1
+local tcpRtoMin_ = 200
+local tcpRtoMax_ = 120000
+local tcpMaxConn_ = -1 
+local tcpActiveOpens_ = 19390
+local tcpPassiveOpens_ = 0
+local tcpAttemptFails_ = 4058
+local tcpEstabResets_ = 64
+local tcpCurrEstab_ = 44
+local tcpInSegs_ = 380765
+local tcpOUtSegs_ = 384402
+local tcpRetransSegs_ = 37724
 
-tcpConnState_ = { 5,6,8,5,5,11,6,2,11,5, }
+local tcpConnState_ = { 5,6,8,5,5,11,6,2,11,5, }
 
-tcpConnLocalAddress_ = {
+local tcpConnLocalAddress_ = {
     {127,0,0,1},
     {192,168,122,1},
     {127,0,0,1},
@@ -47,7 +47,7 @@ tcpConnLocalAddress_ = {
     {192,168,122,1},
 }
 
-tcpConnLocalPort_ = {
+local tcpConnLocalPort_ = {
     67,
     68,
     161,
@@ -60,7 +60,7 @@ tcpConnLocalPort_ = {
     35769,
 }
 
-tcpConnRemAddress_ = {
+local tcpConnRemAddress_ = {
     {173,194,72,19},
     {180,149,134,53},
     {74,125,134,138},
@@ -73,7 +73,7 @@ tcpConnRemAddress_ = {
     {0,0,0,0},
 }
 
-tcpConnRemPort_ = {
+local tcpConnRemPort_ = {
     80,
     80,
     80,
@@ -86,10 +86,10 @@ tcpConnRemPort_ = {
     80,
 }
 
-tcpInErrs_ = 3314
-tcpOutRsts = 825
+local tcpInErrs_ = 3314
+local tcpOutRsts = 825
 
-tcpGroup = {
+local tcpGroup = {
     [1] = mib.ConstInt(function () return tcpRtoAlgorithm_ end),
     [2] = mib.ConstInt(function () return tcpRtoMin_ end),
     [3] = mib.ConstInt(function () return tcpRtoMax_ end),

@@ -19,47 +19,35 @@
 
 local mib = require "smartsnmp"
 
-ifNumber_ = 5
-
-ifndex_ = { 1, 2, 3, 4, 5 }
-
-ifDescr_ = {
+local ifNumber_ = 5
+local ifndex_ = { 1, 2, 3, 4, 5 }
+local ifDescr_ = {
     'lo',
     'eth0',
     'eth1',
     'wlan0',
     'virbr0',
 }
-
-ifType_ = { 24, 6, 6, 6, 6 }
-
-ifMtu_ = { 65535, 1500, 1500, 1500, 1500 }
-
-ifSpeed_ = { 10000000, 100000000, 100000000, 0, 0 }
-
-ifPhysAddress_ = {
+local ifType_ = { 24, 6, 6, 6, 6 }
+local ifMtu_ = { 65535, 1500, 1500, 1500, 1500 }
+local ifSpeed_ = { 10000000, 100000000, 100000000, 0, 0 }
+local ifPhysAddress_ = {
     '',
     '001f1633e721',
     '8cae4cfe179c',
     '0026c6606030',
     '160a8074ee77',
 }
-
-ifAdminStatus_ = { 1, 1, 1, 2, 1 }
-
-ifOpenStatus_ = { 1, 1, 1, 2, 2 }
-
+local ifAdminStatus_ = { 1, 1, 1, 2, 1 }
+local ifOpenStatus_ = { 1, 1, 1, 2, 2 }
 local last_changed_time = 0
-
 local function if_last_changed_time()
     return function() return os.difftime(os.time(), last_changed_time) * 100 end
 end
-
-function mib_interfaces_startup(time)
+local function mib_interfaces_startup(time)
     last_changed_time = time
 end
-
-ifLastChange_ = {
+local ifLastChange_ = {
     if_last_changed_time(),
     if_last_changed_time(),
     if_last_changed_time(),
@@ -67,15 +55,14 @@ ifLastChange_ = {
     if_last_changed_time(),
 }
 
-ifInOctets_ = {
+local ifInOctets_ = {
     2449205,
     672549159,
     4914346,
     0,
     0,
 }
-
-ifSpecific_ = {
+local ifSpecific_ = {
     {0,0},
     {0,0},
     {0,0},
@@ -85,7 +72,7 @@ ifSpecific_ = {
 
 mib_interfaces_startup(os.time())
 
-ifGroup = {
+local ifGroup = {
     [1]  = mib.ConstInt(function () return ifNumber_ end),
     [2] = {
         [1] = {

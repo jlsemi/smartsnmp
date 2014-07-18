@@ -19,55 +19,55 @@
 
 local mib = require "smartsnmp"
 
-ipForwarding_ = 1
-ipDefalutTTL_ = 64
-ipInReceives_ = 669874
-ipInHdrErrors_ = 0
-ipInAddrErrors_ = 0
-ipForwDatagrams_ = 86
-ipInUnknownProtos_ = 0
-ipInDiscards_ = 0
-ipInDelivers_ = 664487
-ipOutRequests_ = 802147
-ipOutDiscards_ = 1
-ipOutNoRoutes_ = 1802
-ipReasmTimeout_ = 1024
-ipReasmReqds_ = 30
-ipReasmOKs = 0
-ipReasmFails = 0
-ipFragsOKs_ = 0
-ipFragsFails_ = 0
-ipFragsCreates_ = 0
+local ipForwarding_ = 1
+local ipDefalutTTL_ = 64
+local ipInReceives_ = 669874
+local ipInHdrErrors_ = 0
+local ipInAddrErrors_ = 0
+local ipForwDatagrams_ = 86
+local ipInUnknownProtos_ = 0
+local ipInDiscards_ = 0
+local ipInDelivers_ = 664487
+local ipOutRequests_ = 802147
+local ipOutDiscards_ = 1
+local ipOutNoRoutes_ = 1802
+local ipReasmTimeout_ = 1024
+local ipReasmReqds_ = 30
+local ipReasmOKs = 0
+local ipReasmFails = 0
+local ipFragsOKs_ = 0
+local ipFragsFails_ = 0
+local ipFragsCreates_ = 0
 
-ipAdEntAddr_ = {
+local ipAdEntAddr_ = {
     {10,2,12,164},
     {127,0,0,1},
     {192,168,1,4},
     {192,168,122,1},
 }
 
-ipAdEntIfIndex_ = {
+local ipAdEntIfIndex_ = {
     2,
     1,
     4,
     5,
 }
 
-ipAdEntNetMask_ = {
+local ipAdEntNetMask_ = {
     {255,255,255,0},
     {255,0,0,0},
     {255,255,255,0},
     {255,255,255,0},
 }
 
-ipAdEntBcastAddr_ = {
+local ipAdEntBcastAddr_ = {
     1,
     0,
     1,
     1,
 }
 
-ipRouteDest_ = {
+local ipRouteDest_ = {
     {0,0,0,0},
     {10,2,12,0},
     {169,254,0,0},
@@ -75,7 +75,7 @@ ipRouteDest_ = {
     {192,168,122,0},
 }
 
-ipRouteIfIndex_ = {
+local ipRouteIfIndex_ = {
     2,
     2,
     4,
@@ -83,21 +83,21 @@ ipRouteIfIndex_ = {
     5,
 }
 
-ipNetToMediaPhysAddress_ = {
+local ipNetToMediaPhysAddress_ = {
     '9c216ab06f3e',
 }
 
-ipNetToMediaNetAddress_ = {
+local ipNetToMediaNetAddress_ = {
     {10,2,12,1},
 }
 
-ipNetToMediaType_ = {
+local ipNetToMediaType_ = {
     3,
 }
 
-ipRoutingDiscards_ = 0
+local ipRoutingDiscards_ = 0
 
-ipGroup = {
+local ipGroup = {
      rwcommunity = 'ipprivate',
      [1]  = mib.Int(function () return ipForwarding_ end, function (v) ipForwarding_ = v end),
      [2]  = mib.Int(function () return ipDefalutTTL_ end, function (v) ipDefalutTTL_ = v end),
