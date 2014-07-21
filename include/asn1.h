@@ -54,7 +54,7 @@
 #define BER_TAG_END_OF_MIB_VIEW 0x82
 
 #define MIB_OID_MAX_LEN       64
-#define MIB_VALUE_MAX_LEN     512
+#define MIB_VALUE_MAX_LEN     (1024)
 
 uint32_t ber_value_enc_test(const void *value, uint32_t len, uint8_t type);
 uint32_t ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf);

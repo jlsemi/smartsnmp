@@ -292,11 +292,12 @@ local group_index_table_generator = function (group, name)
                     table.insert(table_indexes, dim3)
 
                     -- index list
-                    for _, list in ipairs(entry) do
+                    for list_no, list in ipairs(entry) do
                         if list.index_key == true then
                             -- instance
-                            local it = list.get_f()
                             local dimN = {}
+                            local it = list.get_f()
+			                      assert(type(it) == 'table', string.format('%s[%d][%d][%d]: Index list must be table', name, obj_no, entry_no, list_no))
                             for _, inst_no in pairs(it) do
                                 if type(inst_no) == 'number' then
                                     table.insert(dimN, inst_no)
@@ -527,12 +528,11 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
         local i = 1
         local variable = nil
         repeat
-            if next(group_index_table) == nil then
-                rsp_sub_oid = {}
-                break
-            end
-
             repeat
+                if next(group_index_table) == nil then
+                    rsp_sub_oid = {}
+                    break
+                end
                 rsp_sub_oid = matrix_find_next(group_index_table[i], rsp_sub_oid, 1, #group_index_table[i])
                 if next(rsp_sub_oid) == nil then
                     i = i + 1
@@ -618,6 +618,7 @@ end
 -- generate group index table for dictionary sequence.
 _M.dictionary_indexes_generate = function (group, name)
     local group_indexes = group_index_table_generator(group, name)
+check_group_index_table(group_indexes)
     local mib_search_handler = function (op, community, req_sub_oid, req_val, req_val_type)
     	return mib_node_search(group, group_indexes, op, community, req_sub_oid, req_val, req_val_type)
     end
