@@ -41,20 +41,6 @@ local sysORID             = 2
 local sysORDesc           = 3
 local sysORUpTime         = 4
 
-local function sh_call(command)
-    if type(command) ~= 'string' then
-        return nil
-    end
-
-    local t = nil
-    local f = io.popen(command)
-    if f ~= nil then
-        t = f:read("*line")
-        f:close()
-    end
-    return t
-end
-
 local startup_time = 0
 local or_last_changed_time = 0
 
@@ -83,7 +69,7 @@ local sys_or_descs_ = {
 
 local sysGroup = {
     rocommunity = 'public',
-    [sysDesc]         = mib.ConstString(function () return sh_call("uname -a") end),
+    [sysDesc]         = mib.ConstString(function () return mib.sh_call("uname -a") end),
     [sysObjectID]     = mib.ConstOid(function () return {1,3,6,1,4,1,8072,3,1} end),
     [sysUpTime]       = mib.ConstTimeticks(sys_up_time),
     [sysContact]      = mib.ConstString(function () return "Me <Me@example.org>" end),
