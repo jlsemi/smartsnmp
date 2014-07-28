@@ -19,35 +19,55 @@
 
 local mib = require "smartsnmp"
 
-ipAdEntAddr = {
+local ipForwarding_ = 1
+local ipDefalutTTL_ = 64
+local ipInReceives_ = 669874
+local ipInHdrErrors_ = 0
+local ipInAddrErrors_ = 0
+local ipForwDatagrams_ = 86
+local ipInUnknownProtos_ = 0
+local ipInDiscards_ = 0
+local ipInDelivers_ = 664487
+local ipOutRequests_ = 802147
+local ipOutDiscards_ = 1
+local ipOutNoRoutes_ = 1802
+local ipReasmTimeout_ = 1024
+local ipReasmReqds_ = 30
+local ipReasmOKs = 0
+local ipReasmFails = 0
+local ipFragsOKs_ = 0
+local ipFragsFails_ = 0
+local ipFragsCreates_ = 0
+
+local ipAdEntAddr_ = {
     {10,2,12,164},
     {127,0,0,1},
     {192,168,1,4},
     {192,168,122,1},
 }
 
-ipAdEntIfIndex = {
+local ipAdEntIfIndex_ = {
     2,
     1,
     4,
     5,
 }
 
-ipAdEntNetMask = {
+local ipAdEntNetMask_ = {
     {255,255,255,0},
     {255,0,0,0},
     {255,255,255,0},
     {255,255,255,0},
 }
 
-ipAdEntBcastAddr = {
+local ipAdEntBcastAddr_ = {
     1,
     0,
     1,
     1,
 }
 
-ipRouteDest = {
+local ipRouteDest_ = {
     {0,0,0,0},
     {10,2,12,0},
     {169,254,0,0},
@@ -55,7 +75,7 @@ ipRouteDest = {
     {192,168,122,0},
 }
 
-ipRouteIfIndex = {
+local ipRouteIfIndex_ = {
     2,
     2,
     4,
@@ -63,64 +83,66 @@ ipRouteIfIndex = {
     5,
 }
 
-ipNetToMediaPhysAddress = {
+local ipNetToMediaPhysAddress_ = {
     '9c216ab06f3e',
 }
 
-ipNetToMediaNetAddress = {
+local ipNetToMediaNetAddress_ = {
     {10,2,12,1},
 }
 
-ipNetToMediaType = {
+local ipNetToMediaType_ = {
     3,
 }
 
-ipGroup = {
+local ipRoutingDiscards_ = 0
+
+local ipGroup = {
      rwcommunity = 'ipprivate',
-     [1]  = mib.Int(1),
-     [2]  = mib.Int(64),
-     [3]  = mib.ConstInt(669874),
-     [4]  = mib.ConstInt(0),
-     [5]  = mib.ConstInt(0),
-     [6]  = mib.ConstInt(86),
-     [7]  = mib.ConstInt(0),
-     [8]  = mib.ConstInt(0),
-     [9]  = mib.ConstInt(664487),
-     [10] = mib.ConstInt(802147),
-     [11] = mib.ConstInt(1),
-     [12] = mib.ConstInt(1802),
-     [13] = mib.ConstInt(30),
-     [14] = mib.ConstInt(0),
-     [15] = mib.ConstInt(0),
-     [16] = mib.ConstInt(0),
-     [17] = mib.ConstInt(0),
-     [18] = mib.ConstInt(0),
-     [19] = mib.ConstInt(0),
+     [1]  = mib.Int(function () return ipForwarding_ end, function (v) ipForwarding_ = v end),
+     [2]  = mib.Int(function () return ipDefalutTTL_ end, function (v) ipDefalutTTL_ = v end),
+     [3]  = mib.ConstInt(function () return ipInReceives_ end),
+     [4]  = mib.ConstInt(function () return ipInHdrErrors_ end),
+     [5]  = mib.ConstInt(function () return ipInAddrErrors_ end),
+     [6]  = mib.ConstInt(function () return ipForwDatagrams_ end),
+     [7]  = mib.ConstInt(function () return ipInUnknownProtos_ end),
+     [8]  = mib.ConstInt(function () return ipInDiscards_ end),
+     [9]  = mib.ConstInt(function () return ipInDelivers_ end),
+     [10] = mib.ConstInt(function () return ipOutRequests_ end),
+     [11] = mib.ConstInt(function () return ipOutDiscards_ end),
+     [12] = mib.ConstInt(function () return ipOutNoRoutes_ end),
+     [13] = mib.ConstInt(function () return ipReasmTimeout_ end),
+     [14] = mib.ConstInt(function () return ipReasmReqds_ end),
+     [15] = mib.ConstInt(function () return ipReasmOKs end),
+     [16] = mib.ConstInt(function () return ipReasmFails end),
+     [17] = mib.ConstInt(function () return ipFragsOKs_ end),
+     [18] = mib.ConstInt(function () return ipFragsFails_ end),
+     [19] = mib.ConstInt(function () return ipFragsCreates_ end),
      [20] = {
          [1] = {
              [1] = mib.AutoIndex(4),
-             [2] = mib.ConstIpaddrList(ipAdEntAddr),
-             [3] = mib.ConstIntList(ipAdEntIfIndex),
-             [4] = mib.ConstIpaddrList(ipAdEntNetMask),
-             [5] = mib.ConstIntList(ipAdEntBcastAddr),
+             [2] = mib.ConstIpaddr(function (i) return ipAdEntAddr_[i] end),
+             [3] = mib.ConstInt(function (i) return ipAdEntIfIndex_[i] end),
+             [4] = mib.ConstIpaddr(function (i) return ipAdEntNetMask_[i] end),
+             [5] = mib.ConstInt(function (i) return ipAdEntBcastAddr_[i] end),
          }
      },
      [21] = {
          [1] = {
              [1] = mib.AutoIndex(5),
-             [2] = mib.ConstIpaddrList(ipRouteDest),
-             [3] = mib.IntList(ipRouteIfIndex),
+             [2] = mib.ConstIpaddr(function (i) return ipRouteDest_[i] end),
+             [3] = mib.Int(function (i) return ipRouteIfIndex_[i] end, function (i, v) ipRouteIfIndex_[i] = v end),
          }
      },
      [22] = {
          [1] = {
              [1] = mib.AutoIndex(1),
-             [2] = mib.StringList(ipNetToMediaPhysAddress),
-             [3] = mib.ConstIpaddrList(ipNetToMediaNetAddress),
-             [4] = mib.IntList(ipNetToMediaType),
+             [2] = mib.String(function (i) return ipNetToMediaPhysAddress_[i] end, function (i, v) ipNetToMediaPhysAddress_[i] = v end),
+             [3] = mib.ConstIpaddr(function (i) return ipNetToMediaNetAddress_[i] end),
+             [4] = mib.Int(function (i) return ipNetToMediaType_[i] end, function (i, v) ipNetToMediaType_[i] = v end),
          }
      },
-     [23] = mib.ConstInt(0),
+     [23] = mib.ConstInt(function () return ipRoutingDiscards_ end),
 }
 
 return ipGroup

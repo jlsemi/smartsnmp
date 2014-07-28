@@ -20,87 +20,69 @@
 local mib = require "smartsnmp"
 
 -- scalar index
-sysDesc             = 1
-sysObjectID         = 2
-sysUpTime           = 3
-sysContact          = 4
-sysName             = 5
-sysLocation         = 6
-sysServices         = 7
-sysORLastChange     = 8
+local sysDesc             = 1
+local sysObjectID         = 2
+local sysUpTime           = 3
+local sysContact          = 4
+local sysName             = 5
+local sysLocation         = 6
+local sysServices         = 7
+local sysORLastChange     = 8
 
 -- table index
-sysORTable          = 9
+local sysORTable          = 9
 
 -- entry index
-sysOREntry          = 1
+local sysOREntry          = 1
 
 -- list index
-sysORIndex          = 1
-sysORID             = 2
-sysORDesc           = 3
-sysORUpTime         = 4
-
-local function sh_call(command)
-    if type(command) ~= 'string' then
-        return nil
-    end
-
-    local t = nil
-    local f = io.popen(command)
-    if f ~= nil then
-        t = f:read("*line")
-        f:close()
-    end
-    return t
-end
+local sysORIndex          = 1
+local sysORID             = 2
+local sysORDesc           = 3
+local sysORUpTime         = 4
 
 local startup_time = 0
 local or_last_changed_time = 0
 
 local function sys_up_time()
-    return function() return os.difftime(os.time(), startup_time) * 100 end
+    return os.difftime(os.time(), startup_time) * 100
 end
 
 local function last_changed_time()
-    return function() return os.difftime(os.time(), or_last_changed_time) * 100 end
+    return os.difftime(os.time(), or_last_changed_time) * 100
 end
 
-function mib_system_startup(time)
+local function mib_system_startup(time)
     startup_time = time
     or_last_changed_time = time
 end
 
 mib_system_startup(os.time())
 
-sys_or_ids = {
+local sys_or_ids_ = {
     { 1,3,6,1,6,3,10,3,1,1 },
 }
 
-sys_or_descs = {
+local sys_or_descs_ = {
     "The SNMP Management Architecture MIB",
 }
 
-sys_or_uptimes = {
-    sys_up_time(),
-}
-
-sysGroup = {
+local sysGroup = {
     rocommunity = 'public',
-    [sysDesc]         = mib.ConstString(sh_call("uname -a")),
-    [sysObjectID]     = mib.ConstOid({1,3,6,1,4,1,8072,3,1}),
-    [sysUpTime]       = mib.ConstTimeticks(sys_up_time()),
-    [sysContact]      = mib.ConstString("Me <Me@example.org>"),
-    [sysName]         = mib.ConstString("ThinkPad X200"),
-    [sysLocation]     = mib.ConstString("Shanghai"),
-    [sysServices]     = mib.ConstInt(72),
-    [sysORLastChange] = mib.ConstTimeticks(last_changed_time()),
+    [sysDesc]         = mib.ConstString(function () return mib.sh_call("uname -a") end),
+    [sysObjectID]     = mib.ConstOid(function () return {1,3,6,1,4,1,8072,3,1} end),
+    [sysUpTime]       = mib.ConstTimeticks(sys_up_time),
+    [sysContact]      = mib.ConstString(function () return "Me <Me@example.org>" end),
+    [sysName]         = mib.ConstString(function () return "ThinkPad X200" end),
+    [sysLocation]     = mib.ConstString(function () return "Shanghai" end),
+    [sysServices]     = mib.ConstInt(function () return 72 end),
+    [sysORLastChange] = mib.ConstTimeticks(last_changed_time),
     [sysORTable]      = {
         [sysOREntry]  = {
-            [sysORIndex]  = mib.AutoIndex(1),
-            [sysORID]     = mib.ConstOidList(sys_or_ids),
-            [sysORDesc]   = mib.ConstStringList(sys_or_descs),
-            [sysORUpTime] = mib.ConstTimeticksList(sys_or_uptimes),
+            [sysORIndex]  = mib.AutoIndexUna(1),
+            [sysORID]     = mib.ConstOid(function (i) return sys_or_ids_[i] end),
+            [sysORDesc]   = mib.ConstString(function (i) return sys_or_descs_[i] end),
+            [sysORUpTime] = mib.ConstTimeticks(sys_up_time),
         }
     }
 }

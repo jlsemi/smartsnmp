@@ -19,13 +19,18 @@
 
 local mib = require "smartsnmp"
 
-udpInDatagrams  = 1
-udpNoPorts      = 2
-udpInErrors     = 3
-udpOutDatagrams = 4
-udpTable        = 5
+local udpInDatagrams  = 1
+local udpNoPorts      = 2
+local udpInErrors     = 3
+local udpOutDatagrams = 4
+local udpTable        = 5
 
-udpLocalAddress = {
+local udpInDatagrams_  = 33954
+local udpNoPorts_      = 751
+local udpInErrors_     = 0
+local udpOutDatagrams_ = 35207
+
+local udpLocalAddress_ = {
     {0,0,0,0},
     {0,0,0,0},
     {0,0,0,0},
@@ -36,7 +41,7 @@ udpLocalAddress = {
     {192,168,122,1},
 }
 
-udpLocalPort = {
+local udpLocalPort_ = {
     67,
     68,
     161,
@@ -47,15 +52,16 @@ udpLocalPort = {
     53,
 }
 
-udpGroup = {
-    [udpInDatagrams]  = mib.ConstCount(33954),
-    [udpNoPorts]      = mib.ConstCount(751),
-    [udpInErrors]     = mib.ConstCount(0),
-    [udpOutDatagrams] = mib.ConstCount(35207),
+local udpGroup = {
+    [udpInDatagrams]  = mib.ConstCount(function () return udpInDatagrams_ end),
+    [udpNoPorts]      = mib.ConstCount(function () return udpNoPorts_ end),
+    [udpInErrors]     = mib.ConstCount(function () return udpInErrors_ end),
+    [udpOutDatagrams] = mib.ConstCount(function () return udpOutDatagrams_ end),
     [udpTable] = {
         [1] = {
-            [1] = mib.ConstIpaddrList(udpLocalAddress),
-            [2] = mib.ConstIntList(udpLocalPort),
+            [1] = mib.AutoIndex(8),
+            [2] = mib.ConstIpaddr(function (i) return udpLocalAddress_[i] end),
+            [3] = mib.ConstInt(function (i) return udpLocalPort_[i] end),
         }
     }
 }
