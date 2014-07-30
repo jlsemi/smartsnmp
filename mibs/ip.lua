@@ -97,6 +97,8 @@ local ipNetToMediaType_ = {
 
 local ipRoutingDiscards_ = 0
 
+mib.module_methods.or_table_reg("1.3.6.1.2.1.4", "The MIB module for managing IP and ICMP inplementations")
+
 local ipGroup = {
      rwcommunity = 'ipprivate',
      [1]  = mib.Int(function () return ipForwarding_ end, function (v) ipForwarding_ = v end),
@@ -120,7 +122,7 @@ local ipGroup = {
      [19] = mib.ConstInt(function () return ipFragsCreates_ end),
      [20] = {
          [1] = {
-             [1] = mib.AutoIndex(4),
+             [1] = mib.ConstIndex(function () return { 1, 2, 3, 4 } end),
              [2] = mib.ConstIpaddr(function (i) return ipAdEntAddr_[i] end),
              [3] = mib.ConstInt(function (i) return ipAdEntIfIndex_[i] end),
              [4] = mib.ConstIpaddr(function (i) return ipAdEntNetMask_[i] end),
@@ -129,14 +131,14 @@ local ipGroup = {
      },
      [21] = {
          [1] = {
-             [1] = mib.AutoIndex(5),
+             [1] = mib.ConstIndex(function () return { 1, 2, 3, 4, 5 } end),
              [2] = mib.ConstIpaddr(function (i) return ipRouteDest_[i] end),
              [3] = mib.Int(function (i) return ipRouteIfIndex_[i] end, function (i, v) ipRouteIfIndex_[i] = v end),
          }
      },
      [22] = {
          [1] = {
-             [1] = mib.AutoIndex(1),
+             [1] = mib.ConstIndex(function () return { 1 } end),
              [2] = mib.String(function (i) return ipNetToMediaPhysAddress_[i] end, function (i, v) ipNetToMediaPhysAddress_[i] = v end),
              [3] = mib.ConstIpaddr(function (i) return ipNetToMediaNetAddress_[i] end),
              [4] = mib.Int(function (i) return ipNetToMediaType_[i] end, function (i, v) ipNetToMediaType_[i] = v end),

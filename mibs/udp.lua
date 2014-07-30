@@ -52,6 +52,8 @@ local udpLocalPort_ = {
     53,
 }
 
+mib.module_methods.or_table_reg("1.3.6.1.2.1.7", "The MIB module for managing UDP inplementations")
+
 local udpGroup = {
     [udpInDatagrams]  = mib.ConstCount(function () return udpInDatagrams_ end),
     [udpNoPorts]      = mib.ConstCount(function () return udpNoPorts_ end),
@@ -59,7 +61,7 @@ local udpGroup = {
     [udpOutDatagrams] = mib.ConstCount(function () return udpOutDatagrams_ end),
     [udpTable] = {
         [1] = {
-            [1] = mib.AutoIndex(8),
+            [1] = mib.ConstIndex(function () return { 1, 2, 3, 4, 5, 6, 7, 8 } end),
             [2] = mib.ConstIpaddr(function (i) return udpLocalAddress_[i] end),
             [3] = mib.ConstInt(function (i) return udpLocalPort_[i] end),
         }
