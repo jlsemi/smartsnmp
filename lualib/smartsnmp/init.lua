@@ -89,6 +89,22 @@ SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
 -- Generators for declare SNMP MIB Node
 --
 
+_M.module_methods = {}
+
+-- Submodule method register.
+function _M.module_method_register(methods)
+    for k, v in pairs(methods) do
+        assert(type(k) == 'string' and type(v) == 'function', 'Methods must be [name, function] pairs')
+        _M.module_methods[k] = v
+    end
+end
+
+-- Submodule method unregister.
+function _M.module_method_unregister(name)
+    assert(type(name) == 'string', 'Method name must be string')
+    _M.module_methods[name] = nil
+end
+
 -- Shell command invoke.
 function _M.sh_call(command)
     if type(command) ~= 'string' then
@@ -188,20 +204,10 @@ function _M.Gauge(g, s)
     return { index_key = false, tag = BER_TAG_GAU, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
--- Auto incremented indexes.
-function _M.AutoIndexUna(n)
-    assert(type(n) == 'number', 'Argument must be integer type')
-    local it = {}
-    for i = 1, n do it[i] = i end
-    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_UNA, get_f = function () return it end, set_f = nil }
-end
-
--- Auto incremented indexes.
-function _M.AutoIndex(n)
-    assert(type(n) == 'number', 'Argument must be integer type')
-    local it = {}
-    for i = 1, n do it[i] = i end
-    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = function () return it end, set_f = nil }
+-- Index get/set function
+function _M.UnaIndex(g)
+    assert(type(g) == 'function', 'Argument must be function type')
+    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_UNA, get_f = g, set_f = nil }
 end
 
 -- Index get/set function

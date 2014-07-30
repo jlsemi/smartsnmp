@@ -89,6 +89,8 @@ local tcpConnRemPort_ = {
 local tcpInErrs_ = 3314
 local tcpOutRsts = 825
 
+mib.module_methods.or_table_reg("1.3.6.1.2.1.6", "The MIB module for managing TCP inplementations")
+
 local tcpGroup = {
     [1] = mib.ConstInt(function () return tcpRtoAlgorithm_ end),
     [2] = mib.ConstInt(function () return tcpRtoMin_ end),
@@ -104,7 +106,7 @@ local tcpGroup = {
     [12] = mib.ConstCount(function () return tcpRetransSegs_ end),
     [13] = {
         [1] = {
-            [1] = mib.AutoIndex(10),
+            [1] = mib.ConstIndex(function () return { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 } end),
             [2] = mib.Int(function (i) return tcpConnState_[i] end, function (i, v) tcpConnState_[i] = v end),
             [3] = mib.ConstIpaddr(function (i) return tcpConnLocalAddress_[i] end),
             [4] = mib.ConstInt(function (i) return tcpConnLocalPort_[i] end),
