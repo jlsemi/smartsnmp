@@ -95,7 +95,7 @@ local or_table_unreg = function (oid)
 
     if or_table_cache[or_idx] ~= nil then
         table.remove(or_table_cache, or_idx)
-	or_last_changed_time = os.time()
+        or_last_changed_time = os.time()
 
         or_index_cache = {}
         for i in ipairs(or_table_cache) do
@@ -118,18 +118,39 @@ sysGroup = {
     rocommunity = 'public',
     [sysDesc]         = mib.ConstString(function () return mib.sh_call("uname -a") end),
     [sysObjectID]     = mib.ConstOid(function ()
-				         local oid = {}
-                                         local s = context:get("smartsnmpd", "smartsnmpd", "objectid")
-				         for i in string.gmatch(s, "%d") do
-				             table.insert(oid, tonumber(i))
-				         end
+                                         local oid = {}
+                                         local objectid = ''
+                                         context:foreach("smartsnmpd", "smartsnmpd", function (s)
+                                             if s.objectid ~= nil then objectid = s.objectid end
+                                         end)
+                                         for i in string.gmatch(objectid, "%d+") do
+                                             table.insert(oid, tonumber(i))
+                                         end
                                          return oid
-				     end),
+                                     end),
     [sysUpTime]       = mib.ConstTimeticks(function () return os.difftime(os.time(), startup_time) * 100 end),
-    [sysContact]      = mib.ConstString(function () return context:get("smartsnmpd", "smartsnmpd", "contact") end),
+    [sysContact]      = mib.ConstString(function () 
+                                            local contact = ''
+                                            context:foreach("smartsnmpd", "smartsnmpd", function (s)
+                                                if s.contact ~= nil then contact = s.contact end
+                                            end)
+                                            return contact
+                                        end),
     [sysName]         = mib.ConstString(function () return mib.sh_call("uname -n") end),
-    [sysLocation]     = mib.ConstString(function () return context:get("smartsnmpd", "smartsnmpd", "location") end),
-    [sysServices]     = mib.ConstInt(function () return tonumber(context:get("smartsnmpd", "smartsnmpd", "services")) end),
+    [sysLocation]     = mib.ConstString(function ()
+                                            local location = ''
+                                            context:foreach("smartsnmpd", "smartsnmpd", function (s)
+                                                if s.location ~= nil then location = s.location end
+                                            end)
+                                            return location
+                                        end),
+    [sysServices]     = mib.ConstInt(function ()
+                                         local services = 0
+                                         context:foreach("smartsnmpd", "smartsnmpd", function (s)
+                                             if s.services ~= nil then services = tonumber(s.services) end
+                                         end)
+                                         return services
+                                     end),
     [sysORLastChange] = mib.ConstTimeticks(function () return os.difftime(os.time(), or_last_changed_time) * 100 end),
     [sysORTable]      = {
         [sysOREntry]  = {
