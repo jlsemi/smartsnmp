@@ -55,14 +55,6 @@ end
 
 mib_system_startup(os.time())
 
-local sys_or_ids_ = {
-    { 1,3,6,1,6,3,10,3,1,1 },
-}
-
-local sys_or_descs_ = {
-    "The SNMP Management Architecture MIB",
-}
-
 local sysGroup = {}
 local or_oid_cache = {}
 local or_index_cache = {}
@@ -106,6 +98,22 @@ local or_table_unreg = function (oid)
     end
 end
 
+local last_load_time = os.time()
+local function need_to_reload()
+    if os.difftime(os.time(), last_load_time) < 3 then
+        return false
+    else
+        last_load_time = os.time()
+        return true
+    end
+end
+
+local function load_config()
+    if need_to_reload() == true then
+        context:load("smartsnmpd")
+    end
+end
+
 context:load("smartsnmpd")
 
 local sysMethods = {
@@ -116,48 +124,55 @@ mib.module_method_register(sysMethods)
 
 sysGroup = {
     rocommunity = 'public',
-    [sysDesc]         = mib.ConstString(function () return mib.sh_call("uname -a") end),
+    [sysDesc]         = mib.ConstString(function () load_config() return mib.sh_call("uname -a") end),
     [sysObjectID]     = mib.ConstOid(function ()
-                                         local oid = {}
-                                         local objectid = ''
+                                         load_config()
+                                         local oid
+                                         local objectid
                                          context:foreach("smartsnmpd", "smartsnmpd", function (s)
-                                             if s.objectid ~= nil then objectid = s.objectid end
+                                             objectid = s.objectid
                                          end)
-                                         for i in string.gmatch(objectid, "%d+") do
-                                             table.insert(oid, tonumber(i))
+                                         if objectid ~= nil then
+                                            oid = {}
+                                            for i in string.gmatch(objectid, "%d+") do
+                                                table.insert(oid, tonumber(i))
+                                            end
                                          end
                                          return oid
                                      end),
-    [sysUpTime]       = mib.ConstTimeticks(function () return os.difftime(os.time(), startup_time) * 100 end),
+    [sysUpTime]       = mib.ConstTimeticks(function () load_config() return os.difftime(os.time(), startup_time) * 100 end),
     [sysContact]      = mib.ConstString(function () 
-                                            local contact = ''
+                                            load_config()
+                                            local contact
                                             context:foreach("smartsnmpd", "smartsnmpd", function (s)
-                                                if s.contact ~= nil then contact = s.contact end
+                                                contact = s.contact
                                             end)
                                             return contact
                                         end),
-    [sysName]         = mib.ConstString(function () return mib.sh_call("uname -n") end),
+    [sysName]         = mib.ConstString(function () load_config() return mib.sh_call("uname -n") end),
     [sysLocation]     = mib.ConstString(function ()
-                                            local location = ''
+                                            load_config()
+                                            local location
                                             context:foreach("smartsnmpd", "smartsnmpd", function (s)
-                                                if s.location ~= nil then location = s.location end
+                                                location = s.location
                                             end)
                                             return location
                                         end),
     [sysServices]     = mib.ConstInt(function ()
-                                         local services = 0
+                                         load_config()
+                                         local services
                                          context:foreach("smartsnmpd", "smartsnmpd", function (s)
-                                             if s.services ~= nil then services = tonumber(s.services) end
+                                             services = tonumber(s.services)
                                          end)
                                          return services
                                      end),
-    [sysORLastChange] = mib.ConstTimeticks(function () return os.difftime(os.time(), or_last_changed_time) * 100 end),
+    [sysORLastChange] = mib.ConstTimeticks(function () load_config() return os.difftime(os.time(), or_last_changed_time) * 100 end),
     [sysORTable]      = {
         [sysOREntry]  = {
-            [sysORIndex]  = mib.UnaIndex(function () return or_index_cache end),
-            [sysORID]     = mib.ConstOid(function (i) return or_table_cache[i].oid end),
-            [sysORDesc]   = mib.ConstString(function (i) return or_table_cache[i].desc end),
-            [sysORUpTime] = mib.ConstTimeticks(function (i) return os.difftime(os.time(), or_table_cache[i].uptime) * 100 end),
+            [sysORIndex]  = mib.UnaIndex(function () load_config() return or_index_cache end),
+            [sysORID]     = mib.ConstOid(function (i) load_config() return or_table_cache[i].oid end),
+            [sysORDesc]   = mib.ConstString(function (i) load_config() return or_table_cache[i].desc end),
+            [sysORUpTime] = mib.ConstTimeticks(function (i) load_config() return os.difftime(os.time(), or_table_cache[i].uptime) * 100 end),
         }
     }
 }
