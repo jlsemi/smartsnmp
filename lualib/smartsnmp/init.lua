@@ -384,11 +384,12 @@ local group_index_table_generator = function (group, name)
 end
 
 -- Search and operation
-local mib_node_search = function (group, group_index_table, op, community, req_sub_oid, req_val, req_val_type)
+local mib_node_search = function (group, name, op, community, req_sub_oid, req_val, req_val_type)
     local err_stat = nil
     local rsp_sub_oid = nil
     local rsp_val = nil
     local rsp_val_type = nil
+    local group_index_table = nil
     -- Search obj_id in group index table.
     local effective_object_index = function (tab, id)
         for i in ipairs(tab) do
@@ -399,7 +400,7 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
         return nil
     end
 
-    handlers = {}
+    local handlers = {}
     -- set operation
     handlers[SNMP_REQ_SET] = function ()
         rsp_sub_oid = req_sub_oid
@@ -623,6 +624,7 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
         end
     end
 
+    group_index_table = group_index_table_generator(group, name)
     H = handlers[op]
     return H()
 end
@@ -653,19 +655,12 @@ _M.set_rw_community = function (s)
     _M.rwcommunity = s
 end
 
--- generate group index table for dictionary sequence.
-_M.dictionary_indexes_generate = function (group, name)
-    local group_indexes = group_index_table_generator(group, name)
-    local mib_search_handler = function (op, community, req_sub_oid, req_val, req_val_type)
-        return mib_node_search(group, group_indexes, op, community, req_sub_oid, req_val, req_val_type)
-    end
-    return mib_search_handler
-end
-
 -- register a group of snmp mib nodes
 _M.register_mib_group = function (oid, group, name)
-    local mib_handler = _M.dictionary_indexes_generate(group, name)
-    core.mib_node_reg(oid, mib_handler)
+    local mib_search_handler = function (op, community, req_sub_oid, req_val, req_val_type)
+        return mib_node_search(group, name, op, community, req_sub_oid, req_val, req_val_type)
+    end
+    core.mib_node_reg(oid, mib_search_handler)
 end
 
 -- unregister a group of snmp mib nodes
