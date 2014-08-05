@@ -54,8 +54,7 @@ snmpd_mib_node_reg(lua_State *L)
 {
   oid_t *inst_id;
   int inst_id_len;
-  const char *inst_cb;
-  int i;
+  int i, inst_cb;
 
   /* Check if the first argument is a table. */
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -71,7 +70,12 @@ snmpd_mib_node_reg(lua_State *L)
   }
 
   /* Get lua callback of instance node */
-  inst_cb = luaL_checkstring(L, 2);
+  if (!lua_isfunction(L, -1)) {
+    lua_pushstring(L, "Handler is not a function!");
+    lua_error(L);
+  }
+
+  inst_cb = luaL_ref(L, LUA_ENVIRONINDEX);
   /* Register node */
   i = mib_node_reg(inst_id, inst_id_len, inst_cb);
   /* Get returned value */
@@ -151,6 +155,8 @@ luaopen_smartsnmp_core(lua_State *L)
 {
   /* Store lua environment */
   l_state = L;
+  lua_newtable(L);
+  lua_replace(L, LUA_ENVIRONINDEX);
   /* Register snmpd_func into lua */
   luaL_register(L, "snmpd_lib", snmpd_func);
 

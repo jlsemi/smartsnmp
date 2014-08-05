@@ -659,15 +659,13 @@ _M.dictionary_indexes_generate = function (group, name)
     local mib_search_handler = function (op, community, req_sub_oid, req_val, req_val_type)
         return mib_node_search(group, group_indexes, op, community, req_sub_oid, req_val, req_val_type)
     end
-    local handler_string = "smartsnmp " .. tostring(mib_search_handler)
-    _G[handler_string] = mib_search_handler
-    return handler_string
+    return mib_search_handler
 end
 
 -- register a group of snmp mib nodes
 _M.register_mib_group = function (oid, group, name)
-    local handler = _M.dictionary_indexes_generate(group, name)
-    core.mib_node_reg(oid, handler)
+    local mib_handler = _M.dictionary_indexes_generate(group, name)
+    core.mib_node_reg(oid, mib_handler)
 end
 
 -- unregister a group of snmp mib nodes
