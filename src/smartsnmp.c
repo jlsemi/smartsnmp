@@ -54,8 +54,7 @@ snmpd_mib_node_reg(lua_State *L)
 {
   oid_t *inst_id;
   int inst_id_len;
-  const char *inst_cb;
-  int i, handler;
+  int i, inst_cb;
 
   /* Check if the first argument is a table. */
   luaL_checktype(L, 1, LUA_TTABLE);
@@ -76,9 +75,9 @@ snmpd_mib_node_reg(lua_State *L)
     lua_error(L);
   }
 
-  handler = luaL_ref(L, LUA_ENVIRONINDEX);
+  inst_cb = luaL_ref(L, LUA_ENVIRONINDEX);
   /* Register node */
-  i = mib_node_reg(inst_id, inst_id_len, handler);
+  i = mib_node_reg(inst_id, inst_id_len, inst_cb);
   /* Get returned value */
   lua_pushnumber(L, i);
 
