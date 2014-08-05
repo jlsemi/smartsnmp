@@ -28,6 +28,14 @@
 
 static struct snmp_datagram snmp_datagram;
 
+/* Unrefer mib search handler */
+void
+mib_handler_unref(int handler)
+{
+  lua_State *L = snmp_datagram.lua_state;
+  luaL_unref(L, LUA_ENVIRONINDEX, handler);
+}
+
 /* Embedded code is not funny at all... */
 int
 mib_instance_search(struct oid_search_res *ret_oid)
@@ -39,7 +47,7 @@ mib_instance_search(struct oid_search_res *ret_oid)
   /* Empty lua stack. */
   lua_pop(L, -1);
   /* Get function. */
-  lua_getglobal(L, ret_oid->callback);
+  lua_rawgeti(L, LUA_ENVIRONINDEX, ret_oid->callback);
   /* op */
   lua_pushinteger(L, ret_oid->request);
   /* Community authorization */
