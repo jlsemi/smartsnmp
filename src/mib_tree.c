@@ -476,7 +476,7 @@ mib_group_node_delete(struct mib_group_node *gn)
 }
 
 static struct mib_instance_node *
-mib_instance_node_new(const char *lua_callback)
+mib_instance_node_new(int lua_callback)
 {
   struct mib_instance_node *in = xmalloc(sizeof(*in));
   in->type = MIB_OBJ_INSTANCE;
@@ -487,7 +487,10 @@ mib_instance_node_new(const char *lua_callback)
 static void
 mib_instance_node_delete(struct mib_instance_node *in)
 {
-  free(in);
+  if (in != NULL) {
+    mib_handler_unref(in->callback);
+    free(in);
+  }
 }
 
 /* parent-child relationship */
@@ -732,7 +735,7 @@ mib_tree_group_insert(const oid_t *oid, uint32_t id_len)
  * before the last one are regarded as exist group node(s) by default.
  */
 static struct mib_instance_node *
-mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, const char *lua_callback)
+mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, int lua_callback)
 {
   struct mib_node *node;
   struct mib_group_node *gn;
@@ -792,7 +795,7 @@ mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, const char *lua_call
 /* Register one instance node in mib-tree according to oid with callback defined
  * in Lua files. */
 int
-mib_node_reg(const oid_t *oid, uint32_t len, const char *lua_callback)
+mib_node_reg(const oid_t *oid, uint32_t len, int lua_callback)
 {
   int i;
   struct mib_group_node *gn;

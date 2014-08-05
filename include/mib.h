@@ -40,7 +40,7 @@ struct oid_search_res {
   oid_t *inst_id;
   uint32_t inst_id_len;
   /* Instance search callback in Lua */
-  const char *callback;
+  int callback;
   /* Request id */
   uint8_t request;
   /* Search return status */
@@ -63,18 +63,19 @@ struct mib_group_node {
 
 struct mib_instance_node {
   uint8_t type;
-  const char *callback;
+  int callback;
 };
 
 oid_t * oid_dup(const oid_t *oid, uint32_t len);
 oid_t *oid_cpy(oid_t *oid_dest, const oid_t *oid_src, uint32_t len);
 int oid_cmp(const oid_t *src, uint32_t src_len, const oid_t *target, uint32_t tar_len);
 
+void mib_handler_unref(int handler);
 int mib_instance_search(struct oid_search_res *ret_oid);
 struct mib_node *mib_tree_search(const oid_t *oid, uint32_t id_len, struct oid_search_res *ret_oid);
 struct mib_node *mib_tree_search_next(const oid_t *oid, uint32_t id_len, struct oid_search_res *ret_oid);
 
-int mib_node_reg(const oid_t *oid, uint32_t id_len, const char *callback);
+int mib_node_reg(const oid_t *oid, uint32_t id_len, int callback);
 void mib_node_unreg(const oid_t *oid, uint32_t id_len);
 
 void mib_init(void);
