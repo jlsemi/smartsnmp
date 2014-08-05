@@ -65,7 +65,7 @@ local or_table_reg = function (oid, desc)
     row['desc'] = desc
     row['uptime'] = os.time()
     table.insert(or_table_cache, row)
-    
+
     or_last_changed_time = os.time()
 
     or_oid_cache[oid] = #or_table_cache
@@ -74,8 +74,6 @@ local or_table_reg = function (oid, desc)
     for i in ipairs(or_table_cache) do
         table.insert(or_index_cache, i)
     end
-    
-    mib.dictionary_indexes_generate(sysGroup, 'system')
 end
 
 local or_table_unreg = function (oid)
@@ -89,8 +87,6 @@ local or_table_unreg = function (oid)
         for i in ipairs(or_table_cache) do
             table.insert(or_index_cache, i)
         end
-        
-        mib.dictionary_indexes_generate(sysGroup, 'system')
     end
 end
 
