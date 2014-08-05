@@ -476,11 +476,11 @@ mib_group_node_delete(struct mib_group_node *gn)
 }
 
 static struct mib_instance_node *
-mib_instance_node_new(int lua_callback)
+mib_instance_node_new(int callback)
 {
   struct mib_instance_node *in = xmalloc(sizeof(*in));
   in->type = MIB_OBJ_INSTANCE;
-  in->callback = lua_callback;
+  in->callback = callback;
   return in;
 }
 
@@ -735,7 +735,7 @@ mib_tree_group_insert(const oid_t *oid, uint32_t id_len)
  * before the last one are regarded as exist group node(s) by default.
  */
 static struct mib_instance_node *
-mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, int lua_callback)
+mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, int callback)
 {
   struct mib_node *node;
   struct mib_group_node *gn;
@@ -751,7 +751,7 @@ mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, int lua_callback)
         gn = (struct mib_group_node *)node;
         if (is_raw_group_node(gn) && id_len == 1) {
           /* Allocate intermediate group node */
-          gn->sub_ptr[0] = mib_instance_node_new(lua_callback);
+          gn->sub_ptr[0] = mib_instance_node_new(callback);
           gn->sub_id[0] = *oid;
           gn->sub_id_cnt++;
           return gn->sub_ptr[0];
@@ -770,7 +770,7 @@ mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, int lua_callback)
             if (id_len == 1) {
               /* The last only oid is for the new instance node */
               group_node_resize(gn, i);
-              gn->sub_ptr[i] = mib_instance_node_new(lua_callback);
+              gn->sub_ptr[i] = mib_instance_node_new(callback);
               gn->sub_id[i] = *oid;
               gn->sub_id_cnt++;
               return gn->sub_ptr[i];
@@ -795,7 +795,7 @@ mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, int lua_callback)
 /* Register one instance node in mib-tree according to oid with callback defined
  * in Lua files. */
 int
-mib_node_reg(const oid_t *oid, uint32_t len, int lua_callback)
+mib_node_reg(const oid_t *oid, uint32_t len, int callback)
 {
   int i;
   struct mib_group_node *gn;
@@ -808,7 +808,7 @@ mib_node_reg(const oid_t *oid, uint32_t len, int lua_callback)
     goto NODE_REG_FAIL;
   }
 
-  in = mib_tree_instance_insert(oid, len, lua_callback);
+  in = mib_tree_instance_insert(oid, len, callback);
   if (in == NULL) {
     goto NODE_REG_FAIL;
   }
