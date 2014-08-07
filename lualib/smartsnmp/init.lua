@@ -62,7 +62,7 @@ BER_TAG_NO_SUCH_OBJ       = 0x80
 BER_TAG_NO_SUCH_INST      = 0x81
 
 -- Error status
-  -- v1
+-- v1
 SNMP_ERR_STAT_NO_ERR              = 0
 SNMP_ERR_STAT_TOO_BIG             = 1
 SNMP_ERR_STAT_NO_SUCH_NAME        = 2
@@ -88,6 +88,22 @@ SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
 --
 -- Generators for declare SNMP MIB Node
 --
+
+_M.module_methods = {}
+
+-- Submodule method register.
+function _M.module_method_register(methods)
+    for k, v in pairs(methods) do
+        assert(type(k) == 'string' and type(v) == 'function', 'Methods must be [name, function] pairs')
+        _M.module_methods[k] = v
+    end
+end
+
+-- Submodule method unregister.
+function _M.module_method_unregister(name)
+    assert(type(name) == 'string', 'Method name must be string')
+    _M.module_methods[name] = nil
+end
 
 -- Shell command invoke.
 function _M.sh_call(command)
@@ -188,20 +204,10 @@ function _M.Gauge(g, s)
     return { index_key = false, tag = BER_TAG_GAU, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
--- Auto incremented indexes.
-function _M.AutoIndexUna(n)
-    assert(type(n) == 'number', 'Argument must be integer type')
-    local it = {}
-    for i = 1, n do it[i] = i end
-    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_UNA, get_f = function () return it end, set_f = nil }
-end
-
--- Auto incremented indexes.
-function _M.AutoIndex(n)
-    assert(type(n) == 'number', 'Argument must be integer type')
-    local it = {}
-    for i = 1, n do it[i] = i end
-    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = function () return it end, set_f = nil }
+-- Index get/set function
+function _M.UnaIndex(g)
+    assert(type(g) == 'function', 'Argument must be function type')
+    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_UNA, get_f = g, set_f = nil }
 end
 
 -- Index get/set function
@@ -378,10 +384,12 @@ local group_index_table_generator = function (group, name)
 end
 
 -- Search and operation
-local mib_node_search = function (group, group_index_table, op, community, req_sub_oid, req_val, req_val_type)
+local mib_node_search = function (group, name, op, community, req_sub_oid, req_val, req_val_type)
+    local err_stat = nil
     local rsp_sub_oid = nil
     local rsp_val = nil
     local rsp_val_type = nil
+    local group_index_table = nil
     -- Search obj_id in group index table.
     local effective_object_index = function (tab, id)
         for i in ipairs(tab) do
@@ -392,7 +400,7 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
         return nil
     end
 
-    handlers = {}
+    local handlers = {}
     -- set operation
     handlers[SNMP_REQ_SET] = function ()
         rsp_sub_oid = req_sub_oid
@@ -425,7 +433,7 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
                 return SNMP_ERR_STAT_WRONG_TYPE, rsp_sub_oid, rsp_val, rsp_val_type
             end
 
-            scalar.set_f(rsp_val)
+            err_stat = scalar.set_f(rsp_val)
         elseif dim >= 4 then
             -- table
             local table_no = obj_no
@@ -446,12 +454,16 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
                 return SNMP_ERR_STAT_WRONG_TYPE, rsp_sub_oid, rsp_val, rsp_val_type
             end
 
-            variable.set_f(inst_no, rsp_val)
+            err_stat = variable.set_f(inst_no, rsp_val)
         else
             return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, rsp_val, rsp_val_type
         end
 
-        return 0, rsp_sub_oid, rsp_val, rsp_val_type
+        if err_stat ~= nil then
+            return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
+        else
+            return 0, rsp_sub_oid, rsp_val, rsp_val_type
+        end
     end
 
     -- get operation
@@ -483,7 +495,7 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
             if not(#req_sub_oid == 2 and req_sub_oid[2] == 0) then
                 return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
             end
-            rsp_val = scalar.get_f()
+            rsp_val, err_stat = scalar.get_f()
             rsp_val_type = scalar.tag
         elseif dim >= 4 then
             -- table
@@ -506,10 +518,11 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
             end
             -- Get instance value
             if variable.index_key == true then
-                local it = variable.get_f()
+                local it
+                it, err_stat = variable.get_f(varible)
                 rsp_val = it[inst_no]
             else
-                rsp_val = variable.get_f(inst_no)
+                rsp_val, err_stat = variable.get_f(inst_no)
             end
 
             rsp_val_type = variable.tag
@@ -521,13 +534,17 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
             return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
         end
 
-        return 0, rsp_sub_oid, rsp_val, rsp_val_type
+        if err_stat ~= nil then
+            return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
+        else
+            return 0, rsp_sub_oid, rsp_val, rsp_val_type
+        end
     end
 
     -- get next operation
     handlers[SNMP_REQ_GETNEXT] = function ()
         rsp_sub_oid = req_sub_oid
-        
+
         -- Priority for local group community string
         if group.rocommunity ~= community then
             -- Global community
@@ -565,7 +582,7 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
                 -- scalar
                 local scalar_no = rsp_sub_oid[1]
                 variable = group[scalar_no]
-                rsp_val = variable.get_f()
+                rsp_val, err_stat = variable.get_f()
                 rsp_val_type = variable.tag
             elseif #rsp_sub_oid >= 4 then
                 -- table
@@ -577,15 +594,16 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
                 variable = group[table_no][entry_no][list_no]
                 -- get instance value
                 if variable.index_key == true then
-                    local it = variable.get_f()
+                    local it
+                    it, err_stat = variable.get_f()
                     rsp_val = it[inst_no]
                     if rsp_val == nil then rsp_val = inst_no end
                 else
-                    rsp_val = variable.get_f(inst_no)
+                    rsp_val, err_stat = variable.get_f(inst_no)
                 end
                 rsp_val_type = variable.tag
 
-                if variable.access == MIB_ACES_UNA then
+                if rsp_val == nil or rsp_val_type == nil or variable.access == MIB_ACES_UNA then
                     rsp_sub_oid[3] = rsp_sub_oid[3] + 1
                     rsp_sub_oid[4] = 0
                 end
@@ -593,15 +611,20 @@ local mib_node_search = function (group, group_index_table, op, community, req_s
                 assert(false, 'Neighter a scalar variable nor a table')
             end
         -- Unaccessable node is ignored in getnext traversal.
-        until variable.access ~= MIB_ACES_UNA
+        until rsp_val ~= nil and rsp_val_type ~= nil and variable.access ~= MIB_ACES_UNA
 
         if next(rsp_sub_oid) == nil then
             return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
         end
 
-        return 0, rsp_sub_oid, rsp_val, rsp_val_type
+        if err_stat ~= nil then
+            return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
+        else
+            return 0, rsp_sub_oid, rsp_val, rsp_val_type
+        end
     end
 
+    group_index_table = group_index_table_generator(group, name)
     H = handlers[op]
     return H()
 end
@@ -632,21 +655,12 @@ _M.set_rw_community = function (s)
     _M.rwcommunity = s
 end
 
--- generate group index table for dictionary sequence.
-_M.dictionary_indexes_generate = function (group, name)
-    local group_indexes = group_index_table_generator(group, name)
-    local mib_search_handler = function (op, community, req_sub_oid, req_val, req_val_type)
-        return mib_node_search(group, group_indexes, op, community, req_sub_oid, req_val, req_val_type)
-    end
-
-    -- TODO: register handler by function directly instead of use global name
-    _G[name] = mib_search_handler
-end
-
 -- register a group of snmp mib nodes
 _M.register_mib_group = function (oid, group, name)
-    _M.dictionary_indexes_generate(group, name)
-    core.mib_node_reg(oid, name)
+    local mib_search_handler = function (op, community, req_sub_oid, req_val, req_val_type)
+        return mib_node_search(group, name, op, community, req_sub_oid, req_val, req_val_type)
+    end
+    core.mib_node_reg(oid, mib_search_handler)
 end
 
 -- unregister a group of snmp mib nodes

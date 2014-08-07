@@ -110,13 +110,30 @@ local register_mib_module = function(oid_str, mib_module_name)
     return pcall(snmpd.register_mib_group, oid, mib_group_or_err, mib_module_name)
 end
 
+-- Sort for module reference sequence
+local mib_mod_refs = {}
+
 for oid_str, mib_module_name in pairs(mib_modules) do
-    status, err = register_mib_module(oid_str, mib_module_name)
+    local row = {}
+    row['oid'] = oid_str
+    row['name'] = mib_module_name
+    if (row['name'] == "system") then
+        table.insert(mib_mod_refs, 1, row)
+    else
+        table.insert(mib_mod_refs, row)
+    end
+end
+
+for i, v in ipairs(mib_mod_refs) do
+    status, err = register_mib_module(v['oid'], v['name'])
     if status ~= true then
-        print("Failed to load MIB module: "..mib_module_name)
+        print("Failed to load MIB module: "..v['name'])
         print(err)
     end
 end
+
+mib_modules = nil
+mib_mod_refs = nil
 
 snmpd.start()
 
