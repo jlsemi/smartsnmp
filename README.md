@@ -19,10 +19,7 @@ Configure and Interfaces
 
 One of the biggest bonuses (aka smartest features) of this agent is that you can
 write your own private mib and loaded by it only if you learn to write a lua 
-file as shown at files in the example directory.
-
-There are two interfaces for the register and unregister of you mib nodes as
-shown at example/init.lua
+file as shown at files in the `mibs` directory.
 
 Operation
 ---------
@@ -97,7 +94,7 @@ Net-SNMP utils need be installed before you run test scripts (on Ubuntu).
 
 To run SNMP agent:
 
-    sodo ./tests/run_snmpd.sh
+    sudo ./tests/run_snmpd.sh
 
 Test agent in another terminal:
 
