@@ -30,28 +30,56 @@ local udpNoPorts_      = 751
 local udpInErrors_     = 0
 local udpOutDatagrams_ = 35207
 
-local udpLocalAddress_ = {
-    {0,0,0,0},
-    {0,0,0,0},
-    {0,0,0,0},
-    {0,0,0,0},
-    {0,0,0,0},
-    {0,0,0,0},
-    {127,0,0,1},
-    {192,168,122,1},
-}
+local udp_cache = {}
+local udp_index_cache = {}
 
-local udpLocalPort_ = {
-    67,
-    68,
-    161,
-    5353,
-    44681,
-    51586,
-    53,
-    53,
-}
+local row = {}
+row['loc_addr'] = {0,0,0,0}
+row['loc_port'] = 67
+table.insert(udp_cache, row)
+table.insert(udp_index_cache, 1)
 
+row = {}
+row['loc_addr'] = {0,0,0,0}
+row['loc_port'] = 161
+table.insert(udp_cache, row)
+table.insert(udp_index_cache, 2)
+
+row = {}
+row['loc_addr'] = {0,0,0,0}
+row['loc_port'] = 68
+table.insert(udp_cache, row)
+table.insert(udp_index_cache, 3)
+
+row = {}
+row['loc_addr'] = {0,0,0,0}
+row['loc_port'] = 5353
+table.insert(udp_cache, row)
+table.insert(udp_index_cache, 4)
+
+row = {}
+row['loc_addr'] = {0,0,0,0}
+row['loc_port'] = 44681
+table.insert(udp_cache, row)
+table.insert(udp_index_cache, 5)
+
+row = {}
+row['loc_addr'] = {0,0,0,0}
+row['loc_port'] = 51586
+table.insert(udp_cache, row)
+table.insert(udp_index_cache, 6)
+
+row = {}
+row['loc_addr'] = {127,0,0,1}
+row['loc_port'] = 53
+table.insert(udp_cache, row)
+table.insert(udp_index_cache, 7)
+
+row = {}
+row['loc_addr'] = {192,168,122,1}
+row['loc_port'] = 53
+table.insert(udp_cache, row)
+table.insert(udp_index_cache, 8)
 mib.module_methods.or_table_reg("1.3.6.1.2.1.7", "The MIB module for managing UDP inplementations")
 
 local udpGroup = {
@@ -61,9 +89,9 @@ local udpGroup = {
     [udpOutDatagrams] = mib.ConstCount(function () return udpOutDatagrams_ end),
     [udpTable] = {
         [1] = {
-            [1] = mib.ConstIndex(function () return { 1, 2, 3, 4, 5, 6, 7, 8 } end),
-            [2] = mib.ConstIpaddr(function (i) return udpLocalAddress_[i] end),
-            [3] = mib.ConstInt(function (i) return udpLocalPort_[i] end),
+            [1] = mib.ConstIndex(function () return udp_index_cache end),
+            [2] = mib.ConstIpaddr(function (i) return udp_cache[i]['loc_addr'] end),
+            [3] = mib.ConstInt(function (i) return udp_cache[i]['loc_port'] end),
         }
     }
 }

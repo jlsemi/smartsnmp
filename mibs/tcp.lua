@@ -31,63 +31,101 @@ local tcpCurrEstab_ = 44
 local tcpInSegs_ = 380765
 local tcpOUtSegs_ = 384402
 local tcpRetransSegs_ = 37724
-
-local tcpConnState_ = { 5,6,8,5,5,11,6,2,11,5, }
-
-local tcpConnLocalAddress_ = {
-    {127,0,0,1},
-    {192,168,122,1},
-    {127,0,0,1},
-    {192,168,122,1},
-    {127,0,0,1},
-    {192,168,122,1},
-    {127,0,0,1},
-    {192,168,122,1},
-    {127,0,0,1},
-    {192,168,122,1},
-}
-
-local tcpConnLocalPort_ = {
-    67,
-    68,
-    161,
-    5353,
-    44681,
-    51586,
-    53,
-    53,
-    35194,
-    35769,
-}
-
-local tcpConnRemAddress_ = {
-    {173,194,72,19},
-    {180,149,134,53},
-    {74,125,134,138},
-    {74,125,136,100},
-    {74,125,136,100},
-    {74,125,136,100},
-    {74,125,136,100},
-    {74,125,136,100},
-    {0,0,0,0},
-    {0,0,0,0},
-}
-
-local tcpConnRemPort_ = {
-    80,
-    80,
-    80,
-    443,
-    80,
-    80,
-    80,
-    80,
-    443,
-    80,
-}
-
 local tcpInErrs_ = 3314
 local tcpOutRsts = 825
+
+local tcp_cache = {}
+local tcp_index_cache = {}
+
+local row = {}
+row['stat'] = 5
+row['local_addr'] = {127,0,0,1}
+row['local_port'] = 35194
+row['rem_addr'] = {173,194,72,19}
+row['rem_port'] = 80
+table.insert(tcp_cache, row)
+table.insert(tcp_index_cache, 1)
+
+row = {}
+row['stat'] = 6
+row['local_addr'] = {192,168,122,1}
+row['local_port'] = 67
+row['rem_addr'] = {180,149,134,53}
+row['rem_port'] = 80
+table.insert(tcp_cache, row)
+table.insert(tcp_index_cache, 2)
+
+row = {}
+row['stat'] = 8
+row['local_addr'] = {127,0,0,1}
+row['local_port'] = 68
+row['rem_addr'] = {74,125,134,138}
+row['rem_port'] = 51320
+table.insert(tcp_cache, row)
+table.insert(tcp_index_cache, 3)
+
+row = {}
+row['stat'] = 5
+row['local_addr'] = {192,168,122,1}
+row['local_port'] = 161
+row['rem_addr'] = {74,125,136,100}
+row['rem_port'] = 80
+table.insert(tcp_cache, row)
+table.insert(tcp_index_cache, 4)
+
+row = {}
+row['stat'] = 5
+row['local_addr'] = {127,0,0,1}
+row['local_port'] = 5353
+row['rem_addr'] = {74,125,136,100}
+row['rem_port'] = 443
+table.insert(tcp_cache, row)
+table.insert(tcp_index_cache, 5)
+
+row = {}
+row['stat'] = 11
+row['local_addr'] = {192,168,122,1}
+row['local_port'] = 44681
+row['rem_addr'] = {74,125,136,100}
+row['rem_port'] = 80
+table.insert(tcp_cache, row)
+table.insert(tcp_index_cache, 6)
+
+row = {}
+row['stat'] = 6
+row['local_addr'] = {127,0,0,1}
+row['local_port'] = 51586
+row['rem_addr'] = {74,125,136,100}
+row['rem_port'] = 80
+table.insert(tcp_cache, row)
+table.insert(tcp_index_cache, 7)
+
+row = {}
+row['stat'] = 2
+row['local_addr'] = {192,168,122,1}
+row['local_port'] = 53
+row['rem_addr'] = {74,125,136,100}
+row['rem_port'] = 80
+table.insert(tcp_cache, row)
+table.insert(tcp_index_cache, 8)
+
+row = {}
+row['stat'] = 11
+row['local_addr'] = {127,0,0,1}
+row['local_port'] = 53
+row['rem_addr'] = {0,0,0,0}
+row['rem_port'] = 443
+table.insert(tcp_cache, row)
+table.insert(tcp_index_cache, 9)
+
+row = {}
+row['stat'] = 5
+row['local_addr'] = {192,168,122,1}
+row['local_port'] = 35769
+row['rem_addr'] = {0,0,0,0}
+row['rem_port'] = 80
+table.insert(tcp_cache, row)
+table.insert(tcp_index_cache, 10)
 
 mib.module_methods.or_table_reg("1.3.6.1.2.1.6", "The MIB module for managing TCP inplementations")
 
@@ -106,12 +144,12 @@ local tcpGroup = {
     [12] = mib.ConstCount(function () return tcpRetransSegs_ end),
     [13] = {
         [1] = {
-            [1] = mib.ConstIndex(function () return { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 } end),
-            [2] = mib.Int(function (i) return tcpConnState_[i] end, function (i, v) tcpConnState_[i] = v end),
-            [3] = mib.ConstIpaddr(function (i) return tcpConnLocalAddress_[i] end),
-            [4] = mib.ConstInt(function (i) return tcpConnLocalPort_[i] end),
-            [5] = mib.ConstIpaddr(function (i) return tcpConnRemAddress_[i] end),
-            [6] = mib.ConstInt(function (i) return tcpConnRemPort_[i] end),
+            [1] = mib.ConstIndex(function () return tcp_index_cache end),
+            [2] = mib.Int(function (i) return tcp_cache[i]['stat'] end, function (i, v) tcp_cache[i]['stat'] = v end),
+            [3] = mib.ConstIpaddr(function (i) return tcp_cache[i]['local_addr'] end),
+            [4] = mib.ConstInt(function (i) return tcp_cache[i]['local_port'] end),
+            [5] = mib.ConstIpaddr(function (i) return tcp_cache[i]['rem_addr'] end),
+            [6] = mib.ConstInt(function (i) return tcp_cache[i]['rem_port'] end),
         }
     },
     [14] = mib.ConstCount(function () return tcpInErrs_ end),
