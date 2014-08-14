@@ -12,7 +12,7 @@ and 64-bit. It can be compiled to a file with size of 20K in terms of option
 License
 -------
 
-**SmartSNMP** is licensed under GPLv2, see `LICENSE` file for more details.
+**SmartSNMP** is licensed under GPLv2 with "PRIVATE MIB" EXCEPTION, see `LICENSE` file for more details.
 
 Configure and Interfaces
 ------------------------
