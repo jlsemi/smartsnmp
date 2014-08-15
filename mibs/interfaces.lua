@@ -22,73 +22,78 @@ local mib = require "smartsnmp"
 local if_cache = {}
 local if_index_cache = {}
 
-local row = {}
-row['desc'] = "lo"
-row['type'] = 24
-row['mtu'] = 65535
-row['speed'] = 10000000
-row['phy_addr'] = ''
-row['admin_stat'] = 1
-row['open_stat'] = 1
-row['in_octet'] = 2449205
-row['out_octet'] = 2449198
-row['spec'] = { 0, 0 }
+local row = {
+    desc = "lo",
+    type = 24,
+    mtu = 65535,
+    speed = 10000000,
+    phy_addr = '',
+    admin_stat = 1,
+    open_stat = 1,
+    in_octet = 2449205,
+    out_octet = 2449198,
+    spec = { 0, 0 }
+}
 table.insert(if_cache, row)
 table.insert(if_index_cache, 1)
 
-row = {}
-row['desc'] = "eth0"
-row['type'] = 6
-row['mtu'] = 1500
-row['speed'] = 1000000
-row['phy_addr'] = '001f1633e721'
-row['admin_stat'] = 1
-row['open_stat'] = 1
-row['in_octet'] = 672549159
-row['out_octet'] = 672549138
-row['spec'] = { 0, 0 }
+row = {
+    desc = "eth0",
+    type = 6,
+    mtu = 1500,
+    speed = 1000000,
+    phy_addr = '001f1633e721',
+    admin_stat = 1,
+    open_stat = 1,
+    in_octet = 672549159,
+    out_octet = 672549138,
+    spec = { 0, 0 }
+}
 table.insert(if_cache, row)
 table.insert(if_index_cache, 2)
 
-row = {}
-row['desc'] = "eth1"
-row['type'] = 6
-row['mtu'] = 1500
-row['speed'] = 100000000
-row['phy_addr'] = '8cae4cfe179c'
-row['admin_stat'] = 1
-row['open_stat'] = 1
-row['in_octet'] = 4914346
-row['out_octet'] = 4914345
-row['spec'] = { 0, 0 }
+row = {
+    desc = "eth1",
+    type = 6,
+    mtu = 1500,
+    speed = 100000000,
+    phy_addr = '8cae4cfe179c',
+    admin_stat = 1,
+    open_stat = 1,
+    in_octet = 4914346,
+    out_octet = 4914345,
+    spec = { 0, 0 }
+}
 table.insert(if_cache, row)
 table.insert(if_index_cache, 3)
 
-row = {}
-row['desc'] = "wlan0"
-row['type'] = 6
-row['mtu'] = 1500
-row['speed'] = 0
-row['phy_addr'] = '0026c6606030'
-row['admin_stat'] = 2
-row['open_stat'] = 2
-row['in_octet'] = 0
-row['out_octet'] = 0
-row['spec'] = { 0, 0 }
+row = {
+    desc = "wlan0",
+    type = 6,
+    mtu = 1500,
+    speed = 0,
+    phy_addr = '0026c6606030',
+    admin_stat = 2,
+    open_stat = 2,
+    in_octet = 0,
+    out_octet = 0,
+    spec = { 0, 0 }
+}
 table.insert(if_cache, row)
 table.insert(if_index_cache, 4)
 
-row = {}
-row['desc'] = "virbr0"
-row['type'] = 6
-row['mtu'] = 1500
-row['speed'] = 0
-row['phy_addr'] = '160a8074ee77'
-row['admin_stat'] = 1
-row['open_stat'] = 2
-row['in_octet'] = 0
-row['out_octet'] = 0
-row['spec'] = { 0, 0 }
+row = {
+    desc = "virbr0",
+    type = 6,
+    mtu = 1500,
+    speed = 0,
+    phy_addr = '160a8074ee77',
+    admin_stat = 1,
+    open_stat = 2,
+    in_octet = 0,
+    out_octet = 0,
+    spec = { 0, 0 }
+}
 table.insert(if_cache, row)
 table.insert(if_index_cache, 5)
 

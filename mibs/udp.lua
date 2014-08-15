@@ -33,51 +33,59 @@ local udpOutDatagrams_ = 35207
 local udp_cache = {}
 local udp_index_cache = {}
 
-local row = {}
-row['loc_addr'] = {0,0,0,0}
-row['loc_port'] = 67
+local row = {
+    loc_addr = {0,0,0,0},
+    loc_port = 67
+}
 table.insert(udp_cache, row)
 table.insert(udp_index_cache, 1)
 
-row = {}
-row['loc_addr'] = {0,0,0,0}
-row['loc_port'] = 161
+row = {
+    loc_addr = {0,0,0,0},
+    loc_port = 161
+}
 table.insert(udp_cache, row)
 table.insert(udp_index_cache, 2)
 
-row = {}
-row['loc_addr'] = {0,0,0,0}
-row['loc_port'] = 68
+row = {
+    loc_addr = {0,0,0,0},
+    loc_port = 68
+}
 table.insert(udp_cache, row)
 table.insert(udp_index_cache, 3)
 
-row = {}
-row['loc_addr'] = {0,0,0,0}
-row['loc_port'] = 5353
+row = {
+    loc_addr = {0,0,0,0},
+    loc_port = 5353
+}
 table.insert(udp_cache, row)
 table.insert(udp_index_cache, 4)
 
-row = {}
-row['loc_addr'] = {0,0,0,0}
-row['loc_port'] = 44681
+row = {
+    loc_addr = {0,0,0,0},
+    loc_port = 44681
+}
 table.insert(udp_cache, row)
 table.insert(udp_index_cache, 5)
 
-row = {}
-row['loc_addr'] = {0,0,0,0}
-row['loc_port'] = 51586
+row = {
+    loc_addr = {0,0,0,0},
+    loc_port = 51586
+}
 table.insert(udp_cache, row)
 table.insert(udp_index_cache, 6)
 
-row = {}
-row['loc_addr'] = {127,0,0,1}
-row['loc_port'] = 53
+row = {
+    loc_addr = {127,0,0,1},
+    loc_port = 53
+}
 table.insert(udp_cache, row)
 table.insert(udp_index_cache, 7)
 
-row = {}
-row['loc_addr'] = {192,168,122,1}
-row['loc_port'] = 53
+row = {
+    loc_addr = {192,168,122,1},
+    loc_port = 53
+}
 table.insert(udp_cache, row)
 table.insert(udp_index_cache, 8)
 mib.module_methods.or_table_reg("1.3.6.1.2.1.7", "The MIB module for managing UDP inplementations")

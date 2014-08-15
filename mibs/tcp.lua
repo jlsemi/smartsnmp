@@ -37,93 +37,103 @@ local tcpOutRsts = 825
 local tcp_cache = {}
 local tcp_index_cache = {}
 
-local row = {}
-row['stat'] = 5
-row['local_addr'] = {127,0,0,1}
-row['local_port'] = 35194
-row['rem_addr'] = {173,194,72,19}
-row['rem_port'] = 80
+local row = {
+    stat = 5,
+    local_addr = {127,0,0,1},
+    local_port = 35194,
+    rem_addr = {173,194,72,19},
+    rem_port = 80
+}
 table.insert(tcp_cache, row)
 table.insert(tcp_index_cache, 1)
 
-row = {}
-row['stat'] = 6
-row['local_addr'] = {192,168,122,1}
-row['local_port'] = 67
-row['rem_addr'] = {180,149,134,53}
-row['rem_port'] = 80
+row = {
+    stat = 6,
+    local_addr = {192,168,122,1},
+    local_port = 67,
+    rem_addr = {180,149,134,53},
+    rem_port = 80
+}
 table.insert(tcp_cache, row)
 table.insert(tcp_index_cache, 2)
 
-row = {}
-row['stat'] = 8
-row['local_addr'] = {127,0,0,1}
-row['local_port'] = 68
-row['rem_addr'] = {74,125,134,138}
-row['rem_port'] = 51320
+row = {
+    stat = 8,
+    local_addr = {127,0,0,1},
+    local_port = 68,
+    rem_addr = {74,125,134,138},
+    rem_port = 51320
+}
 table.insert(tcp_cache, row)
 table.insert(tcp_index_cache, 3)
 
-row = {}
-row['stat'] = 5
-row['local_addr'] = {192,168,122,1}
-row['local_port'] = 161
-row['rem_addr'] = {74,125,136,100}
-row['rem_port'] = 80
+row = {
+    stat = 5,
+    local_addr = {192,168,122,1},
+    local_port = 161,
+    rem_addr = {74,125,136,100},
+    rem_port = 80
+}
 table.insert(tcp_cache, row)
 table.insert(tcp_index_cache, 4)
 
-row = {}
-row['stat'] = 5
-row['local_addr'] = {127,0,0,1}
-row['local_port'] = 5353
-row['rem_addr'] = {74,125,136,100}
-row['rem_port'] = 443
+row = {
+    stat = 5,
+    local_addr = {127,0,0,1},
+    local_port = 5353,
+    rem_addr = {74,125,136,100},
+    rem_port = 443
+}
 table.insert(tcp_cache, row)
 table.insert(tcp_index_cache, 5)
 
-row = {}
-row['stat'] = 11
-row['local_addr'] = {192,168,122,1}
-row['local_port'] = 44681
-row['rem_addr'] = {74,125,136,100}
-row['rem_port'] = 80
+row = {
+    stat = 11,
+    local_addr = {192,168,122,1},
+    local_port = 44681,
+    rem_addr = {74,125,136,100},
+    rem_port = 80
+}
 table.insert(tcp_cache, row)
 table.insert(tcp_index_cache, 6)
 
-row = {}
-row['stat'] = 6
-row['local_addr'] = {127,0,0,1}
-row['local_port'] = 51586
-row['rem_addr'] = {74,125,136,100}
-row['rem_port'] = 80
+row = {
+    stat = 6,
+    local_addr = {127,0,0,1},
+    local_port = 51586,
+    rem_addr = {74,125,136,100},
+    rem_port = 80
+}
 table.insert(tcp_cache, row)
 table.insert(tcp_index_cache, 7)
 
-row = {}
-row['stat'] = 2
-row['local_addr'] = {192,168,122,1}
-row['local_port'] = 53
-row['rem_addr'] = {74,125,136,100}
-row['rem_port'] = 80
+row = {
+    stat = 2,
+    local_addr = {192,168,122,1},
+    local_port = 53,
+    rem_addr = {74,125,136,100},
+    rem_port = 80
+}
 table.insert(tcp_cache, row)
 table.insert(tcp_index_cache, 8)
 
-row = {}
-row['stat'] = 11
-row['local_addr'] = {127,0,0,1}
-row['local_port'] = 53
-row['rem_addr'] = {0,0,0,0}
-row['rem_port'] = 443
+row = {
+    stat = 11,
+    local_addr = {127,0,0,1},
+    local_port = 53,
+    rem_addr = {0,0,0,0},
+    rem_port = 443
+}
 table.insert(tcp_cache, row)
 table.insert(tcp_index_cache, 9)
 
-row = {}
-row['stat'] = 5
-row['local_addr'] = {192,168,122,1}
-row['local_port'] = 35769
-row['rem_addr'] = {0,0,0,0}
-row['rem_port'] = 80
+row = {
+    stat = 5,
+    local_addr = {192,168,122,1},
+    local_port = 35769,
+    rem_addr = {0,0,0,0},
+    rem_port = 80
+}
 table.insert(tcp_cache, row)
 table.insert(tcp_index_cache, 10)
 

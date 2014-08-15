@@ -96,7 +96,7 @@ local sysMethods = {
 }
 mib.module_method_register(sysMethods)
 
-sysGroup = {
+local sysGroup = {
     rocommunity = 'public',
     [sysDesc]         = mib.ConstString(function () return mib.sh_call("uname -a") end),
     [sysObjectID]     = mib.ConstOid(function () return { 1, 3, 6, 1, 2, 1, 1 } end),

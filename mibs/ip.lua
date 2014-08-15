@@ -47,72 +47,82 @@ local ip_RouteIf_index_cache = {}
 local ip_NetToMediaPhyAddr_cache = {}
 local ip_NetToMediaPhyAddr_index_cache = {}
 
-local row = {}
-row['addr'] = {10,2,12,164}
-row['index'] = 2 
-row['net_mask'] = {255,255,255,0}
-row['bcast_addr'] = 1 
+local row = {
+    addr = {10,2,12,164},
+    index = 2,
+    net_mask = {255,255,255,0},
+    bcast_addr = 1 
+}
 table.insert(ip_AdEnt_cache, row)
 table.insert(ip_AdEnt_index_cache, 1)
 
-row = {}
-row['addr'] = {127,0,0,1}
-row['index'] = 1 
-row['net_mask'] = {255,0,0,0}
-row['bcast_addr'] = 1 
+row = {
+    addr = {127,0,0,1},
+    index = 1,
+    net_mask = {255,0,0,0},
+    bcast_addr = 1
+}
 table.insert(ip_AdEnt_cache, row)
 table.insert(ip_AdEnt_index_cache, 2)
 
-row = {}
-row['addr'] = {192,168,1,4}
-row['index'] = 4 
-row['net_mask'] = {255,255,255,0}
-row['bcast_addr'] = 0 
+row = {
+    addr = {192,168,1,4},
+    index = 4,
+    net_mask = {255,255,255,0},
+    bcast_addr = 0
+}
 table.insert(ip_AdEnt_cache, row)
 table.insert(ip_AdEnt_index_cache, 3)
 
-row = {}
-row['addr'] = {192,168,122,1}
-row['index'] = 5 
-row['net_mask'] = {255,255,255,0}
-row['bcast_addr'] = 1 
+row = {
+    addr = {192,168,122,1},
+    index = 5,
+    net_mask = {255,255,255,0},
+    bcast_addr = 1 
+}
 table.insert(ip_AdEnt_cache, row)
 table.insert(ip_AdEnt_index_cache, 4)
 
-row = {}
-row['dest'] = {0,0,0,0}
-row['index'] = 2
+row = {
+    dest = {0,0,0,0},
+    index = 2
+}
 table.insert(ip_RouteIf_cache, row)
 table.insert(ip_RouteIf_index_cache, 1)
 
-row = {}
-row['dest'] = {10,2,12,0}
-row['index'] = 2
+row = {
+    dest = {10,2,12,0},
+    index = 2
+}
 table.insert(ip_RouteIf_cache, row)
 table.insert(ip_RouteIf_index_cache, 2)
 
-row = {}
-row['dest'] = {169,254,0,0}
-row['index'] = 4
+row = {
+    dest = {169,254,0,0},
+    index = 4
+}
 table.insert(ip_RouteIf_cache, row)
 table.insert(ip_RouteIf_index_cache, 3)
 
-row = {}
-row['dest'] = {192,168,1,0}
-row['index'] = 4
+row = {
+    dest = {192,168,1,0},
+    index = 4
+}
 table.insert(ip_RouteIf_cache, row)
 table.insert(ip_RouteIf_index_cache, 4)
 
-row = {}
-row['dest'] = {192,168,122,0}
-row['index'] = 5
+row = {
+    dest = {192,168,122,0},
+    index = 5
+}
 table.insert(ip_RouteIf_cache, row)
 table.insert(ip_RouteIf_index_cache, 5)
 
-row = {}
-row['phy_addr'] = '9c216ab06f3e'
-row['net_addr'] = {10,2,12,1}
-row['type'] = 3
+row = {
+    phy_addr = '9c216ab06f3e',
+    net_addr = {10,2,12,1},
+    type = 3
+}
 table.insert(ip_NetToMediaPhyAddr_cache, row)
 table.insert(ip_NetToMediaPhyAddr_index_cache, 1)
 
