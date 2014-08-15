@@ -19,73 +19,102 @@
 
 local mib = require "smartsnmp"
 
-local ifNumber_ = 5
-local ifndex_ = { 1, 2, 3, 4, 5 }
-local ifDescr_ = {
-    'lo',
-    'eth0',
-    'eth1',
-    'wlan0',
-    'virbr0',
-}
-local ifType_ = { 24, 6, 6, 6, 6 }
-local ifMtu_ = { 65535, 1500, 1500, 1500, 1500 }
-local ifSpeed_ = { 10000000, 100000000, 100000000, 0, 0 }
-local ifPhysAddress_ = {
-    '',
-    '001f1633e721',
-    '8cae4cfe179c',
-    '0026c6606030',
-    '160a8074ee77',
-}
-local ifAdminStatus_ = { 1, 1, 1, 2, 1 }
-local ifOpenStatus_ = { 1, 1, 1, 2, 2 }
-local last_changed_time = 0
-local function if_last_changed_time()
-    return function() return os.difftime(os.time(), last_changed_time) * 100 end
-end
-local function mib_interfaces_startup(time)
-    last_changed_time = time
-end
-local ifLastChange_ = {
-    if_last_changed_time(),
-    if_last_changed_time(),
-    if_last_changed_time(),
-    if_last_changed_time(),
-    if_last_changed_time(),
-}
+local if_cache = {}
+local if_index_cache = {}
 
-local ifInOctets_ = {
-    2449205,
-    672549159,
-    4914346,
-    0,
-    0,
+local row = {
+    desc = "lo",
+    type = 24,
+    mtu = 65535,
+    speed = 10000000,
+    phy_addr = '',
+    admin_stat = 1,
+    open_stat = 1,
+    in_octet = 2449205,
+    out_octet = 2449198,
+    spec = { 0, 0 }
 }
-local ifSpecific_ = {
-    {0,0},
-    {0,0},
-    {0,0},
-    {0,0},
-    {0,0},
-}
+table.insert(if_cache, row)
+table.insert(if_index_cache, 1)
 
-mib_interfaces_startup(os.time())
+row = {
+    desc = "eth0",
+    type = 6,
+    mtu = 1500,
+    speed = 1000000,
+    phy_addr = '001f1633e721',
+    admin_stat = 1,
+    open_stat = 1,
+    in_octet = 672549159,
+    out_octet = 672549138,
+    spec = { 0, 0 }
+}
+table.insert(if_cache, row)
+table.insert(if_index_cache, 2)
+
+row = {
+    desc = "eth1",
+    type = 6,
+    mtu = 1500,
+    speed = 100000000,
+    phy_addr = '8cae4cfe179c',
+    admin_stat = 1,
+    open_stat = 1,
+    in_octet = 4914346,
+    out_octet = 4914345,
+    spec = { 0, 0 }
+}
+table.insert(if_cache, row)
+table.insert(if_index_cache, 3)
+
+row = {
+    desc = "wlan0",
+    type = 6,
+    mtu = 1500,
+    speed = 0,
+    phy_addr = '0026c6606030',
+    admin_stat = 2,
+    open_stat = 2,
+    in_octet = 0,
+    out_octet = 0,
+    spec = { 0, 0 }
+}
+table.insert(if_cache, row)
+table.insert(if_index_cache, 4)
+
+row = {
+    desc = "virbr0",
+    type = 6,
+    mtu = 1500,
+    speed = 0,
+    phy_addr = '160a8074ee77',
+    admin_stat = 1,
+    open_stat = 2,
+    in_octet = 0,
+    out_octet = 0,
+    spec = { 0, 0 }
+}
+table.insert(if_cache, row)
+table.insert(if_index_cache, 5)
+
+local last_changed_time = os.time()
 
 local ifGroup = {
-    [1]  = mib.ConstInt(function () return ifNumber_ end),
+    [1]  = mib.ConstInt(function () return #if_cache end),
     [2] = {
         [1] = {
-            [1] = mib.ConstIndex(function () return ifndex_ end),
-            [2] = mib.ConstString(function (i) return ifDescr_[i] end),
-            [3] = mib.ConstInt(function (i) return ifType_[i] end),
-            [4] = mib.ConstInt(function (i) return ifMtu_[i] end),
-            [5] = mib.ConstInt(function (i) return ifSpeed_[i] end),
-            [6] = mib.ConstString(function (i) return ifPhysAddress_[i] end),
-            [7] = mib.Int(function (i) return ifAdminStatus_[i] end, function (i, v) ifAdminStatus_[i] = v end),
-            [8] = mib.ConstInt(function (i) return ifOpenStatus_[i] end),
-            [9] = mib.ConstTimeticks(function (i) return ifLastChange_[i] end),
-            [22] = mib.ConstOid(function (i) return ifSpecific_[i] end),
+            [1] = mib.ConstIndex(function () return if_index_cache end),
+            [2] = mib.ConstString(function (i) return if_cache[i]['desc'] end),
+            [3] = mib.ConstInt(function (i) return if_cache[i]['type'] end),
+            [4] = mib.ConstInt(function (i) return if_cache[i]['mtu'] end),
+            [5] = mib.ConstInt(function (i) return if_cache[i]['speed'] end),
+            [6] = mib.ConstString(function (i) return if_cache[i]['phy_addr'] end),
+            [7] = mib.Int(function (i) return if_cache[i]['admin_stat'] end, function (i, v) if_cache[i]['admin_stat'] = v end),
+            [8] = mib.ConstInt(function (i) return if_cache[i]['open_stat'] end),
+            [9] = mib.ConstTimeticks(function (i) return os.difftime(os.time(), last_changed_time) * 100 end),
+            [10] = mib.ConstInt(function (i) return if_cache[i]['in_octet'] end),
+            [16] = mib.ConstInt(function (i) return if_cache[i]['out_octet'] end),
+            [22] = mib.ConstOid(function (i) return if_cache[i]['spec'] end),
         }
     }
 }
