@@ -38,64 +38,93 @@ local ipReasmFails = 0
 local ipFragsOKs_ = 0
 local ipFragsFails_ = 0
 local ipFragsCreates_ = 0
-
-local ipAdEntAddr_ = {
-    {10,2,12,164},
-    {127,0,0,1},
-    {192,168,1,4},
-    {192,168,122,1},
-}
-
-local ipAdEntIfIndex_ = {
-    2,
-    1,
-    4,
-    5,
-}
-
-local ipAdEntNetMask_ = {
-    {255,255,255,0},
-    {255,0,0,0},
-    {255,255,255,0},
-    {255,255,255,0},
-}
-
-local ipAdEntBcastAddr_ = {
-    1,
-    0,
-    1,
-    1,
-}
-
-local ipRouteDest_ = {
-    {0,0,0,0},
-    {10,2,12,0},
-    {169,254,0,0},
-    {192,168,1,0},
-    {192,168,122,0},
-}
-
-local ipRouteIfIndex_ = {
-    2,
-    2,
-    4,
-    4,
-    5,
-}
-
-local ipNetToMediaPhysAddress_ = {
-    '9c216ab06f3e',
-}
-
-local ipNetToMediaNetAddress_ = {
-    {10,2,12,1},
-}
-
-local ipNetToMediaType_ = {
-    3,
-}
-
 local ipRoutingDiscards_ = 0
+
+local ip_AdEnt_cache = {}
+local ip_AdEnt_index_cache = {}
+local ip_RouteIf_cache = {}
+local ip_RouteIf_index_cache = {}
+local ip_NetToMediaPhyAddr_cache = {}
+local ip_NetToMediaPhyAddr_index_cache = {}
+
+local entry = {
+    addr = {10,2,12,164},
+    index = 2,
+    net_mask = {255,255,255,0},
+    bcast_addr = 1 
+}
+table.insert(ip_AdEnt_cache, entry)
+table.insert(ip_AdEnt_index_cache, 1)
+
+entry = {
+    addr = {127,0,0,1},
+    index = 1,
+    net_mask = {255,0,0,0},
+    bcast_addr = 1
+}
+table.insert(ip_AdEnt_cache, entry)
+table.insert(ip_AdEnt_index_cache, 2)
+
+entry = {
+    addr = {192,168,1,4},
+    index = 4,
+    net_mask = {255,255,255,0},
+    bcast_addr = 0
+}
+table.insert(ip_AdEnt_cache, entry)
+table.insert(ip_AdEnt_index_cache, 3)
+
+entry = {
+    addr = {192,168,122,1},
+    index = 5,
+    net_mask = {255,255,255,0},
+    bcast_addr = 1 
+}
+table.insert(ip_AdEnt_cache, entry)
+table.insert(ip_AdEnt_index_cache, 4)
+
+entry = {
+    dest = {0,0,0,0},
+    index = 2
+}
+table.insert(ip_RouteIf_cache, entry)
+table.insert(ip_RouteIf_index_cache, 1)
+
+entry = {
+    dest = {10,2,12,0},
+    index = 2
+}
+table.insert(ip_RouteIf_cache, entry)
+table.insert(ip_RouteIf_index_cache, 2)
+
+entry = {
+    dest = {169,254,0,0},
+    index = 4
+}
+table.insert(ip_RouteIf_cache, entry)
+table.insert(ip_RouteIf_index_cache, 3)
+
+entry = {
+    dest = {192,168,1,0},
+    index = 4
+}
+table.insert(ip_RouteIf_cache, entry)
+table.insert(ip_RouteIf_index_cache, 4)
+
+entry = {
+    dest = {192,168,122,0},
+    index = 5
+}
+table.insert(ip_RouteIf_cache, entry)
+table.insert(ip_RouteIf_index_cache, 5)
+
+entry = {
+    phy_addr = '9c216ab06f3e',
+    net_addr = {10,2,12,1},
+    type = 3
+}
+table.insert(ip_NetToMediaPhyAddr_cache, entry)
+table.insert(ip_NetToMediaPhyAddr_index_cache, 1)
 
 mib.module_methods.or_table_reg("1.3.6.1.2.1.4", "The MIB module for managing IP and ICMP inplementations")
 
@@ -122,26 +151,26 @@ local ipGroup = {
      [19] = mib.ConstInt(function () return ipFragsCreates_ end),
      [20] = {
          [1] = {
-             [1] = mib.ConstIndex(function () return { 1, 2, 3, 4 } end),
-             [2] = mib.ConstIpaddr(function (i) return ipAdEntAddr_[i] end),
-             [3] = mib.ConstInt(function (i) return ipAdEntIfIndex_[i] end),
-             [4] = mib.ConstIpaddr(function (i) return ipAdEntNetMask_[i] end),
-             [5] = mib.ConstInt(function (i) return ipAdEntBcastAddr_[i] end),
+             [1] = mib.ConstIndex(function () return ip_AdEnt_index_cache end),
+             [2] = mib.ConstIpaddr(function (i) return ip_AdEnt_cache[i]['dest'] end),
+             [3] = mib.ConstInt(function (i) return ip_AdEnt_cache[i]['index'] end),
+             [4] = mib.ConstIpaddr(function (i) return ip_AdEnt_cache[i]['net_addr'] end),
+             [5] = mib.ConstInt(function (i) return ip_AdEnt_cache[i]['bcast_addr'] end),
          }
      },
      [21] = {
          [1] = {
-             [1] = mib.ConstIndex(function () return { 1, 2, 3, 4, 5 } end),
-             [2] = mib.ConstIpaddr(function (i) return ipRouteDest_[i] end),
-             [3] = mib.Int(function (i) return ipRouteIfIndex_[i] end, function (i, v) ipRouteIfIndex_[i] = v end),
+             [1] = mib.ConstIndex(function () return ip_RouteIf_index_cache end),
+             [2] = mib.ConstIpaddr(function (i) return ip_RouteIf_cache[i]['dest'] end),
+             [3] = mib.Int(function (i) return ip_RouteIf_cache[i]['index'] end, function (i, v) ip_RouteIf_cache[i]['index'] = v end),
          }
      },
      [22] = {
          [1] = {
-             [1] = mib.ConstIndex(function () return { 1 } end),
-             [2] = mib.String(function (i) return ipNetToMediaPhysAddress_[i] end, function (i, v) ipNetToMediaPhysAddress_[i] = v end),
-             [3] = mib.ConstIpaddr(function (i) return ipNetToMediaNetAddress_[i] end),
-             [4] = mib.Int(function (i) return ipNetToMediaType_[i] end, function (i, v) ipNetToMediaType_[i] = v end),
+             [1] = mib.ConstIndex(function () return ip_NetToMediaPhyAddr_index_cache end),
+             [2] = mib.String(function (i) return ip_NetToMediaPhyAddr_cache[i]['phy_addr'] end, function (i, v) ip_NetToMediaPhyAddr_cache[i]['phy_addr'] = v end),
+             [3] = mib.ConstIpaddr(function (i) return ip_NetToMediaPhyAddr_cache[i]['net_addr'] end),
+             [4] = mib.Int(function (i) return ip_NetToMediaPhyAddr_cache[i]['type'] end, function (i, v) ip_NetToMediaPhyAddr_cache[i]['type'] = v end),
          }
      },
      [23] = mib.ConstInt(function () return ipRoutingDiscards_ end),
