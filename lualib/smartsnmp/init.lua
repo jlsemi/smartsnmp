@@ -589,15 +589,12 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                 local table_no = rsp_sub_oid[1]
                 local entry_no = rsp_sub_oid[2]
                 local list_no  = rsp_sub_oid[3]
-                local inst_no  = rsp_sub_oid[4]
+                local inst_no  = rsp_sub_oid[#rsp_sub_oid]
 
-                variable = group[table_no][entry_no][list_no]
                 -- get instance value
+                variable = group[table_no][entry_no][list_no]
                 if variable.index_key == true then
-                    local it
-                    it, err_stat = variable.get_f()
-                    rsp_val = it[inst_no]
-                    if rsp_val == nil then rsp_val = inst_no end
+                    rsp_val = rsp_sub_oid[3 + list_no]
                 else
                     rsp_val, err_stat = variable.get_f(inst_no)
                 end
