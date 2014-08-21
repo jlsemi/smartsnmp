@@ -589,13 +589,21 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                 local table_no = rsp_sub_oid[1]
                 local entry_no = rsp_sub_oid[2]
                 local list_no  = rsp_sub_oid[3]
-                local inst_no  = rsp_sub_oid[#rsp_sub_oid]
+                variable = group[table_no][entry_no][list_no]
 
                 -- get instance value
-                variable = group[table_no][entry_no][list_no]
+                local inst_no
                 if variable.index_key == true then
                     rsp_val = rsp_sub_oid[3 + list_no]
                 else
+                    if #rsp_sub_oid == 4 then
+                        inst_no = rsp_sub_oid[4]
+                    else
+                        inst_no = {}
+                        for i = 4, #rsp_sub_oid do
+                            table.insert(inst_no, rsp_sub_oid[i])
+                        end
+                    end
                     rsp_val, err_stat = variable.get_f(inst_no)
                 end
                 rsp_val_type = variable.tag
