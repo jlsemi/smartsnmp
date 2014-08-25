@@ -445,8 +445,16 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             end
             -- check access
             local variable = tab[entry_no][list_no]
-            local inst_no = req_sub_oid[4]
-            if variable.access == MIB_ACES_UNA or inst_no == nil then
+            local inst_no
+            if #rsp_sub_oid == 4 then
+                inst_no = rsp_sub_oid[4]
+            else
+                inst_no = {}
+                for i = 4, #rsp_sub_oid do
+                    table.insert(inst_no, rsp_sub_oid[i])
+                end
+            end
+            if variable.access == MIB_ACES_UNA or inst_no == nil or next(inst_no) == nil then
                 return SNMP_ERR_STAT_ON_ACCESS, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- check type
@@ -512,15 +520,21 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                 return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
             end
             -- Check instance existence
-            local inst_no = req_sub_oid[4]
-            if inst_no == nil then
+            local inst_no
+            if #rsp_sub_oid == 4 then
+                inst_no = rsp_sub_oid[4]
+            else
+                inst_no = {}
+                for i = 4, #rsp_sub_oid do
+                    table.insert(inst_no, rsp_sub_oid[i])
+                end
+            end
+            if inst_no == nil or next(inst_no) == nil then
                 return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
             end
             -- Get instance value
             if variable.index_key == true then
-                local it
-                it, err_stat = variable.get_f(varible)
-                rsp_val = it[inst_no]
+                rsp_val = rsp_sub_oid[3 + list_no]
             else
                 rsp_val, err_stat = variable.get_f(inst_no)
             end
@@ -589,16 +603,21 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                 local table_no = rsp_sub_oid[1]
                 local entry_no = rsp_sub_oid[2]
                 local list_no  = rsp_sub_oid[3]
-                local inst_no  = rsp_sub_oid[4]
-
                 variable = group[table_no][entry_no][list_no]
+
                 -- get instance value
+                local inst_no
                 if variable.index_key == true then
-                    local it
-                    it, err_stat = variable.get_f()
-                    rsp_val = it[inst_no]
-                    if rsp_val == nil then rsp_val = inst_no end
+                    rsp_val = rsp_sub_oid[3 + list_no]
                 else
+                    if #rsp_sub_oid == 4 then
+                        inst_no = rsp_sub_oid[4]
+                    else
+                        inst_no = {}
+                        for i = 4, #rsp_sub_oid do
+                            table.insert(inst_no, rsp_sub_oid[i])
+                        end
+                    end
                     rsp_val, err_stat = variable.get_f(inst_no)
                 end
                 rsp_val_type = variable.tag
