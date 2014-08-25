@@ -57,14 +57,14 @@ local or_index_cache = {}
 local or_table_cache = {}
 
 local or_table_reg = function (oid, desc)
-    local row = {}
-    row['oid'] = {}
+    local entry = {}
+    entry['oid'] = {}
     for i in string.gmatch(oid, "%d") do
-        table.insert(row['oid'], tonumber(i))
+        table.insert(entry['oid'], tonumber(i))
     end
-    row['desc'] = desc
-    row['uptime'] = os.time()
-    table.insert(or_table_cache, row)
+    entry['desc'] = desc
+    entry['uptime'] = os.time()
+    table.insert(or_table_cache, entry)
 
     or_last_changed_time = os.time()
 
@@ -96,7 +96,7 @@ local sysMethods = {
 }
 mib.module_method_register(sysMethods)
 
-sysGroup = {
+local sysGroup = {
     rocommunity = 'public',
     [sysDesc]         = mib.ConstString(function () return mib.sh_call("uname -a") end),
     [sysObjectID]     = mib.ConstOid(function () return { 1, 3, 6, 1, 2, 1, 1 } end),
