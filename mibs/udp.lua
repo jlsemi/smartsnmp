@@ -30,64 +30,16 @@ local udpNoPorts_      = 751
 local udpInErrors_     = 0
 local udpOutDatagrams_ = 35207
 
-local udp_cache = {}
-local udp_index_cache = {}
-
-local entry = {
-    loc_addr = {0,0,0,0},
-    loc_port = 67
+local udp_entry_cache = {
+    ["0.0.0.0.67"] = {},
+    ["0.0.0.0.68"] = {},
+    ["0.0.0.0.161"] = {},
+    ["0.0.0.0.5353"] = {},
+    ["0.0.0.0.44681"] = {},
+    ["0.0.0.0.51586"] = {},
+    ["127.0.0.1.53"] = {},
+    ["192.168.122.1.53"] = {},
 }
-table.insert(udp_cache, entry)
-table.insert(udp_index_cache, 1)
-
-entry = {
-    loc_addr = {0,0,0,0},
-    loc_port = 161
-}
-table.insert(udp_cache, entry)
-table.insert(udp_index_cache, 2)
-
-entry = {
-    loc_addr = {0,0,0,0},
-    loc_port = 68
-}
-table.insert(udp_cache, entry)
-table.insert(udp_index_cache, 3)
-
-entry = {
-    loc_addr = {0,0,0,0},
-    loc_port = 5353
-}
-table.insert(udp_cache, entry)
-table.insert(udp_index_cache, 4)
-
-entry = {
-    loc_addr = {0,0,0,0},
-    loc_port = 44681
-}
-table.insert(udp_cache, entry)
-table.insert(udp_index_cache, 5)
-
-entry = {
-    loc_addr = {0,0,0,0},
-    loc_port = 51586
-}
-table.insert(udp_cache, entry)
-table.insert(udp_index_cache, 6)
-
-entry = {
-    loc_addr = {127,0,0,1},
-    loc_port = 53
-}
-table.insert(udp_cache, entry)
-table.insert(udp_index_cache, 7)
-
-entry = {
-    loc_addr = {192,168,122,1},
-    loc_port = 53
-}
-table.insert(udp_cache, entry)
-table.insert(udp_index_cache, 8)
 
 mib.module_methods.or_table_reg("1.3.6.1.2.1.7", "The MIB module for managing UDP inplementations")
 
@@ -98,9 +50,24 @@ local udpGroup = {
     [udpOutDatagrams] = mib.ConstCount(function () return udpOutDatagrams_ end),
     [udpTable] = {
         [1] = {
-            [1] = mib.ConstIndex(function () return udp_index_cache end),
-            [2] = mib.ConstIpaddr(function (i) return udp_cache[i]['loc_addr'] end),
-            [3] = mib.ConstInt(function (i) return udp_cache[i]['loc_port'] end),
+            indexes = udp_entry_cache,
+            [1] = mib.ConstIpaddr(function (sub_oid)
+                                     local ipaddr
+                                     if udp_entry_cache[table.concat(sub_oid, ".")] ~= nil then
+                                         ipaddr = {}
+                                         for i = 1, 4 do
+                                             table.insert(ipaddr, sub_oid[i])
+                                         end
+                                     end
+                                     return ipaddr
+                                end),
+            [2] = mib.ConstInt(function (sub_oid)
+                                   local port
+                                   if udp_entry_cache[table.concat(sub_oid, ".")] ~= nil then
+                                       port = sub_oid[5]
+                                   end
+                                   return port
+                               end),
         }
     }
 }
