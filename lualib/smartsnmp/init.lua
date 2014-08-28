@@ -18,7 +18,6 @@
 --
 
 local core = require "smartsnmp.core"
-local matrix_find_next = require "smartsnmp.find_next"
 
 local _M = {}
 _M.core = core
@@ -30,60 +29,60 @@ _M._VERSION = "dev"
 --
 
 -- Access
-MIB_ACES_UNA        = 0
-MIB_ACES_RO         = 1
-MIB_ACES_RW         = 2
-MIB_ACES_RC         = 2
+local MIB_ACES_UNA        = 0
+local MIB_ACES_RO         = 1
+local MIB_ACES_RW         = 2
+local MIB_ACES_RC         = 2
 
 -- SNMP request
-SNMP_REQ_GET        = 0xA0
-SNMP_REQ_GETNEXT    = 0xA1
-SNMP_RESP           = 0xA2
-SNMP_REQ_SET        = 0xA3
-SNMP_REQ_GET_BLK    = 0xA5
-SNMP_REQ_INF        = 0xA6
-SNMP_TRAP           = 0xA7
-SNMP_REPO           = 0xA8
+local SNMP_REQ_GET        = 0xA0
+local SNMP_REQ_GETNEXT    = 0xA1
+local SNMP_RESP           = 0xA2
+local SNMP_REQ_SET        = 0xA3
+local SNMP_REQ_GET_BLK    = 0xA5
+local SNMP_REQ_INF        = 0xA6
+local SNMP_TRAP           = 0xA7
+local SNMP_REPO           = 0xA8
 
 -- BER tag
-BER_TAG_BOOL              = 0x01
-BER_TAG_INT               = 0x02
-BER_TAG_BITSTR            = 0x03
-BER_TAG_OCTSTR            = 0x04
-BER_TAG_NUL               = 0x05
-BER_TAG_OBJID             = 0x06
-BER_TAG_SEQ               = 0x30
-BER_TAG_IPADDR            = 0x40
-BER_TAG_CNT               = 0x41
-BER_TAG_GAU               = 0x42
-BER_TAG_TIMETICKS         = 0x43
-BER_TAG_OPAQ              = 0x44
-BER_TAG_NO_SUCH_OBJ       = 0x80
-BER_TAG_NO_SUCH_INST      = 0x81
+local BER_TAG_BOOL              = 0x01
+local BER_TAG_INT               = 0x02
+local BER_TAG_BITSTR            = 0x03
+local BER_TAG_OCTSTR            = 0x04
+local BER_TAG_NUL               = 0x05
+local BER_TAG_OBJID             = 0x06
+local BER_TAG_SEQ               = 0x30
+local BER_TAG_IPADDR            = 0x40
+local BER_TAG_CNT               = 0x41
+local BER_TAG_GAU               = 0x42
+local BER_TAG_TIMETICKS         = 0x43
+local BER_TAG_OPAQ              = 0x44
+local BER_TAG_NO_SUCH_OBJ       = 0x80
+local BER_TAG_NO_SUCH_INST      = 0x81
 
 -- Error status
 -- v1
-SNMP_ERR_STAT_NO_ERR              = 0
-SNMP_ERR_STAT_TOO_BIG             = 1
-SNMP_ERR_STAT_NO_SUCH_NAME        = 2
-SNMP_ERR_STAT_BAD_VALUE           = 3
-SNMP_ERR_STAT_READ_ONLY           = 4
-SNMP_ERR_STAT_GEN_ERR             = 5
+local SNMP_ERR_STAT_NO_ERR              = 0
+local SNMP_ERR_STAT_TOO_BIG             = 1
+local SNMP_ERR_STAT_NO_SUCH_NAME        = 2
+local SNMP_ERR_STAT_BAD_VALUE           = 3
+local SNMP_ERR_STAT_READ_ONLY           = 4
+local SNMP_ERR_STAT_GEN_ERR             = 5
 
 -- v2c
-SNMP_ERR_STAT_ON_ACCESS           = 6
-SNMP_ERR_STAT_WRONG_TYPE          = 7
-SNMP_ERR_STAT_WRONG_LEN           = 8
-SNMP_ERR_STAT_ENCODING            = 9
-SNMP_ERR_STAT_WRONG_VALUE         = 10
-SNMP_ERR_STAT_NO_CREATION         = 11
-SNMP_ERR_STAT_INCONSISTENT_VALUE  = 12
-SNMP_ERR_STAT_RESOURCE_UNAVAIL    = 13
-SNMP_ERR_STAT_COMMIT_FAILED       = 14
-SNMP_ERR_STAT_UNDO_FAILED         = 15
-SNMP_ERR_STAT_AUTHORIZATION       = 16
-SNMP_ERR_STAT_NOT_WRITABLE        = 17
-SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
+local SNMP_ERR_STAT_ON_ACCESS           = 6
+local SNMP_ERR_STAT_WRONG_TYPE          = 7
+local SNMP_ERR_STAT_WRONG_LEN           = 8
+local SNMP_ERR_STAT_ENCODING            = 9
+local SNMP_ERR_STAT_WRONG_VALUE         = 10
+local SNMP_ERR_STAT_NO_CREATION         = 11
+local SNMP_ERR_STAT_INCONSISTENT_VALUE  = 12
+local SNMP_ERR_STAT_RESOURCE_UNAVAIL    = 13
+local SNMP_ERR_STAT_COMMIT_FAILED       = 14
+local SNMP_ERR_STAT_UNDO_FAILED         = 15
+local SNMP_ERR_STAT_AUTHORIZATION       = 16
+local SNMP_ERR_STAT_NOT_WRITABLE        = 17
+local SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
 
 --
 -- Generators for declare SNMP MIB Node
@@ -106,15 +105,15 @@ function _M.module_method_unregister(name)
 end
 
 -- Shell command invoke.
-function _M.sh_call(command)
-    if type(command) ~= 'string' then
+function _M.sh_call(command, rmode)
+    if type(command) ~= 'string' or type(rmode) ~= 'string' then
         return nil
     end
 
     local t = nil
     local f = io.popen(command)
     if f ~= nil then
-        t = f:read("*line")
+        t = f:read(rmode)
         f:close()
     end
     return t
@@ -123,97 +122,78 @@ end
 -- String get/set function.
 function _M.ConstString(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_OCTSTR, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RO, get_f = g }
 end
 
--- String get/set function.
 function _M.String(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_OCTSTR, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Integer get/set function.
 function _M.ConstInt(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = g }
 end
 
--- Integer get/set function.
 function _M.Int(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_INT, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = BER_TAG_INT, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Count get/set function.
 function _M.ConstCount(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_CNT, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_CNT, access = MIB_ACES_RO, get_f = g }
 end
 
--- Count get/set function.
 function _M.Count(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_CNT, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = BER_TAG_CNT, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- IP address get/set function.
 function _M.ConstIpaddr(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_IPADDR, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_IPADDR, access = MIB_ACES_RO, get_f = g }
 end
 
--- IP address get/set function.
-function _M.Ipaddr(ip)
+function _M.Ipaddr(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_IPADDR, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = BER_TAG_IPADDR, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Oid get/set function for RO.
 function _M.ConstOid(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_OBJID, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_OBJID, access = MIB_ACES_RO, get_f = g }
 end
 
--- Oid get/set function.
 function _M.Oid(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_OBJID, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = BER_TAG_OBJID, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Timeticks get/set function.
 function _M.ConstTimeticks(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_TIMETICKS, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RO, get_f = g }
 end
 
--- Timeticks get/set function.
 function _M.Timeticks(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_TIMETICKS, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Gauge get/set function.
 function _M.ConstGauge(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_GAU, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_GAU, access = MIB_ACES_RO, get_f = g }
 end
 
--- Gauge get/set function.
 function _M.Gauge(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_GAU, access = MIB_ACES_RW, get_f = g, set_f = s }
-end
-
--- Index get/set function
-function _M.UnaIndex(g)
-    assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_UNA, get_f = g, set_f = nil }
-end
-
--- Index get/set function
-function _M.ConstIndex(g)
-    assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_GAU, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 --
@@ -269,7 +249,23 @@ end
 -- For debug print
 local check_group_index_table = function (it)
     for i, v in ipairs(it) do
-        for i in ipairs(v) do print(unpack(v[i])) end
+        if #v == 2 then
+            print("scalar indexes:")
+        else
+            print("table indexes:")
+        end
+        for i in ipairs(v) do
+            print(string.format("Dim%d:", i))
+            if next(v[i]) ~= nil then
+                if type(v[i][1]) == 'number' then
+                    print(unpack(v[i]))
+                else
+                    for _, t in ipairs(v[i]) do
+                        print(unpack(t))
+                    end
+                end
+            end
+        end
     end
 end
 
@@ -280,7 +276,21 @@ local group_index_table_generator = function (group, name)
     local group_indexes = {}  -- result to produce
     local scalar_indexes = {{},{0}}  -- 2 dimensions matrix
     local table_indexes = {}  -- N dimensions matrix
-
+    local oid_cmp = function (oid1, oid2)
+        if type(oid1) == 'number' and type(oid2) == 'number' then
+            return oid1 < oid2
+        elseif type(oid1) == 'table' and type(oid2) == 'table' then
+            local len = math.min(#oid1, #oid2)
+            for i = 1, len do
+                if oid1[i] ~= oid2[i] then
+                    return oid1[i] < oid2[i]
+                end
+            end
+            return #oid1 < #oid2
+        else
+            assert(false, "Invalid element type in comparision")
+        end
+    end
     for obj_no in pairs(group) do
 
         if type(obj_no) == 'number' then
@@ -311,30 +321,40 @@ local group_index_table_generator = function (group, name)
                         end
                     end
                     table.insert(table_indexes, dim3)
+                    table.sort(table_indexes[3])
 
-                    -- index list
-                    for list_no, list in ipairs(entry) do
-                        if list.index_key == true then
-                            -- instance
-                            local dimN = {}
-                            local it = list.get_f()
-                            assert(type(it) == 'table', string.format('%s[%d][%d][%d]: Index list must be table', name, obj_no, entry_no, list_no))
-                            for _, inst_no in pairs(it) do
-                                if type(inst_no) == 'number' then
-                                    table.insert(dimN, inst_no)
-                                end
-                            end
-                            table.insert(table_indexes, dimN)
+                    -- indexes
+                    assert(entry.indexes ~= nil)
+                    if entry.indexes.cascade then
+                        for _, indexes in ipairs(entry.indexes) do
+                            assert(type(indexes) == 'table')
+                            table.sort(indexes)
+                            table.insert(table_indexes, indexes)
                         end
+                    else
+                        assert(entry.indexes.cascade == nil, "No need to write \'cascade == false\' if indexes not cascaded, just wipe it out!")
+                        local dim4 = {}
+                        for key in pairs(entry.indexes) do
+                            local index
+                            -- index type
+                            if type(key) == 'string' then
+                                -- oid array
+                                index = {}
+                                for id in string.gmatch(key, "%d+") do
+                                    table.insert(index, tonumber(id))
+                                end
+                            else
+                                -- id number
+                                index = key
+                            end
+                            table.insert(dim4, index)
+                        end
+                        table.sort(dim4, oid_cmp)
+                        table.insert(table_indexes, dim4)
                     end
                 end
 
-                -- Sort group index table
-                for i in ipairs(table_indexes) do
-                    table.sort(table_indexes[i])
-                end
-
-                -- Insertion sort.
+                -- Insertion sort by table_no.
                 local inserted = false
                 for i, v in ipairs(group_indexes) do
                     local table_no = v[1][1]
@@ -381,6 +401,127 @@ local group_index_table_generator = function (group, name)
     end
 
     return group_indexes
+end
+
+-- Only called by group_index_table_getnext
+local function getnext(
+    oid,          -- request oid
+    offset,       -- offset indicator of request oid
+    record,       -- some thing need to be recorded
+    it,           -- index table
+    dim           -- offset dimension of *t*
+)
+    local elem_len = function(e)
+        if (type(e) == 'table') then
+            return #e
+        else
+            return 1
+        end
+    end
+    local compare = function (oid, offset, e)
+        if type(e) == 'number' then
+            return oid[offset] - e
+        elseif type(e) == 'table' then
+            for i in ipairs(e) do
+                local diff = oid[offset + i - 1] - e[i]
+                if diff ~= 0 then return diff end
+            end
+            return (#oid - offset + 1) - #e
+        end
+    end
+    local concat = function (oid, offset, e)
+        for i = offset, #oid do
+            oid[i] = nil
+        end
+        if type(e) == 'number' then
+            table.insert(oid, e)
+        else
+            for i in ipairs(e) do
+                table.insert(oid, e[i])
+            end
+        end
+        return oid
+    end
+
+    -- Empty.
+    if next(it[dim]) == nil then
+        return {}
+    end
+
+    record[dim] = record[dim] or {}
+
+    if oid[offset] == nil then
+        -- then point to first element
+        oid = concat(oid, #oid + 1, it[dim][1])
+        if dim == #it then
+            return oid
+        else
+            record[dim].offset = offset
+            record[dim].pos = 1
+            offset = offset + elem_len(it[dim][1])
+            dim = dim + 1
+        end
+    else
+        local found = false
+
+        xl = it[dim]
+        assert(next(xl) ~= nil)
+        for i, index in ipairs(xl) do
+            -- if all match then return
+            local cmp = compare(oid, offset, xl[i])
+            if cmp == 0 and dim < #it then
+                record[dim].offset = offset
+                record[dim].pos = i
+                offset = offset + elem_len(xl[i])
+                dim = dim + 1
+                found = true
+                break
+            -- if the request value is less than me, fetch the next one.
+            elseif cmp < 0 then
+                found = true
+                -- set it to me
+                oid = concat(oid, offset, xl[i])
+                -- all dim found, return it
+                if dim == #it then
+                    return oid
+                else
+                    record[dim].offset = offset
+                    record[dim].pos = i
+                    offset = offset + elem_len(xl[i])
+                    dim = dim + 1
+                    break
+                end
+            end
+        end
+
+        -- if didn't find anything
+        if not found then
+            local pos
+            repeat
+                if dim == 1 then
+                    -- can't be recursive
+                    return {}
+                else
+                    -- backtracking
+                    dim = dim - 1
+                    pos = record[dim].pos + 1
+                end
+            until pos <= #it[dim]
+            offset = record[dim].offset
+            for i = offset, #oid do
+                oid[i] = nil
+            end
+            oid = concat(oid, offset, it[dim][pos])
+        end
+    end
+
+    -- Tail recursion
+    return getnext(oid, offset, record, it, dim)
+end
+
+-- index table iterator
+local function group_index_table_getnext(oid, it)
+    return getnext(oid, 1, {}, it, 1)
 end
 
 -- Search and operation
@@ -445,8 +586,18 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             end
             -- check access
             local variable = tab[entry_no][list_no]
-            local inst_no = req_sub_oid[4]
-            if variable.access == MIB_ACES_UNA or inst_no == nil then
+            local inst_no
+            if #rsp_sub_oid == 4 then
+                inst_no = rsp_sub_oid[4]
+            else
+                inst_no = {}
+                for i = 4, #rsp_sub_oid do
+                    table.insert(inst_no, rsp_sub_oid[i])
+                end
+            end
+            if variable.access == MIB_ACES_UNA or
+               type(inst_no) == 'number' and inst_no == nil or
+               type(inst_no) == 'table' and next(inst_no) == nil then
                 return SNMP_ERR_STAT_ON_ACCESS, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- check type
@@ -512,19 +663,21 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                 return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
             end
             -- Check instance existence
-            local inst_no = req_sub_oid[4]
-            if inst_no == nil then
+            local inst_no
+            if #rsp_sub_oid == 4 then
+                inst_no = rsp_sub_oid[4]
+            else
+                inst_no = {}
+                for i = 4, #rsp_sub_oid do
+                    table.insert(inst_no, rsp_sub_oid[i])
+                end
+            end
+            if type(inst_no) == 'number' and inst_no == nil or
+               type(inst_no) == 'table' and next(inst_no) == nil then
                 return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
             end
             -- Get instance value
-            if variable.index_key == true then
-                local it
-                it, err_stat = variable.get_f(varible)
-                rsp_val = it[inst_no]
-            else
-                rsp_val, err_stat = variable.get_f(inst_no)
-            end
-
+            rsp_val, err_stat = variable.get_f(inst_no)
             rsp_val_type = variable.tag
         else
             return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
@@ -566,7 +719,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             end
 
             repeat
-                rsp_sub_oid = matrix_find_next(group_index_table[i], rsp_sub_oid, 1, #group_index_table[i])
+                rsp_sub_oid = group_index_table_getnext(rsp_sub_oid, group_index_table[i])
                 if next(rsp_sub_oid) == nil then
                     i = i + 1
                     if i <= #group_index_table then rsp_sub_oid = req_sub_oid end
@@ -589,18 +742,19 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                 local table_no = rsp_sub_oid[1]
                 local entry_no = rsp_sub_oid[2]
                 local list_no  = rsp_sub_oid[3]
-                local inst_no  = rsp_sub_oid[4]
-
                 variable = group[table_no][entry_no][list_no]
-                -- get instance value
-                if variable.index_key == true then
-                    local it
-                    it, err_stat = variable.get_f()
-                    rsp_val = it[inst_no]
-                    if rsp_val == nil then rsp_val = inst_no end
+                -- inst_no
+                local inst_no
+                if #rsp_sub_oid == 4 then
+                    inst_no = rsp_sub_oid[4]
                 else
-                    rsp_val, err_stat = variable.get_f(inst_no)
+                    inst_no = {}
+                    for i = 4, #rsp_sub_oid do
+                        table.insert(inst_no, rsp_sub_oid[i])
+                    end
                 end
+                -- get instance value
+                rsp_val, err_stat = variable.get_f(inst_no)
                 rsp_val_type = variable.tag
 
                 if rsp_val == nil or rsp_val_type == nil or variable.access == MIB_ACES_UNA then
