@@ -31,10 +31,8 @@ local sysORLastChange     = 8
 
 -- table index
 local sysORTable          = 9
-
 -- entry index
 local sysOREntry          = 1
-
 -- list index
 local sysORIndex          = 1
 local sysORID             = 2
@@ -51,10 +49,8 @@ end
 
 mib_system_startup(os.time())
 
-local sysGroup = {}
 local or_oid_cache = {}
-local or_index_cache = {}
-local or_table_cache = {}
+local or_entry_cache = {}
 
 local or_table_reg = function (oid, desc)
     local entry = {}
@@ -64,31 +60,25 @@ local or_table_reg = function (oid, desc)
     end
     entry['desc'] = desc
     entry['uptime'] = os.time()
-    table.insert(or_table_cache, entry)
+    table.insert(or_entry_cache, entry)
 
     or_last_changed_time = os.time()
 
-    or_oid_cache[oid] = #or_table_cache
-
-    or_index_cache = {}
-    for i in ipairs(or_table_cache) do
-        table.insert(or_index_cache, i)
-    end
+    or_oid_cache[oid] = #or_entry_cache
 end
 
 local or_table_unreg = function (oid)
     local or_idx = or_oid_cache[oid]
 
-    if or_table_cache[or_idx] ~= nil then
-        table.remove(or_table_cache, or_idx)
+    if or_entry_cache[or_idx] ~= nil then
+        table.remove(or_entry_cache, or_idx)
         or_last_changed_time = os.time()
-
-        or_index_cache = {}
-        for i in ipairs(or_table_cache) do
-            table.insert(or_index_cache, i)
-        end
     end
+
+    or_oid_cache[oid] = nil
 end
+
+local SNMP_ERR_STAT_ON_ACCESS = 6
 
 local sysMethods = {
     ["or_table_reg"] = or_table_reg, 
@@ -108,10 +98,29 @@ local sysGroup = {
     [sysORLastChange] = mib.ConstTimeticks(function () return os.difftime(os.time(), or_last_changed_time) * 100 end),
     [sysORTable]      = {
         [sysOREntry]  = {
-            [sysORIndex]  = mib.UnaIndex(function () return or_index_cache end),
-            [sysORID]     = mib.ConstOid(function (i) return or_table_cache[i].oid end),
-            [sysORDesc]   = mib.ConstString(function (i) return or_table_cache[i].desc end),
-            [sysORUpTime] = mib.ConstTimeticks(function (i) return os.difftime(os.time(), or_table_cache[i].uptime) * 100 end),
+            indexes = or_entry_cache,
+            [sysORIndex]  = mib.ConstInt(function () return nil, SNMP_ERR_STAT_ON_ACCESS end),
+            [sysORID]     = mib.ConstOid(function (i)
+                                             local oid
+                                             if or_entry_cache[i] ~= nil then
+                                                 oid = or_entry_cache[i].oid
+                                             end
+                                             return oid
+                                         end),
+            [sysORDesc]   = mib.ConstString(function (i)
+                                                local desc
+                                                if or_entry_cache[i] ~= nil then
+                                                    desc = or_entry_cache[i].desc
+                                                end
+                                                return desc
+                                            end),
+            [sysORUpTime] = mib.ConstTimeticks(function (i)
+                                                   local time
+                                                   if or_entry_cache[i] ~= nil then
+                                                       time = os.difftime(os.time(), or_entry_cache[i].uptime) * 100
+                                                   end
+                                                   return time
+                                               end),
         }
     }
 }

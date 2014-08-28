@@ -22,54 +22,91 @@
 --
 -- use Lua's tail recursion feature, so it won't be stack overflow.
 -------------------------------------------------------------------------------
-matrix_find_next = function (
-    t,          -- oid table, 2D array
-    o,          -- request oid
-    dim,        -- start dimension, should be start from 1
-    max_dim     -- max dimension of *t*
-)
-    if next(t[dim]) == nil then return {} end
 
-    if o[dim] == nil then
-        -- then point to first element
-        o[dim] = t[dim][1]
-        if dim == max_dim then
-            return o
+local function getnext(
+    oid,          -- request oid
+    offset,       -- offset indicator of request oid
+    last_offset,  -- offset indicator records
+    it,           -- index table
+    dim           -- offset dimension of *t*
+)
+    local elem_len = function(e)
+        if (type(e) == 'table') then
+            return #e
         else
+            return 1
+        end
+    end
+    local compare = function (oid, offset, e)
+        if type(e) == 'number' then
+            return oid[offset] - e
+        elseif type(e) == 'table' then
+            for i in ipairs(e) do
+                local diff = oid[offset + i - 1] - e[i]
+                if diff ~= 0 then return diff end
+            end
+            return (#oid - offset + 1) - #e
+        end
+    end
+    local concat = function (oid, offset, e)
+        for i = offset, #oid do
+            oid[i] = nil
+        end
+        if type(e) == 'number' then
+            table.insert(oid, e)
+        else
+            for i in ipairs(e) do
+                table.insert(oid, e[i])
+            end
+        end
+        return oid
+    end
+
+    -- Assertion
+    assert(offset > 0 and dim > 0)
+
+    -- Empty.
+    if next(it[dim]) == nil then
+        return {}
+    end
+
+    if oid[offset] == nil then
+        -- then point to first element
+        oid = concat(oid, #oid + 1, it[dim][1])
+        if dim == #it then
+            return oid
+        else
+            last_offset[dim] = offset
+            offset = offset + elem_len(it[dim][1])
             dim = dim + 1
         end
     else
         local found = false
-        -- for each
-        xl = t[dim]
-        for i, m in ipairs(xl) do
-            if (i == 1 or xl[i-1] <= o[dim]) then
-                -- if it all match then return
-                if xl[i] == o[dim] and dim ~= max_dim then
+
+        xl = it[dim]
+        assert(next(xl) ~= nil)
+        for i, index in ipairs(xl) do
+            -- if all match then return
+            local cmp = compare(oid, offset, xl[i])
+            if cmp == 0 and dim < #it then
+                last_offset[dim] = offset
+                offset = offset + elem_len(xl[i])
+                dim = dim + 1
+                found = true
+                break
+            -- if the request value is less than me, fetch the next one.
+            elseif cmp < 0 then
+                found = true
+                -- set it to me
+                oid = concat(oid, offset, xl[i])
+                -- all dim found, return it
+                if dim == #it then
+                    return oid
+                else
+                    last_offset[dim] = offset
+                    offset = offset + elem_len(xl[i])
                     dim = dim + 1
-                    found = true
                     break
-                -- if the request value is less then me, yes,
-                -- the next is just me(`m`).
-                elseif o[dim] < xl[i] then
-                    found = true
-
-                    -- set it to me
-                    o[dim] = m
-
-                    -- all dim found, return it
-                    if dim == max_dim then
-                        -- found it
-                        return o
-                    else
-                        dim = dim + 1
-                        -- clear all after this dim, cause all behind dim
-                        -- should return its first.
-                        for l = dim, max_dim do
-                            o[l] = nil
-                        end
-                        break
-                    end
                 end
             end
         end
@@ -80,22 +117,32 @@ matrix_find_next = function (
             if dim == 1 then
                 return {}
             else
-                o[dim] = nil
+                for i = offset, #oid do
+                    oid[i] = nil
+                end
+                -- backtracking
                 dim = dim - 1
-                o[dim] = o[dim] + 1
+                offset = last_offset[dim]
+                oid[offset] = oid[offset] + 1
             end
         end
     end
-    return matrix_find_next(t, o, dim, max_dim)
+
+    -- Tail recursion
+    return getnext(oid, offset, last_offset, it, dim)
+end
+
+local function oid_table_getnext(oid, it)
+    return getnext(oid, 1, {}, it, 1)
 end
 
 --------------------------------------------------------------------------------
 -- unit tests
-
-local test_matrix_find_next = function (t, max_dim, input, expect_out)
+--[[
+local test_matrix_find_next = function (t, #t, input, expect_out)
     local sinput = table.concat(input, '.')
     print("-------------------------------------")
-    output = matrix_find_next(t, input, 1, max_dim)
+    output = matrix_find_next(t, input, 1, #t)
     local soutput = table.concat(output, '.')
     local sexpout = table.concat(expect_out, '.')
     print(string.format(
@@ -106,7 +153,7 @@ local test_matrix_find_next = function (t, max_dim, input, expect_out)
     ))
     return soutput == sexpout
 end
-
+]]
 --[[
 
 -- test cases
@@ -149,4 +196,4 @@ assert(test_matrix_find_next(y, 4, {2,5,1,8},    {2,8,2,1}       ))
 
 ]]--
 
-return matrix_find_next
+return oid_table_getnext
