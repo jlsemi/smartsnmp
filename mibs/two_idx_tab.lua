@@ -24,13 +24,13 @@ local TwoIndexTableIdxB  = 2
 local TwoIndexTableDescr = 3
 
 -- cascade multi-index
-local modul_mode_entry_cache = {
+local two_dim_entry_cache = {
     cascade = true,
     { 1, 2 },
     { 2, 3 },
 }
 
-local modul_mode_cache = {
+local two_dim_cache = {
     [1] = {
         [2] = { desc = "A12" },
         [3] = { desc = "B13" },
@@ -44,9 +44,9 @@ local modul_mode_cache = {
 local TwoIndexTableGroup = {
     [1] = {
         [1] = {
-            indexes = modul_mode_entry_cache,
+            indexes = two_dim_entry_cache,
             [TwoIndexTableIdxA] = mib.ConstInt(function (sub_oid)
-                                                         for i, card_index in ipairs(modul_mode_entry_cache[1]) do
+                                                         for i, card_index in ipairs(two_dim_entry_cache[1]) do
                                                              if sub_oid[1] == card_index then
                                                                  return card_index
                                                              end
@@ -54,7 +54,7 @@ local TwoIndexTableGroup = {
                                                          return nil
                                                      end),
             [TwoIndexTableIdxB] = mib.ConstInt(function (sub_oid)
-                                                     for i, mode_index in ipairs(modul_mode_entry_cache[2]) do
+                                                     for i, mode_index in ipairs(two_dim_entry_cache[2]) do
                                                          if sub_oid[2] == mode_index then
                                                              return mode_index
                                                          end
@@ -64,8 +64,8 @@ local TwoIndexTableGroup = {
             [TwoIndexTableDescr] = mib.ConstString(function (sub_oid)
                                                         local i = sub_oid[1]
                                                         local j = sub_oid[2]
-                                                        if modul_mode_cache[i][j] then
-                                                            return modul_mode_cache[i][j].desc
+                                                        if two_dim_cache[i][j] then
+                                                            return two_dim_cache[i][j].desc
                                                         end
                                                     end),
         }

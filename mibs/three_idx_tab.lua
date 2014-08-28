@@ -24,19 +24,19 @@ local ThreeIndexTableIdxB      = 2
 local ThreeIndexTableIdxC     = 3
 
 -- cascade multi-index
-local vlan_port_cache = {
+local three_dim_cache = {
     cascade = true,
     { 1, 3, 5, 7},
     { 2, 3 },
     { 32, 123, 87 },
 }
 
-local vlanGroup = {
+local ThreeIndexTable = {
     [1] = {
         [1] = {
-            indexes = vlan_port_cache,
+            indexes = three_dim_cache,
             [ThreeIndexTableIdxA] = mib.ConstInt(function (sub_oid)
-                                                   for i, card_index in ipairs(vlan_port_cache[1]) do
+                                                   for i, card_index in ipairs(three_dim_cache[1]) do
                                                        if sub_oid[1] == card_index then
                                                            return card_index
                                                        end
@@ -44,7 +44,7 @@ local vlanGroup = {
                                                    return nil
                                                end),
             [ThreeIndexTableIdxB] = mib.ConstInt(function (sub_oid)
-                                              for i, cnu_index in ipairs(vlan_port_cache[2]) do
+                                              for i, cnu_index in ipairs(three_dim_cache[2]) do
                                                   if sub_oid[2] == cnu_index then
                                                       return cnu_index
                                                   end
@@ -52,7 +52,7 @@ local vlanGroup = {
                                               return nil
                                           end),
             [ThreeIndexTableIdxC] = mib.ConstInt(function (sub_oid)
-                                               for i, port_index in ipairs(vlan_port_cache[3]) do
+                                               for i, port_index in ipairs(three_dim_cache[3]) do
                                                    if sub_oid[3] == port_index then
                                                        return port_index
                                                    end
@@ -63,4 +63,4 @@ local vlanGroup = {
     },
 }
 
-return vlanGroup
+return ThreeIndexTable
