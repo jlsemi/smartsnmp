@@ -88,11 +88,11 @@ mib.module_method_register(sysMethods)
 
 local sysGroup = {
     rocommunity = 'public',
-    [sysDesc]         = mib.ConstString(function () return mib.sh_call("uname -a") end),
+    [sysDesc]         = mib.ConstString(function () return mib.sh_call("uname -a", "*line") end),
     [sysObjectID]     = mib.ConstOid(function () return { 1, 3, 6, 1, 2, 1, 1 } end),
     [sysUpTime]       = mib.ConstTimeticks(function () return os.difftime(os.time(), startup_time) * 100 end),
     [sysContact]      = mib.ConstString(function () return "Me <Me@example.org>" end),
-    [sysName]         = mib.ConstString(function () return mib.sh_call("uname -n") end),
+    [sysName]         = mib.ConstString(function () return mib.sh_call("uname -n", "*line") end),
     [sysLocation]     = mib.ConstString(function () return "Shanghai" end),
     [sysServices]     = mib.ConstInt(function () return 72 end),
     [sysORLastChange] = mib.ConstTimeticks(function () return os.difftime(os.time(), or_last_changed_time) * 100 end),

@@ -18,7 +18,6 @@
 --
 
 local core = require "smartsnmp.core"
-local oid_table_getnext = require "smartsnmp.find_next"
 
 local _M = {}
 _M.core = core
@@ -30,60 +29,60 @@ _M._VERSION = "dev"
 --
 
 -- Access
-MIB_ACES_UNA        = 0
-MIB_ACES_RO         = 1
-MIB_ACES_RW         = 2
-MIB_ACES_RC         = 2
+local MIB_ACES_UNA        = 0
+local MIB_ACES_RO         = 1
+local MIB_ACES_RW         = 2
+local MIB_ACES_RC         = 2
 
 -- SNMP request
-SNMP_REQ_GET        = 0xA0
-SNMP_REQ_GETNEXT    = 0xA1
-SNMP_RESP           = 0xA2
-SNMP_REQ_SET        = 0xA3
-SNMP_REQ_GET_BLK    = 0xA5
-SNMP_REQ_INF        = 0xA6
-SNMP_TRAP           = 0xA7
-SNMP_REPO           = 0xA8
+local SNMP_REQ_GET        = 0xA0
+local SNMP_REQ_GETNEXT    = 0xA1
+local SNMP_RESP           = 0xA2
+local SNMP_REQ_SET        = 0xA3
+local SNMP_REQ_GET_BLK    = 0xA5
+local SNMP_REQ_INF        = 0xA6
+local SNMP_TRAP           = 0xA7
+local SNMP_REPO           = 0xA8
 
 -- BER tag
-BER_TAG_BOOL              = 0x01
-BER_TAG_INT               = 0x02
-BER_TAG_BITSTR            = 0x03
-BER_TAG_OCTSTR            = 0x04
-BER_TAG_NUL               = 0x05
-BER_TAG_OBJID             = 0x06
-BER_TAG_SEQ               = 0x30
-BER_TAG_IPADDR            = 0x40
-BER_TAG_CNT               = 0x41
-BER_TAG_GAU               = 0x42
-BER_TAG_TIMETICKS         = 0x43
-BER_TAG_OPAQ              = 0x44
-BER_TAG_NO_SUCH_OBJ       = 0x80
-BER_TAG_NO_SUCH_INST      = 0x81
+local BER_TAG_BOOL              = 0x01
+local BER_TAG_INT               = 0x02
+local BER_TAG_BITSTR            = 0x03
+local BER_TAG_OCTSTR            = 0x04
+local BER_TAG_NUL               = 0x05
+local BER_TAG_OBJID             = 0x06
+local BER_TAG_SEQ               = 0x30
+local BER_TAG_IPADDR            = 0x40
+local BER_TAG_CNT               = 0x41
+local BER_TAG_GAU               = 0x42
+local BER_TAG_TIMETICKS         = 0x43
+local BER_TAG_OPAQ              = 0x44
+local BER_TAG_NO_SUCH_OBJ       = 0x80
+local BER_TAG_NO_SUCH_INST      = 0x81
 
 -- Error status
 -- v1
-SNMP_ERR_STAT_NO_ERR              = 0
-SNMP_ERR_STAT_TOO_BIG             = 1
-SNMP_ERR_STAT_NO_SUCH_NAME        = 2
-SNMP_ERR_STAT_BAD_VALUE           = 3
-SNMP_ERR_STAT_READ_ONLY           = 4
-SNMP_ERR_STAT_GEN_ERR             = 5
+local SNMP_ERR_STAT_NO_ERR              = 0
+local SNMP_ERR_STAT_TOO_BIG             = 1
+local SNMP_ERR_STAT_NO_SUCH_NAME        = 2
+local SNMP_ERR_STAT_BAD_VALUE           = 3
+local SNMP_ERR_STAT_READ_ONLY           = 4
+local SNMP_ERR_STAT_GEN_ERR             = 5
 
 -- v2c
-SNMP_ERR_STAT_ON_ACCESS           = 6
-SNMP_ERR_STAT_WRONG_TYPE          = 7
-SNMP_ERR_STAT_WRONG_LEN           = 8
-SNMP_ERR_STAT_ENCODING            = 9
-SNMP_ERR_STAT_WRONG_VALUE         = 10
-SNMP_ERR_STAT_NO_CREATION         = 11
-SNMP_ERR_STAT_INCONSISTENT_VALUE  = 12
-SNMP_ERR_STAT_RESOURCE_UNAVAIL    = 13
-SNMP_ERR_STAT_COMMIT_FAILED       = 14
-SNMP_ERR_STAT_UNDO_FAILED         = 15
-SNMP_ERR_STAT_AUTHORIZATION       = 16
-SNMP_ERR_STAT_NOT_WRITABLE        = 17
-SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
+local SNMP_ERR_STAT_ON_ACCESS           = 6
+local SNMP_ERR_STAT_WRONG_TYPE          = 7
+local SNMP_ERR_STAT_WRONG_LEN           = 8
+local SNMP_ERR_STAT_ENCODING            = 9
+local SNMP_ERR_STAT_WRONG_VALUE         = 10
+local SNMP_ERR_STAT_NO_CREATION         = 11
+local SNMP_ERR_STAT_INCONSISTENT_VALUE  = 12
+local SNMP_ERR_STAT_RESOURCE_UNAVAIL    = 13
+local SNMP_ERR_STAT_COMMIT_FAILED       = 14
+local SNMP_ERR_STAT_UNDO_FAILED         = 15
+local SNMP_ERR_STAT_AUTHORIZATION       = 16
+local SNMP_ERR_STAT_NOT_WRITABLE        = 17
+local SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
 
 --
 -- Generators for declare SNMP MIB Node
@@ -106,15 +105,15 @@ function _M.module_method_unregister(name)
 end
 
 -- Shell command invoke.
-function _M.sh_call(command)
-    if type(command) ~= 'string' then
+function _M.sh_call(command, rmode)
+    if type(command) ~= 'string' or type(rmode) ~= 'string' then
         return nil
     end
 
     local t = nil
     local f = io.popen(command)
     if f ~= nil then
-        t = f:read("*line")
+        t = f:read(rmode)
         f:close()
     end
     return t
@@ -404,6 +403,127 @@ local group_index_table_generator = function (group, name)
     return group_indexes
 end
 
+-- Only called by group_index_table_getnext
+local function getnext(
+    oid,          -- request oid
+    offset,       -- offset indicator of request oid
+    record,       -- some thing need to be recorded
+    it,           -- index table
+    dim           -- offset dimension of *t*
+)
+    local elem_len = function(e)
+        if (type(e) == 'table') then
+            return #e
+        else
+            return 1
+        end
+    end
+    local compare = function (oid, offset, e)
+        if type(e) == 'number' then
+            return oid[offset] - e
+        elseif type(e) == 'table' then
+            for i in ipairs(e) do
+                local diff = oid[offset + i - 1] - e[i]
+                if diff ~= 0 then return diff end
+            end
+            return (#oid - offset + 1) - #e
+        end
+    end
+    local concat = function (oid, offset, e)
+        for i = offset, #oid do
+            oid[i] = nil
+        end
+        if type(e) == 'number' then
+            table.insert(oid, e)
+        else
+            for i in ipairs(e) do
+                table.insert(oid, e[i])
+            end
+        end
+        return oid
+    end
+
+    -- Empty.
+    if next(it[dim]) == nil then
+        return {}
+    end
+
+    record[dim] = record[dim] or {}
+
+    if oid[offset] == nil then
+        -- then point to first element
+        oid = concat(oid, #oid + 1, it[dim][1])
+        if dim == #it then
+            return oid
+        else
+            record[dim].offset = offset
+            record[dim].pos = 1
+            offset = offset + elem_len(it[dim][1])
+            dim = dim + 1
+        end
+    else
+        local found = false
+
+        xl = it[dim]
+        assert(next(xl) ~= nil)
+        for i, index in ipairs(xl) do
+            -- if all match then return
+            local cmp = compare(oid, offset, xl[i])
+            if cmp == 0 and dim < #it then
+                record[dim].offset = offset
+                record[dim].pos = i
+                offset = offset + elem_len(xl[i])
+                dim = dim + 1
+                found = true
+                break
+            -- if the request value is less than me, fetch the next one.
+            elseif cmp < 0 then
+                found = true
+                -- set it to me
+                oid = concat(oid, offset, xl[i])
+                -- all dim found, return it
+                if dim == #it then
+                    return oid
+                else
+                    record[dim].offset = offset
+                    record[dim].pos = i
+                    offset = offset + elem_len(xl[i])
+                    dim = dim + 1
+                    break
+                end
+            end
+        end
+
+        -- if didn't find anything
+        if not found then
+            local pos
+            repeat
+                if dim == 1 then
+                    -- can't be recursive
+                    return {}
+                else
+                    -- backtracking
+                    dim = dim - 1
+                    pos = record[dim].pos + 1
+                end
+            until pos <= #it[dim]
+            offset = record[dim].offset
+            for i = offset, #oid do
+                oid[i] = nil
+            end
+            oid = concat(oid, offset, it[dim][pos])
+        end
+    end
+
+    -- Tail recursion
+    return getnext(oid, offset, record, it, dim)
+end
+
+-- index table iterator
+local function group_index_table_getnext(oid, it)
+    return getnext(oid, 1, {}, it, 1)
+end
+
 -- Search and operation
 local mib_node_search = function (group, name, op, community, req_sub_oid, req_val, req_val_type)
     local err_stat = nil
@@ -599,7 +719,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             end
 
             repeat
-                rsp_sub_oid = oid_table_getnext(rsp_sub_oid, group_index_table[i])
+                rsp_sub_oid = group_index_table_getnext(rsp_sub_oid, group_index_table[i])
                 if next(rsp_sub_oid) == nil then
                     i = i + 1
                     if i <= #group_index_table then rsp_sub_oid = req_sub_oid end
