@@ -26,7 +26,7 @@
 local function getnext(
     oid,          -- request oid
     offset,       -- offset indicator of request oid
-    last_offset,  -- offset indicator records
+    record,       -- some thing need to be recorded
     it,           -- index table
     dim           -- offset dimension of *t*
 )
@@ -62,13 +62,12 @@ local function getnext(
         return oid
     end
 
-    -- Assertion
-    assert(offset > 0 and dim > 0)
-
     -- Empty.
     if next(it[dim]) == nil then
         return {}
     end
+
+    record[dim] = record[dim] or {}
 
     if oid[offset] == nil then
         -- then point to first element
@@ -76,7 +75,8 @@ local function getnext(
         if dim == #it then
             return oid
         else
-            last_offset[dim] = offset
+            record[dim].offset = offset
+            record[dim].pos = 1
             offset = offset + elem_len(it[dim][1])
             dim = dim + 1
         end
@@ -89,7 +89,8 @@ local function getnext(
             -- if all match then return
             local cmp = compare(oid, offset, xl[i])
             if cmp == 0 and dim < #it then
-                last_offset[dim] = offset
+                record[dim].offset = offset
+                record[dim].pos = i
                 offset = offset + elem_len(xl[i])
                 dim = dim + 1
                 found = true
@@ -103,7 +104,8 @@ local function getnext(
                 if dim == #it then
                     return oid
                 else
-                    last_offset[dim] = offset
+                    record[dim].offset = offset
+                    record[dim].pos = i
                     offset = offset + elem_len(xl[i])
                     dim = dim + 1
                     break
@@ -113,87 +115,32 @@ local function getnext(
 
         -- if didn't find anything
         if not found then
-            -- if can't be recursive
-            if dim == 1 then
-                return {}
-            else
-                for i = offset, #oid do
-                    oid[i] = nil
+            local pos
+            repeat
+                if dim == 1 then
+                    -- can't be recursive
+                    return {}
+                else
+                    -- backtracking
+                    dim = dim - 1
+                    pos = record[dim].pos + 1
                 end
-                -- backtracking
-                dim = dim - 1
-                offset = last_offset[dim]
-                oid[offset] = oid[offset] + 1
+            until pos <= #it[dim]
+            offset = record[dim].offset
+            for i = offset, #oid do
+                oid[i] = nil
             end
+            oid = concat(oid, offset, it[dim][pos])
         end
     end
 
     -- Tail recursion
-    return getnext(oid, offset, last_offset, it, dim)
+    return getnext(oid, offset, record, it, dim)
 end
 
+-- index table iterator
 local function oid_table_getnext(oid, it)
     return getnext(oid, 1, {}, it, 1)
 end
-
---------------------------------------------------------------------------------
--- unit tests
---[[
-local test_matrix_find_next = function (t, #t, input, expect_out)
-    local sinput = table.concat(input, '.')
-    print("-------------------------------------")
-    output = matrix_find_next(t, input, 1, #t)
-    local soutput = table.concat(output, '.')
-    local sexpout = table.concat(expect_out, '.')
-    print(string.format(
-        "IN :%-10s\nOUT:%-10s\nEXP:%-10s",
-        sinput,
-        soutput,
-        sexpout
-    ))
-    return soutput == sexpout
-end
-]]
---[[
-
--- test cases
-local x = {}
-x[1] = {1,2,5}
-x[2] = {2,3,4,8}
-
-
-assert(test_matrix_find_next(x, 2, {},           {1,2}           ))
-assert(test_matrix_find_next(x, 2, {1},          {1,2}           ))
-assert(test_matrix_find_next(x, 2, {2},          {2,2}           ))
-assert(test_matrix_find_next(x, 2, {1,2},        {1,3}           ))
-assert(test_matrix_find_next(x, 2, {1,8},        {2,2}           ))
-assert(test_matrix_find_next(x, 2, {2,9},        {5,2}           ))
-assert(test_matrix_find_next(x, 2, {5,2},        {5,3}           ))
-assert(test_matrix_find_next(x, 2, {5,8},        {}              ))
-assert(test_matrix_find_next(x, 2, {5,9},        {}              ))
-
-local y = {}
-y[1] = {1,2,5}
-y[2] = {2,3,4,8}
-y[3] = {2}
-y[4] = {1,2,3,4,888}
-
-assert(test_matrix_find_next(y, 4, {},           {1,2,2,1}       ))
-assert(test_matrix_find_next(y, 4, {1},          {1,2,2,1}       ))
-assert(test_matrix_find_next(y, 4, {2},          {2,2,2,1}       ))
-assert(test_matrix_find_next(y, 4, {1,2},        {1,2,2,1}       ))
-assert(test_matrix_find_next(y, 4, {1,8},        {1,8,2,1}       ))
-assert(test_matrix_find_next(y, 4, {2,9},        {5,2,2,1}       ))
-assert(test_matrix_find_next(y, 4, {5,2},        {5,2,2,1}       ))
-assert(test_matrix_find_next(y, 4, {5,8},        {5,8,2,1}       ))
-assert(test_matrix_find_next(y, 4, {5,9},        {}              ))
-assert(test_matrix_find_next(y, 4, {1,2,2,1},    {1,2,2,2}       ))
-assert(test_matrix_find_next(y, 4, {2,4,2,4},    {2,4,2,888}     ))
-assert(test_matrix_find_next(y, 4, {2,4,2,888},  {2,8,2,1}       ))
-assert(test_matrix_find_next(y, 4, {5,8,2,4},    {5,8,2,888}     ))
-assert(test_matrix_find_next(y, 4, {5,8,2,888},  {}              ))
-assert(test_matrix_find_next(y, 4, {2,5,1,8},    {2,8,2,1}       ))
-
-]]--
 
 return oid_table_getnext

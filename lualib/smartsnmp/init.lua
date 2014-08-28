@@ -30,60 +30,60 @@ _M._VERSION = "dev"
 --
 
 -- Access
-MIB_ACES_UNA        = 0
-MIB_ACES_RO         = 1
-MIB_ACES_RW         = 2
-MIB_ACES_RC         = 2
+local MIB_ACES_UNA        = 0
+local MIB_ACES_RO         = 1
+local MIB_ACES_RW         = 2
+local MIB_ACES_RC         = 2
 
 -- SNMP request
-SNMP_REQ_GET        = 0xA0
-SNMP_REQ_GETNEXT    = 0xA1
-SNMP_RESP           = 0xA2
-SNMP_REQ_SET        = 0xA3
-SNMP_REQ_GET_BLK    = 0xA5
-SNMP_REQ_INF        = 0xA6
-SNMP_TRAP           = 0xA7
-SNMP_REPO           = 0xA8
+local SNMP_REQ_GET        = 0xA0
+local SNMP_REQ_GETNEXT    = 0xA1
+local SNMP_RESP           = 0xA2
+local SNMP_REQ_SET        = 0xA3
+local SNMP_REQ_GET_BLK    = 0xA5
+local SNMP_REQ_INF        = 0xA6
+local SNMP_TRAP           = 0xA7
+local SNMP_REPO           = 0xA8
 
 -- BER tag
-BER_TAG_BOOL              = 0x01
-BER_TAG_INT               = 0x02
-BER_TAG_BITSTR            = 0x03
-BER_TAG_OCTSTR            = 0x04
-BER_TAG_NUL               = 0x05
-BER_TAG_OBJID             = 0x06
-BER_TAG_SEQ               = 0x30
-BER_TAG_IPADDR            = 0x40
-BER_TAG_CNT               = 0x41
-BER_TAG_GAU               = 0x42
-BER_TAG_TIMETICKS         = 0x43
-BER_TAG_OPAQ              = 0x44
-BER_TAG_NO_SUCH_OBJ       = 0x80
-BER_TAG_NO_SUCH_INST      = 0x81
+local BER_TAG_BOOL              = 0x01
+local BER_TAG_INT               = 0x02
+local BER_TAG_BITSTR            = 0x03
+local BER_TAG_OCTSTR            = 0x04
+local BER_TAG_NUL               = 0x05
+local BER_TAG_OBJID             = 0x06
+local BER_TAG_SEQ               = 0x30
+local BER_TAG_IPADDR            = 0x40
+local BER_TAG_CNT               = 0x41
+local BER_TAG_GAU               = 0x42
+local BER_TAG_TIMETICKS         = 0x43
+local BER_TAG_OPAQ              = 0x44
+local BER_TAG_NO_SUCH_OBJ       = 0x80
+local BER_TAG_NO_SUCH_INST      = 0x81
 
 -- Error status
 -- v1
-SNMP_ERR_STAT_NO_ERR              = 0
-SNMP_ERR_STAT_TOO_BIG             = 1
-SNMP_ERR_STAT_NO_SUCH_NAME        = 2
-SNMP_ERR_STAT_BAD_VALUE           = 3
-SNMP_ERR_STAT_READ_ONLY           = 4
-SNMP_ERR_STAT_GEN_ERR             = 5
+local SNMP_ERR_STAT_NO_ERR              = 0
+local SNMP_ERR_STAT_TOO_BIG             = 1
+local SNMP_ERR_STAT_NO_SUCH_NAME        = 2
+local SNMP_ERR_STAT_BAD_VALUE           = 3
+local SNMP_ERR_STAT_READ_ONLY           = 4
+local SNMP_ERR_STAT_GEN_ERR             = 5
 
 -- v2c
-SNMP_ERR_STAT_ON_ACCESS           = 6
-SNMP_ERR_STAT_WRONG_TYPE          = 7
-SNMP_ERR_STAT_WRONG_LEN           = 8
-SNMP_ERR_STAT_ENCODING            = 9
-SNMP_ERR_STAT_WRONG_VALUE         = 10
-SNMP_ERR_STAT_NO_CREATION         = 11
-SNMP_ERR_STAT_INCONSISTENT_VALUE  = 12
-SNMP_ERR_STAT_RESOURCE_UNAVAIL    = 13
-SNMP_ERR_STAT_COMMIT_FAILED       = 14
-SNMP_ERR_STAT_UNDO_FAILED         = 15
-SNMP_ERR_STAT_AUTHORIZATION       = 16
-SNMP_ERR_STAT_NOT_WRITABLE        = 17
-SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
+local SNMP_ERR_STAT_ON_ACCESS           = 6
+local SNMP_ERR_STAT_WRONG_TYPE          = 7
+local SNMP_ERR_STAT_WRONG_LEN           = 8
+local SNMP_ERR_STAT_ENCODING            = 9
+local SNMP_ERR_STAT_WRONG_VALUE         = 10
+local SNMP_ERR_STAT_NO_CREATION         = 11
+local SNMP_ERR_STAT_INCONSISTENT_VALUE  = 12
+local SNMP_ERR_STAT_RESOURCE_UNAVAIL    = 13
+local SNMP_ERR_STAT_COMMIT_FAILED       = 14
+local SNMP_ERR_STAT_UNDO_FAILED         = 15
+local SNMP_ERR_STAT_AUTHORIZATION       = 16
+local SNMP_ERR_STAT_NOT_WRITABLE        = 17
+local SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
 
 --
 -- Generators for declare SNMP MIB Node
@@ -106,15 +106,15 @@ function _M.module_method_unregister(name)
 end
 
 -- Shell command invoke.
-function _M.sh_call(command)
-    if type(command) ~= 'string' then
+function _M.sh_call(command, rmode)
+    if type(command) ~= 'string' or type(rmode) ~= 'string' then
         return nil
     end
 
     local t = nil
     local f = io.popen(command)
     if f ~= nil then
-        t = f:read("*line")
+        t = f:read(rmode)
         f:close()
     end
     return t
