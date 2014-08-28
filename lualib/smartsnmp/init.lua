@@ -18,7 +18,6 @@
 --
 
 local core = require "smartsnmp.core"
-local oid_table_getnext = require "smartsnmp.find_next"
 
 local _M = {}
 _M.core = core
@@ -204,7 +203,7 @@ end
 --[[
   It is supposed to generate an index container for a mib group node in which
   several scalar nodes next to each other make up a 2 dim matrix({{obj_no, ...},{0}} )
-  while a table node as 4 dim matrix({{obj_no},{entry_no, ...},{list_no, ...},{inst_no, ...}}).
+  while a table node as 4 dim matrix({{obj_no},{entry_no, ...},{var_no, ...},{inst_no, ...}}).
   e.x If we build up a group node like this:
     group = {
       [1] = scalar1
@@ -314,11 +313,11 @@ local group_index_table_generator = function (group, name)
                 end
 
                 if entry ~= nil then
-                    -- list_no
+                    -- var_no
                     local dim3 = {}
-                    for list_no in pairs(entry) do
-                        if type(list_no) == 'number' then
-                            table.insert(dim3, list_no)
+                    for var_no in pairs(entry) do
+                        if type(var_no) == 'number' then
+                            table.insert(dim3, var_no)
                         end
                     end
                     table.insert(table_indexes, dim3)
@@ -404,6 +403,127 @@ local group_index_table_generator = function (group, name)
     return group_indexes
 end
 
+-- Only called by group_index_table_getnext
+local function getnext(
+    oid,          -- request oid
+    offset,       -- offset indicator of request oid
+    record,       -- some thing need to be recorded
+    it,           -- index table
+    dim           -- offset dimension of *t*
+)
+    local elem_len = function(e)
+        if (type(e) == 'table') then
+            return #e
+        else
+            return 1
+        end
+    end
+    local compare = function (oid, offset, e)
+        if type(e) == 'number' then
+            return oid[offset] - e
+        elseif type(e) == 'table' then
+            for i in ipairs(e) do
+                local diff = oid[offset + i - 1] - e[i]
+                if diff ~= 0 then return diff end
+            end
+            return (#oid - offset + 1) - #e
+        end
+    end
+    local concat = function (oid, offset, e)
+        for i = offset, #oid do
+            oid[i] = nil
+        end
+        if type(e) == 'number' then
+            table.insert(oid, e)
+        else
+            for i in ipairs(e) do
+                table.insert(oid, e[i])
+            end
+        end
+        return oid
+    end
+
+    -- Empty.
+    if next(it[dim]) == nil then
+        return {}
+    end
+
+    record[dim] = record[dim] or {}
+
+    if oid[offset] == nil then
+        -- then point to first element
+        oid = concat(oid, #oid + 1, it[dim][1])
+        if dim == #it then
+            return oid
+        else
+            record[dim].offset = offset
+            record[dim].pos = 1
+            offset = offset + elem_len(it[dim][1])
+            dim = dim + 1
+        end
+    else
+        local found = false
+
+        xl = it[dim]
+        assert(next(xl) ~= nil)
+        for i, index in ipairs(xl) do
+            -- if all match then return
+            local cmp = compare(oid, offset, xl[i])
+            if cmp == 0 and dim < #it then
+                record[dim].offset = offset
+                record[dim].pos = i
+                offset = offset + elem_len(xl[i])
+                dim = dim + 1
+                found = true
+                break
+            -- if the request value is less than me, fetch the next one.
+            elseif cmp < 0 then
+                found = true
+                -- set it to me
+                oid = concat(oid, offset, xl[i])
+                -- all dim found, return it
+                if dim == #it then
+                    return oid
+                else
+                    record[dim].offset = offset
+                    record[dim].pos = i
+                    offset = offset + elem_len(xl[i])
+                    dim = dim + 1
+                    break
+                end
+            end
+        end
+
+        -- if didn't find anything
+        if not found then
+            local pos
+            repeat
+                if dim == 1 then
+                    -- can't be recursive
+                    return {}
+                else
+                    -- backtracking
+                    dim = dim - 1
+                    pos = record[dim].pos + 1
+                end
+            until pos <= #it[dim]
+            offset = record[dim].offset
+            for i = offset, #oid do
+                oid[i] = nil
+            end
+            oid = concat(oid, offset, it[dim][pos])
+        end
+    end
+
+    -- Tail recursion
+    return getnext(oid, offset, record, it, dim)
+end
+
+-- Group index table iterator
+local function group_index_table_getnext(oid, it)
+    return getnext(oid, 1, {}, it, 1)
+end
+
 -- Search and operation
 local mib_node_search = function (group, name, op, community, req_sub_oid, req_val, req_val_type)
     local err_stat = nil
@@ -459,13 +579,13 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             -- table
             local table_no = obj_no
             local entry_no = req_sub_oid[2]
-            local list_no = req_sub_oid[3]
+            local var_no = req_sub_oid[3]
             local tab = group[table_no]
-            if #req_sub_oid < 3 or tab[entry_no] == nil or tab[entry_no][list_no] == nil then
+            if #req_sub_oid < 3 or tab[entry_no] == nil or tab[entry_no][var_no] == nil then
                 return SNMP_ERR_STAT_ON_ACCESS, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- check access
-            local variable = tab[entry_no][list_no]
+            local variable = tab[entry_no][var_no]
             local inst_no
             if #rsp_sub_oid == 4 then
                 inst_no = rsp_sub_oid[4]
@@ -532,13 +652,13 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             -- table
             local table_no = obj_no
             local entry_no = req_sub_oid[2]
-            local list_no = req_sub_oid[3]
+            local var_no = req_sub_oid[3]
             local tab = group[table_no]
-            if #req_sub_oid < 3 or tab[entry_no] == nil or tab[entry_no][list_no] == nil then
+            if #req_sub_oid < 3 or tab[entry_no] == nil or tab[entry_no][var_no] == nil then
                 return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
             end
             -- Check access
-            local variable = tab[entry_no][list_no]
+            local variable = tab[entry_no][var_no]
             if variable.access == MIB_ACES_UNA then
                 return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
             end
@@ -599,7 +719,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             end
 
             repeat
-                rsp_sub_oid = oid_table_getnext(rsp_sub_oid, group_index_table[i])
+                rsp_sub_oid = group_index_table_getnext(rsp_sub_oid, group_index_table[i])
                 if next(rsp_sub_oid) == nil then
                     i = i + 1
                     if i <= #group_index_table then rsp_sub_oid = req_sub_oid end
@@ -621,8 +741,8 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                 -- table
                 local table_no = rsp_sub_oid[1]
                 local entry_no = rsp_sub_oid[2]
-                local list_no  = rsp_sub_oid[3]
-                variable = group[table_no][entry_no][list_no]
+                local var_no  = rsp_sub_oid[3]
+                variable = group[table_no][entry_no][var_no]
                 -- inst_no
                 local inst_no
                 if #rsp_sub_oid == 4 then
