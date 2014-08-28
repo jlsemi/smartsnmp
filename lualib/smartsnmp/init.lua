@@ -18,7 +18,7 @@
 --
 
 local core = require "smartsnmp.core"
-local matrix_find_next = require "smartsnmp.find_next"
+local oid_table_getnext = require "smartsnmp.find_next"
 
 local _M = {}
 _M.core = core
@@ -123,97 +123,78 @@ end
 -- String get/set function.
 function _M.ConstString(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_OCTSTR, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RO, get_f = g }
 end
 
--- String get/set function.
 function _M.String(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_OCTSTR, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Integer get/set function.
 function _M.ConstInt(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = g }
 end
 
--- Integer get/set function.
 function _M.Int(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_INT, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = BER_TAG_INT, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Count get/set function.
 function _M.ConstCount(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_CNT, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_CNT, access = MIB_ACES_RO, get_f = g }
 end
 
--- Count get/set function.
 function _M.Count(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_CNT, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = BER_TAG_CNT, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- IP address get/set function.
 function _M.ConstIpaddr(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_IPADDR, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_IPADDR, access = MIB_ACES_RO, get_f = g }
 end
 
--- IP address get/set function.
-function _M.Ipaddr(ip)
+function _M.Ipaddr(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_IPADDR, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = BER_TAG_IPADDR, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Oid get/set function for RO.
 function _M.ConstOid(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_OBJID, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_OBJID, access = MIB_ACES_RO, get_f = g }
 end
 
--- Oid get/set function.
 function _M.Oid(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_OBJID, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = BER_TAG_OBJID, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Timeticks get/set function.
 function _M.ConstTimeticks(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_TIMETICKS, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RO, get_f = g }
 end
 
--- Timeticks get/set function.
 function _M.Timeticks(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_TIMETICKS, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Gauge get/set function.
 function _M.ConstGauge(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = false, tag = BER_TAG_GAU, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_GAU, access = MIB_ACES_RO, get_f = g }
 end
 
--- Gauge get/set function.
 function _M.Gauge(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { index_key = false, tag = BER_TAG_GAU, access = MIB_ACES_RW, get_f = g, set_f = s }
-end
-
--- Index get/set function
-function _M.UnaIndex(g)
-    assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_UNA, get_f = g, set_f = nil }
-end
-
--- Index get/set function
-function _M.ConstIndex(g)
-    assert(type(g) == 'function', 'Argument must be function type')
-    return { index_key = true, tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = g, set_f = nil }
+    return { tag = BER_TAG_GAU, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 --
@@ -269,7 +250,23 @@ end
 -- For debug print
 local check_group_index_table = function (it)
     for i, v in ipairs(it) do
-        for i in ipairs(v) do print(unpack(v[i])) end
+        if #v == 2 then
+            print("scalar indexes:")
+        else
+            print("table indexes:")
+        end
+        for i in ipairs(v) do
+            print(string.format("Dim%d:", i))
+            if next(v[i]) ~= nil then
+                if type(v[i][1]) == 'number' then
+                    print(unpack(v[i]))
+                else
+                    for _, t in ipairs(v[i]) do
+                        print(unpack(t))
+                    end
+                end
+            end
+        end
     end
 end
 
@@ -280,7 +277,21 @@ local group_index_table_generator = function (group, name)
     local group_indexes = {}  -- result to produce
     local scalar_indexes = {{},{0}}  -- 2 dimensions matrix
     local table_indexes = {}  -- N dimensions matrix
-
+    local oid_cmp = function (oid1, oid2)
+        if type(oid1) == 'number' and type(oid2) == 'number' then
+            return oid1 < oid2
+        elseif type(oid1) == 'table' and type(oid2) == 'table' then
+            local len = math.min(#oid1, #oid2)
+            for i = 1, len do
+                if oid1[i] ~= oid2[i] then
+                    return oid1[i] < oid2[i]
+                end
+            end
+            return #oid1 < #oid2
+        else
+            assert(false, "Invalid element type in comparision")
+        end
+    end
     for obj_no in pairs(group) do
 
         if type(obj_no) == 'number' then
@@ -311,30 +322,40 @@ local group_index_table_generator = function (group, name)
                         end
                     end
                     table.insert(table_indexes, dim3)
+                    table.sort(table_indexes[3])
 
-                    -- index list
-                    for list_no, list in ipairs(entry) do
-                        if list.index_key == true then
-                            -- instance
-                            local dimN = {}
-                            local it = list.get_f()
-                            assert(type(it) == 'table', string.format('%s[%d][%d][%d]: Index list must be table', name, obj_no, entry_no, list_no))
-                            for _, inst_no in pairs(it) do
-                                if type(inst_no) == 'number' then
-                                    table.insert(dimN, inst_no)
-                                end
-                            end
-                            table.insert(table_indexes, dimN)
+                    -- indexes
+                    assert(entry.indexes ~= nil)
+                    if entry.indexes.cascade then
+                        for _, indexes in ipairs(entry.indexes) do
+                            assert(type(indexes) == 'table')
+                            table.sort(indexes)
+                            table.insert(table_indexes, indexes)
                         end
+                    else
+                        assert(entry.indexes.cascade == nil, "No need to write \'cascade == false\' if indexes not cascaded, just wipe it out!")
+                        local dim4 = {}
+                        for key in pairs(entry.indexes) do
+                            local index
+                            -- index type
+                            if type(key) == 'string' then
+                                -- oid array
+                                index = {}
+                                for id in string.gmatch(key, "%d+") do
+                                    table.insert(index, tonumber(id))
+                                end
+                            else
+                                -- id number
+                                index = key
+                            end
+                            table.insert(dim4, index)
+                        end
+                        table.sort(dim4, oid_cmp)
+                        table.insert(table_indexes, dim4)
                     end
                 end
 
-                -- Sort group index table
-                for i in ipairs(table_indexes) do
-                    table.sort(table_indexes[i])
-                end
-
-                -- Insertion sort.
+                -- Insertion sort by table_no.
                 local inserted = false
                 for i, v in ipairs(group_indexes) do
                     local table_no = v[1][1]
@@ -445,8 +466,18 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             end
             -- check access
             local variable = tab[entry_no][list_no]
-            local inst_no = req_sub_oid[4]
-            if variable.access == MIB_ACES_UNA or inst_no == nil then
+            local inst_no
+            if #rsp_sub_oid == 4 then
+                inst_no = rsp_sub_oid[4]
+            else
+                inst_no = {}
+                for i = 4, #rsp_sub_oid do
+                    table.insert(inst_no, rsp_sub_oid[i])
+                end
+            end
+            if variable.access == MIB_ACES_UNA or
+               type(inst_no) == 'number' and inst_no == nil or
+               type(inst_no) == 'table' and next(inst_no) == nil then
                 return SNMP_ERR_STAT_ON_ACCESS, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- check type
@@ -512,19 +543,21 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                 return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
             end
             -- Check instance existence
-            local inst_no = req_sub_oid[4]
-            if inst_no == nil then
+            local inst_no
+            if #rsp_sub_oid == 4 then
+                inst_no = rsp_sub_oid[4]
+            else
+                inst_no = {}
+                for i = 4, #rsp_sub_oid do
+                    table.insert(inst_no, rsp_sub_oid[i])
+                end
+            end
+            if type(inst_no) == 'number' and inst_no == nil or
+               type(inst_no) == 'table' and next(inst_no) == nil then
                 return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
             end
             -- Get instance value
-            if variable.index_key == true then
-                local it
-                it, err_stat = variable.get_f(varible)
-                rsp_val = it[inst_no]
-            else
-                rsp_val, err_stat = variable.get_f(inst_no)
-            end
-
+            rsp_val, err_stat = variable.get_f(inst_no)
             rsp_val_type = variable.tag
         else
             return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
@@ -566,7 +599,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             end
 
             repeat
-                rsp_sub_oid = matrix_find_next(group_index_table[i], rsp_sub_oid, 1, #group_index_table[i])
+                rsp_sub_oid = oid_table_getnext(rsp_sub_oid, group_index_table[i])
                 if next(rsp_sub_oid) == nil then
                     i = i + 1
                     if i <= #group_index_table then rsp_sub_oid = req_sub_oid end
@@ -589,18 +622,19 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                 local table_no = rsp_sub_oid[1]
                 local entry_no = rsp_sub_oid[2]
                 local list_no  = rsp_sub_oid[3]
-                local inst_no  = rsp_sub_oid[4]
-
                 variable = group[table_no][entry_no][list_no]
-                -- get instance value
-                if variable.index_key == true then
-                    local it
-                    it, err_stat = variable.get_f()
-                    rsp_val = it[inst_no]
-                    if rsp_val == nil then rsp_val = inst_no end
+                -- inst_no
+                local inst_no
+                if #rsp_sub_oid == 4 then
+                    inst_no = rsp_sub_oid[4]
                 else
-                    rsp_val, err_stat = variable.get_f(inst_no)
+                    inst_no = {}
+                    for i = 4, #rsp_sub_oid do
+                        table.insert(inst_no, rsp_sub_oid[i])
+                    end
                 end
+                -- get instance value
+                rsp_val, err_stat = variable.get_f(inst_no)
                 rsp_val_type = variable.tag
 
                 if rsp_val == nil or rsp_val_type == nil or variable.access == MIB_ACES_UNA then

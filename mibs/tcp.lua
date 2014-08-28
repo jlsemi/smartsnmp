@@ -34,108 +34,15 @@ local tcpRetransSegs_ = 37724
 local tcpInErrs_ = 3314
 local tcpOutRsts = 825
 
-local tcp_cache = {}
-local tcp_index_cache = {}
-
-local entry = {
-    stat = 5,
-    local_addr = {127,0,0,1},
-    local_port = 35194,
-    rem_addr = {173,194,72,19},
-    rem_port = 80
+local tcp_entry_cache = {
+    ["0.0.0.0.22.0.0.0.0.0"] = { stat = 1 },
+    ["10.2.12.229.33874.91.189.92.10.443"] = { stat = 8 },
+    ["10.2.12.229.33875.91.189.92.23.443"] = { stat = 8 },
+    ["10.2.12.229.37700.180.149.153.11.80"] = { stat = 9 },
+    ["10.2.12.229.46149.180.149.134.54.80"] = { stat = 5 },
+    ["10.2.12.229.53158.123.58.181.140.80"] = { stat = 5 },
+    ["127.0.0.1.631.0.0.0.0.0"] = { stat = 1 },
 }
-table.insert(tcp_cache, entry)
-table.insert(tcp_index_cache, 1)
-
-entry = {
-    stat = 6,
-    local_addr = {192,168,122,1},
-    local_port = 67,
-    rem_addr = {180,149,134,53},
-    rem_port = 80
-}
-table.insert(tcp_cache, entry)
-table.insert(tcp_index_cache, 2)
-
-entry = {
-    stat = 8,
-    local_addr = {127,0,0,1},
-    local_port = 68,
-    rem_addr = {74,125,134,138},
-    rem_port = 51320
-}
-table.insert(tcp_cache, entry)
-table.insert(tcp_index_cache, 3)
-
-entry = {
-    stat = 5,
-    local_addr = {192,168,122,1},
-    local_port = 161,
-    rem_addr = {74,125,136,100},
-    rem_port = 80
-}
-table.insert(tcp_cache, entry)
-table.insert(tcp_index_cache, 4)
-
-entry = {
-    stat = 5,
-    local_addr = {127,0,0,1},
-    local_port = 5353,
-    rem_addr = {74,125,136,100},
-    rem_port = 443
-}
-table.insert(tcp_cache, entry)
-table.insert(tcp_index_cache, 5)
-
-entry = {
-    stat = 11,
-    local_addr = {192,168,122,1},
-    local_port = 44681,
-    rem_addr = {74,125,136,100},
-    rem_port = 80
-}
-table.insert(tcp_cache, entry)
-table.insert(tcp_index_cache, 6)
-
-entry = {
-    stat = 6,
-    local_addr = {127,0,0,1},
-    local_port = 51586,
-    rem_addr = {74,125,136,100},
-    rem_port = 80
-}
-table.insert(tcp_cache, entry)
-table.insert(tcp_index_cache, 7)
-
-entry = {
-    stat = 2,
-    local_addr = {192,168,122,1},
-    local_port = 53,
-    rem_addr = {74,125,136,100},
-    rem_port = 80
-}
-table.insert(tcp_cache, entry)
-table.insert(tcp_index_cache, 8)
-
-entry = {
-    stat = 11,
-    local_addr = {127,0,0,1},
-    local_port = 53,
-    rem_addr = {0,0,0,0},
-    rem_port = 443
-}
-table.insert(tcp_cache, entry)
-table.insert(tcp_index_cache, 9)
-
-entry = {
-    stat = 5,
-    local_addr = {192,168,122,1},
-    local_port = 35769,
-    rem_addr = {0,0,0,0},
-    rem_port = 80
-}
-table.insert(tcp_cache, entry)
-table.insert(tcp_index_cache, 10)
 
 mib.module_methods.or_table_reg("1.3.6.1.2.1.6", "The MIB module for managing TCP inplementations")
 
@@ -154,12 +61,55 @@ local tcpGroup = {
     [12] = mib.ConstCount(function () return tcpRetransSegs_ end),
     [13] = {
         [1] = {
-            [1] = mib.ConstIndex(function () return tcp_index_cache end),
-            [2] = mib.Int(function (i) return tcp_cache[i]['stat'] end, function (i, v) tcp_cache[i]['stat'] = v end),
-            [3] = mib.ConstIpaddr(function (i) return tcp_cache[i]['local_addr'] end),
-            [4] = mib.ConstInt(function (i) return tcp_cache[i]['local_port'] end),
-            [5] = mib.ConstIpaddr(function (i) return tcp_cache[i]['rem_addr'] end),
-            [6] = mib.ConstInt(function (i) return tcp_cache[i]['rem_port'] end),
+            indexes = tcp_entry_cache,
+            [1] = mib.Int(function (sub_oid)
+                              local key = table.concat(sub_oid, ".")
+                              if tcp_entry_cache[key] ~= nil then
+                                  return tcp_entry_cache[key].stat
+                              else
+                                  return nil
+                              end
+                          end,
+                          function (sub_oid, value)
+                              local key = table.concat(sub_oid, ".")
+                              if tcp_entry_cache[key] ~= nil then
+                                  tcp_entry_cache[key].stat = value
+                              end
+                          end),
+            [2] = mib.ConstIpaddr(function (sub_oid)
+                                      local ipaddr
+                                      if tcp_entry_cache[table.concat(sub_oid, ".")] ~= nil then
+                                          ipaddr = {}
+                                          for i = 1, 4 do
+                                              table.insert(ipaddr, sub_oid[i])
+                                          end
+                                      end
+                                      return ipaddr
+                                  end),
+            [3] = mib.ConstInt(function (sub_oid)
+                                  if tcp_entry_cache[table.concat(sub_oid, ".")] ~= nil then
+                                      return sub_oid[5]
+                                  else
+                                      return nil
+                                  end
+                               end),
+            [4] = mib.ConstIpaddr(function (sub_oid)
+                                      local ipaddr
+                                      if tcp_entry_cache[table.concat(sub_oid, ".")] ~= nil then
+                                          ipaddr = {}
+                                          for i = 6, 9 do
+                                              table.insert(ipaddr, sub_oid[i])
+                                          end
+                                      end
+                                      return ipaddr
+                                  end),
+            [5] = mib.ConstInt(function (sub_oid)
+                                  if tcp_entry_cache[table.concat(sub_oid, ".")] ~= nil then
+                                      return sub_oid[10]
+                                  else
+                                      return nil
+                                  end
+                               end),
         }
     },
     [14] = mib.ConstCount(function () return tcpInErrs_ end),
