@@ -69,6 +69,71 @@ local ip_NetToMedia_cache = {
 
 mib.module_methods.or_table_reg("1.3.6.1.2.1.4", "The MIB module for managing IP and ICMP inplementations")
 
+local function ip_AdEnt_entry_get(sub_oid, name)
+    assert(type(name) == 'string')
+    local value
+    local key = table.concat(sub_oid, ".")
+    if ip_AdEnt_cache[key] then
+        if name == "" then
+            value = {}
+            for i = 1, 4 do
+                table.insert(value, sub_oid[i])
+            end
+        else
+            value = ip_AdEnt_cache[key][name]
+        end
+    end
+    return value
+end
+
+local function ip_RouteIf_entry_get(sub_oid, name)
+    assert(type(name) == 'string')
+    local value
+    local key = table.concat(sub_oid, ".")
+    if ip_RouteIf_cache[key] then
+        if name == "" then
+            value = {}
+            for i = 1, 4 do
+                table.insert(value, sub_oid[i])
+            end
+        else
+            value = ip_RouteIf_cache[key][name]
+        end
+    end
+    return value
+end
+
+local function ip_RouteIf_entry_set(sub_oid, v, name)
+    assert(type(name) == 'string')
+    local key = table.concat(sub_oid, ".")
+    if ip_RouteIf_cache[key] then
+        if name == '' then
+            ip_RouteIf_cache[table.concat(v, ".")] = ip_RouteIf_cache[key]
+            ip_RouteIf_cache[key] = nil
+        else
+            ip_RouteIf_cache[key][name] = v
+        end
+    end
+end
+
+local function ip_NetToMedia_entry_get(sub_oid, name)
+    assert(type(name) == 'string')
+    local value
+    local key = table.concat(sub_oid, ".")
+    if ip_NetToMedia_cache[i] then
+        value = ip_NetToMedia_cache[key][name]
+    end
+    return value
+end
+
+local function ip_NetToMedia_entry_set(sub_oid, v, name)
+    assert(type(name) == 'string')
+    local key = table.concat(sub_oid, ".")
+    if ip_NetToMedia_cache[key] then
+        ip_NetToMedia_cache[key][name] = v
+    end
+end
+
 local ipGroup = {
      rwcommunity = 'ipprivate',
      [1]  = mib.Int(function () return ipForwarding_ end, function (v) ipForwarding_ = v end),
@@ -93,125 +158,64 @@ local ipGroup = {
      [20] = {
          [1] = {
              indexes = ip_AdEnt_cache,
-             [1] = mib.ConstIpaddr(function (sub_oid)
-                                       local ipaddr
-                                       if ip_AdEnt_cache[table.concat(sub_oid, ".")] ~= nil then
-                                           ipaddr = {}
-                                           for i = 1, 4 do
-                                               table.insert(ipaddr, sub_oid[i])
-                                           end
-                                       end
-                                       return ipaddr
-                                   end),
-             [3] = mib.ConstIpaddr(function (sub_oid)
-                                       local mask
-                                       local key = table.concat(sub_oid, ".")
-                                       if ip_AdEnt_cache[key] ~= nil then
-                                           mask = ip_AdEnt_cache[key].mask
-                                       end
-                                       return mask
-                                   end),
-             [4] = mib.ConstInt(function (sub_oid)
-                                    local bcast
-                                    local key = table.concat(sub_oid, ".")
-                                    if ip_AdEnt_cache[key] ~= nil then
-                                        bcast = ip_AdEnt_cache[key].bcast
-                                    end
-                                    return bcast
-                                end),
+             [1] = mib.ConstIpaddr(function (sub_oid) return ip_AdEnt_entry_get(sub_oid, '') end),
+             [3] = mib.ConstIpaddr(function (sub_oid) return ip_AdEnt_entry_get(sub_oid, 'mask') end),
+             [4] = mib.ConstInt(function (sub_oid) return ip_AdEnt_entry_get(sub_oid, 'bcast') end),
          }
      },
      [21] = {
          [1] = {
              indexes = ip_RouteIf_cache,
-             [1] = mib.ConstIpaddr(function (sub_oid)
-                                       local ipaddr
-                                       if ip_RouteIf_cache[table.concat(sub_oid, ".")] ~= nil then
-                                           ipaddr = {}
-                                           for i = 1, 4 do
-                                               table.insert(ipaddr, sub_oid[i])
-                                           end
-                                       end
-                                       return ipaddr
-                                   end),
-             [7] = mib.Ipaddr(function (sub_oid)
-                                  local next_hop
-                                  local key = table.concat(sub_oid, ".")
-                                  if ip_RouteIf_cache[key] ~= nil then
-                                      next_hop = ip_RouteIf_cache[key].next_hop
-                                  end
-                                  return next_hop
-                              end,
-                              function (sub_oid, value)
-                                  local key = table.concat(sub_oid, ".")
-                                  if ip_RouteIf_cache[key] ~= nil then
-                                      ip_RouteIf_cache[key].next_hop = value
-                                  end
-                              end),
-             [11] = mib.Ipaddr(function (sub_oid)
-                                   local mask
-                                   local key = table.concat(sub_oid, ".")
-                                   if ip_RouteIf_cache[key] ~= nil then
-                                       mask = ip_RouteIf_cache[key].mask
-                                   end
-                                   return mask
-                               end,
-                               function (sub_oid, value)
-                                   local key = table.concat(sub_oid, ".")
-                                   if ip_RouteIf_cache[key] ~= nil then
-                                       ip_RouteIf_cache[key].mask = value
-                                   end
-                               end),
+             [1] = mib.Ipaddr(function (sub_oid) return ip_RouteIf_entry_get(sub_oid, '') end,
+                              function (sub_oid, value) return ip_RouteIf_entry_set(sub_oid, value, '') end),
+             [7] = mib.Ipaddr(function (sub_oid) return ip_RouteIf_entry_get(sub_oid, 'next_hop') end,
+                              function (sub_oid, value) return ip_RouteIf_entry_set(sub_oid, value, 'next_hop') end),
+             [11] = mib.Ipaddr(function (sub_oid) return ip_RouteIf_entry_get(sub_oid, 'mask') end,
+                               function (sub_oid, value) return ip_RouteIf_entry_set(sub_oid, value, 'mask') end),
          }
      },
      [22] = {
          [1] = {
              indexes = ip_NetToMedia_cache,
-             [1] = mib.ConstInt(function (sub_oid)
-                                    local index
-                                    if ip_NetToMedia_cache[table.concat(sub_oid, ".")] ~= nil then
-                                        index = sub_oid[1]
-                                    end
-                                    return index
-                                end),
-             [2] = mib.String(function (sub_oid)
-                                  local phyaddr
-                                  local key = table.concat(sub_oid, ".")
-                                  if ip_NetToMedia_cache[key] ~= nil then
-                                      phyaddr = ip_NetToMedia_cache[key].phyaddr
+             [1] = mib.Int(function (sub_oid)
+                               local index
+                               if ip_NetToMedia_cache[table.concat(sub_oid, ".")] then
+                                   index = sub_oid[1]
+                               end
+                               return index
+                           end,
+                           function (sub_oid, value)
+                               local old = ip_NetToMedia_cache[table.concat(sub_oid, ".")]
+                               if old then
+                                   sub_oid[1] = value
+                                   ip_NetToMedia_cache[table.concat(sub_oid, ".")] = old
+                                   old = nil
+                               end
+                           end),
+             [2] = mib.String(function (sub_oid) return ip_NetToMedia_entry_get(sub_oid, 'phyaddr') end,
+                              function (sub_oid, value) return ip_NetToMedia_entry_set(sub_oid, value, 'phyaddr') end),
+             [3] = mib.Ipaddr(function (sub_oid)
+                                  local ipaddr
+                                  if ip_NetToMedia_cache[table.concat(sub_oid, ".")] then
+                                      ipaddr = {}
+                                      for i = 2, 5 do
+                                          table.insert(ipaddr, sub_oid[i])
+                                      end
                                   end
                                   return ipaddr
                               end,
                               function (sub_oid, value)
-                                  local key = table.concat(sub_oid, ".")
-                                  if ip_NetToMedia_cache[key] ~= nil then
-                                      ip_NetToMedia_cache[key].phyaddr = value
+                                  local old = ip_NetToMedia_cache[table.concat(sub_oid, ".")]
+                                  if old then
+                                      for i = 1, 4 do
+                                          sub_oid[i + 1] = value[i]
+                                      end
+                                      ip_NetToMedia_cache[table.concat(sub_oid, ".")] = old
+                                      old = nil
                                   end
                               end),
-             [3] = mib.ConstIpaddr(function (sub_oid)
-                                       local ipaddr
-                                       if ip_NetToMedia_cache[table.concat(sub_oid, ".")] ~= nil then
-                                           ipaddr = {}
-                                           for i = 2, 5 do
-                                               table.insert(ipaddr, sub_oid[i])
-                                           end
-                                       end
-                                       return ipaddr
-                                   end),
-             [4] = mib.Int(function (sub_oid)
-                               local type
-                               local key = table.concat(sub_oid, ".")
-                               if ip_NetToMedia_cache[key] ~= nil then
-                                   type = ip_NetToMedia_cache[key].type
-                               end
-                               return type
-                           end,
-                           function (sub_oid, value)
-                               local key = table.concat(sub_oid, ".")
-                               if ip_NetToMedia_cache[key] ~= nil then
-                                   ip_NetToMedia_cache[key].type = value
-                               end
-                           end),
+             [4] = mib.Int(function (sub_oid) return ip_NetToMedia_entry_get(sub_oid, 'type') end,
+                           function (sub_oid, value) return ip_NetToMedia_entry_set(sub_oid, value, 'type') end),
          }
      },
      [23] = mib.ConstInt(function () return ipRoutingDiscards_ end),
