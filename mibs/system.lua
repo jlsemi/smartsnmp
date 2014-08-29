@@ -39,6 +39,22 @@ local sysORID             = 2
 local sysORDesc           = 3
 local sysORUpTime         = 4
 
+local or_oid_cache = {}
+local or_entry_cache = {}
+
+local function or_entry_get(i, name)
+    assert(type(name) == 'string')
+    local value
+    if or_entry_cache[i] then
+        if name == 'uptime' then
+            value = os.difftime(os.time(), or_entry_cache[i][name]) * 100
+        else
+            value = or_entry_cache[i][name]
+        end
+    end
+    return value
+end
+
 local startup_time = 0
 local or_last_changed_time = 0
 
@@ -48,9 +64,6 @@ local function mib_system_startup(time)
 end
 
 mib_system_startup(os.time())
-
-local or_oid_cache = {}
-local or_entry_cache = {}
 
 local or_table_reg = function (oid, desc)
     local entry = {}
@@ -78,12 +91,11 @@ local or_table_unreg = function (oid)
     or_oid_cache[oid] = nil
 end
 
-local SNMP_ERR_STAT_ON_ACCESS = 6
-
 local sysMethods = {
     ["or_table_reg"] = or_table_reg, 
     ["or_table_unreg"] = or_table_unreg
 }
+
 mib.module_method_register(sysMethods)
 
 local sysGroup = {
@@ -99,28 +111,10 @@ local sysGroup = {
     [sysORTable]      = {
         [sysOREntry]  = {
             indexes = or_entry_cache,
-            [sysORIndex]  = mib.ConstInt(function () return nil, SNMP_ERR_STAT_ON_ACCESS end),
-            [sysORID]     = mib.ConstOid(function (i)
-                                             local oid
-                                             if or_entry_cache[i] ~= nil then
-                                                 oid = or_entry_cache[i].oid
-                                             end
-                                             return oid
-                                         end),
-            [sysORDesc]   = mib.ConstString(function (i)
-                                                local desc
-                                                if or_entry_cache[i] ~= nil then
-                                                    desc = or_entry_cache[i].desc
-                                                end
-                                                return desc
-                                            end),
-            [sysORUpTime] = mib.ConstTimeticks(function (i)
-                                                   local time
-                                                   if or_entry_cache[i] ~= nil then
-                                                       time = os.difftime(os.time(), or_entry_cache[i].uptime) * 100
-                                                   end
-                                                   return time
-                                               end),
+            [sysORIndex]  = mib.ConstInt(function () return nil, mib.SNMP_ERR_STAT_UNACCESS end),
+            [sysORID]     = mib.ConstOid(function (i) return or_entry_get(i, 'oid') end),
+            [sysORDesc]   = mib.ConstString(function (i) return or_entry_get(i, 'desc') end),
+            [sysORUpTime] = mib.ConstTimeticks(function (i) return or_entry_get(i, 'uptime') end),
         }
     }
 }

@@ -62,27 +62,27 @@ local BER_TAG_NO_SUCH_INST      = 0x81
 
 -- Error status
 -- v1
-local SNMP_ERR_STAT_NO_ERR              = 0
-local SNMP_ERR_STAT_TOO_BIG             = 1
-local SNMP_ERR_STAT_NO_SUCH_NAME        = 2
-local SNMP_ERR_STAT_BAD_VALUE           = 3
-local SNMP_ERR_STAT_READ_ONLY           = 4
-local SNMP_ERR_STAT_GEN_ERR             = 5
+_M.SNMP_ERR_STAT_NO_ERR              = 0
+_M.SNMP_ERR_STAT_TOO_BIG             = 1
+_M.SNMP_ERR_STAT_NO_SUCH_NAME        = 2
+_M.SNMP_ERR_STAT_BAD_VALUE           = 3
+_M.SNMP_ERR_STAT_READ_ONLY           = 4
+_M.SNMP_ERR_STAT_GEN_ERR             = 5
 
 -- v2c
-local SNMP_ERR_STAT_ON_ACCESS           = 6
-local SNMP_ERR_STAT_WRONG_TYPE          = 7
-local SNMP_ERR_STAT_WRONG_LEN           = 8
-local SNMP_ERR_STAT_ENCODING            = 9
-local SNMP_ERR_STAT_WRONG_VALUE         = 10
-local SNMP_ERR_STAT_NO_CREATION         = 11
-local SNMP_ERR_STAT_INCONSISTENT_VALUE  = 12
-local SNMP_ERR_STAT_RESOURCE_UNAVAIL    = 13
-local SNMP_ERR_STAT_COMMIT_FAILED       = 14
-local SNMP_ERR_STAT_UNDO_FAILED         = 15
-local SNMP_ERR_STAT_AUTHORIZATION       = 16
-local SNMP_ERR_STAT_NOT_WRITABLE        = 17
-local SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
+_M.SNMP_ERR_STAT_UNACCESS           = 6
+_M.SNMP_ERR_STAT_WRONG_TYPE          = 7
+_M.SNMP_ERR_STAT_WRONG_LEN           = 8
+_M.SNMP_ERR_STAT_ENCODING            = 9
+_M.SNMP_ERR_STAT_WRONG_VALUE         = 10
+_M.SNMP_ERR_STAT_NO_CREATION         = 11
+_M.SNMP_ERR_STAT_INCONSISTENT_VALUE  = 12
+_M.SNMP_ERR_STAT_RESOURCE_UNAVAIL    = 13
+_M.SNMP_ERR_STAT_COMMIT_FAILED       = 14
+_M.SNMP_ERR_STAT_UNDO_FAILED         = 15
+_M.SNMP_ERR_STAT_AUTHORIZATION       = 16
+_M.SNMP_ERR_STAT_NOT_WRITABLE        = 17
+_M.SNMP_ERR_STAT_INCONSISTENT_NAME   = 18
 
 --
 -- Generators for declare SNMP MIB Node
@@ -552,11 +552,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         if group.rwcommunity ~= community then
             -- Global community
             if _M.rwcommunity ~= nil and _M.rwcommunity ~= '' and _M.rwcommunity ~= community then
-                return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
+                return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- Local community
             if group.rwcommunity ~= nil and group.rwcommunity ~= '' then
-                return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
+                return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
         end
 
@@ -567,11 +567,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             local scalar = group[obj_no]
             -- check access
             if scalar.access == MIB_ACES_UNA or not(#req_sub_oid == 2 and req_sub_oid[2] == 0) then
-                return SNMP_ERR_STAT_ON_ACCESS, rsp_sub_oid, rsp_val, rsp_val_type
+                return _M.SNMP_ERR_STAT_UNACCESS, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- check type
             if rsp_val_type ~= scalar.tag then
-                return SNMP_ERR_STAT_WRONG_TYPE, rsp_sub_oid, rsp_val, rsp_val_type
+                return _M.SNMP_ERR_STAT_WRONG_TYPE, rsp_sub_oid, rsp_val, rsp_val_type
             end
 
             err_stat = scalar.set_f(rsp_val)
@@ -582,7 +582,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             local var_no = req_sub_oid[3]
             local tab = group[table_no]
             if #req_sub_oid < 3 or tab[entry_no] == nil or tab[entry_no][var_no] == nil then
-                return SNMP_ERR_STAT_ON_ACCESS, rsp_sub_oid, rsp_val, rsp_val_type
+                return _M.SNMP_ERR_STAT_UNACCESS, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- check access
             local variable = tab[entry_no][var_no]
@@ -598,11 +598,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             if variable.access == MIB_ACES_UNA or
                type(inst_no) == 'number' and inst_no == nil or
                type(inst_no) == 'table' and next(inst_no) == nil then
-                return SNMP_ERR_STAT_ON_ACCESS, rsp_sub_oid, rsp_val, rsp_val_type
+                return _M.SNMP_ERR_STAT_UNACCESS, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- check type
             if rsp_val_type ~= variable.tag then
-                return SNMP_ERR_STAT_WRONG_TYPE, rsp_sub_oid, rsp_val, rsp_val_type
+                return _M.SNMP_ERR_STAT_WRONG_TYPE, rsp_sub_oid, rsp_val, rsp_val_type
             end
 
             err_stat = variable.set_f(inst_no, rsp_val)
@@ -625,11 +625,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         if group.rocommunity ~= community then
             -- Global community
             if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
-                return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
+                return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- Local community
             if group.rocommunity ~= nil and group.rocommunity ~= '' then
-                return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
+                return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
         end
 
@@ -702,11 +702,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         if group.rocommunity ~= community then
             -- Global community
             if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
-                return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
+                return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- Local community
             if group.rocommunity ~= nil and group.rocommunity ~= '' then
-                return SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
+                return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
         end
 
