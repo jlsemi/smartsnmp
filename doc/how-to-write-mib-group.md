@@ -50,31 +50,26 @@ are also represented as Lua table containers, and Entry variables as sequences
 of instance value. So we may well write get/set methods different from those in
 Scalar variables.
 
+    local function or_entry_get(i, name)
+        assert(type(name) == 'string')
+        local value
+        if or_entry_cache[i] then
+            if name == 'uptime' then
+                value = os.difftime(os.time(), or_entry_cache[i][name]) * 100
+            else
+                value = or_entry_cache[i][name]
+            end
+        end
+        return value
+    end
+
     [sysORTable]      = {
         [sysOREntry]  = {
             indexes = or_entry_cache,
-            [sysORIndex]  = mib.ConstInt(function () return nil, SNMP_ERR_STAT_ON_ACCESS end),
-            [sysORID]     = mib.ConstOid(function (i)
-                                             local oid
-                                             if or_entry_cache[i] ~= nil then
-                                                 oid = or_entry_cache[i].oid
-                                             end
-                                             return oid
-                                         end),
-            [sysORDesc]   = mib.ConstString(function (i)
-                                                local desc
-                                                if or_entry_cache[i] ~= nil then
-                                                    desc = or_entry_cache[i].desc
-                                                end
-                                                return desc
-                                            end),
-            [sysORUpTime] = mib.ConstTimeticks(function (i)
-                                                   local time
-                                                   if or_entry_cache[i] ~= nil then
-                                                       time = os.difftime(os.time(), or_entry_cache[i].uptime) * 100
-                                                   end
-                                                   return time
-                                               end),
+            [sysORIndex]  = mib.ConstInt(function () return nil, mib.SNMP_ERR_STAT_UNACCESS end),
+            [sysORID]     = mib.ConstOid(function (i) return or_entry_get(i, 'oid') end),
+            [sysORDesc]   = mib.ConstString(function (i) return or_entry_get(i, 'desc') end),
+            [sysORUpTime] = mib.ConstTimeticks(function (i) return or_entry_get(i, 'uptime') end),
         }
     }
 
@@ -105,10 +100,13 @@ respective instance value of all the other Entry variables.
 Long Index
 ----------
 
-Some Table uses long index such as IP address plus port which means the index is
-made up with two or more entry variables. In udpTable we examplified that with
-two entry variables as part of the index value and their get function method as
-well as how to write udp_entry_cache.
+There are three styles of index table to be referred to by 'indexes' in Entry:
+single index, long index, and cascaded index.
+
+Long index is made up with multi-oids such as IP address following port which
+means the index is made up with two or more entry variables. In udpTable we
+examplified that with two entry variables as part of the index value and their
+get function method as well as how to write udp_entry_cache.
 
     local udp_entry_cache = {
         ["0.0.0.0.67"] = {},
@@ -149,7 +147,7 @@ Cascaded Indexes
 
 SmartSNMP also supports cascaded indexes in Table and Entry. TwoIndexTable and
 ThreeIndexTable respectively show the two-index-cascaded and three-index-cascaded
-indexes. The cache that "indexes" refers to should be as follows.
+indexes. The index cache that "indexes" refers to should be written as follows.
 
     local two_dim_entry_cache = {
         cascade = true,
