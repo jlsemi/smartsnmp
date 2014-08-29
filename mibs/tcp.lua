@@ -52,7 +52,6 @@ local function tcp_conn_entry_get(sub_oid, name)
     local key = table.concat(sub_oid, ".")
     if tcp_conn_entry_cache[key] then
         value = tcp_conn_entry_cache[key][name]
-      print(name, value)
     end
     return value
 end
