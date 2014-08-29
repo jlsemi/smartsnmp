@@ -35,7 +35,7 @@ local tcpInErrs_ = 3314
 local tcpOutRsts = 825
 
 local tcp_conn_entry_cache = {
-    ["0.0.0.0.22.0.0.0.0.0"] = { stat = 1 },
+    ["0.0.0.0.22.0.0.0.0.0"] = { conn_stat = 1 },
     ["10.2.12.229.33874.91.189.92.10.443"] = { conn_stat = 8 },
     ["10.2.12.229.33875.91.189.92.23.443"] = { conn_stat = 8 },
     ["10.2.12.229.37700.180.149.153.11.80"] = { conn_stat = 9 },
@@ -52,6 +52,7 @@ local function tcp_conn_entry_get(sub_oid, name)
     local key = table.concat(sub_oid, ".")
     if tcp_conn_entry_cache[key] then
         value = tcp_conn_entry_cache[key][name]
+      print(name, value)
     end
     return value
 end
