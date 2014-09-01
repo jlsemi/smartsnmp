@@ -98,7 +98,7 @@ AddOption(
 env = Environment(
   ENV = os.environ,
   LIBS = ['m', 'dl'],
-  CFLAGS = '-std=c99 -Wall -Os -Iinclude ',
+  CFLAGS = '-std=c99 -Wall -Os',
 )
 
 # handle options/environment varibles.
@@ -138,10 +138,10 @@ if GetOption("libubox_dir") is not "":
 # transport select
 if GetOption("transport") == 'libevent':
   env.Append(LIBS = ['event'])
-  transport_src = env.Glob("src/libevent_transport.c")
+  transport_src = env.Glob("core/libevent_transport.c")
 else:
   env.Append(LIBS = ['ubox'])
-  transport_src = env.Glob("src/uloop_transport.c")
+  transport_src = env.Glob("core/uloop_transport.c")
 
 # autoconf
 conf = Configure(env)
@@ -167,7 +167,7 @@ else:
 
 env = conf.Finish()
 
-src = env.Glob("src/asn1_*.c") + env.Glob("src/snmp_msg_*.c") + env.Glob("src/ans1_*.c") + env.Glob("src/smartsnmp.c") + env.Glob("src/mib_tree.c") + transport_src
+src = env.Glob("core/asn1_*.c") + env.Glob("core/snmp_msg_*.c") + env.Glob("core/ans1_*.c") + env.Glob("core/smartsnmp.c") + env.Glob("core/mib_tree.c") + transport_src
 
 # generate lua c module
 libsmartsnmp_core = env.SharedLibrary('build/smartsnmp/core', src, SHLIBPREFIX = '')
