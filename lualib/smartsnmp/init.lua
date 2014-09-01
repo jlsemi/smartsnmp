@@ -792,7 +792,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                     rsp_sub_oid[4] = 0
                 end
             else
-                error(string.format('Group \'%s\' Neighter a scalar variable nor a table', name))
+                error(string.format('Group \'%s\' Neither a scalar variable nor a table', name))
             end
         -- Unaccessable node is ignored in getnext traversal.
         until rsp_val and rsp_val_type and variable.access ~= MIB_ACES_UNA
