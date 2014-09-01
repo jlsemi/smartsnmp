@@ -301,18 +301,18 @@ local group_index_table_generator = function (group, name)
                 table.insert(table_indexes, dim1)
 
                 local tab = group[obj_no]
-                if tab.get_f then error(string.format('%s[%d]: Table should be container not variable', name, obj_no)) end
+                if tab.get_f ~= nil then error(string.format('%s[%d]: Table should be container not variable', name, obj_no)) end
                 -- For simplicity, we hold at most one entry each table.
                 -- If you want multiple entries you may create revelant number of tables.
                 if #tab > 1 then error(string.format('%s[%d]: Sorry but for simplicity, each table can hold one entry at most', name, obj_no)) end
                 local entry_no, entry = next(tab)
-                if entry.get_f then error(string.format('%s[%d][%d]: Entry should be container not variable', name, obj_no, entry_no)) end
                 if type(entry_no) == 'number' then
                     local dim2 = { entry_no }
                     table.insert(table_indexes, dim2)
                 end
 
-                if entry then
+                if entry ~= nil then
+                    if entry.get_f ~= nil then error(string.format('%s[%d][%d]: Entry should be container not variable', name, obj_no, entry_no)) end
                     -- var_no
                     local dim3 = {}
                     for var_no in pairs(entry) do
@@ -324,16 +324,16 @@ local group_index_table_generator = function (group, name)
                     table.sort(table_indexes[3])
 
                     -- indexes
-                    if not entry.indexes then error(string.format("%s[%d][%d]: What is the entry.indexes?", name, obj_no, entry_no)) end
+                    if entry.indexes == nil then error(string.format("%s[%d][%d]: What is the entry.indexes?", name, obj_no, entry_no)) end
                     if type(entry.indexes) ~= 'table' then error(string.format("%s[%d][%d]: Entry indexes must be table", name, obj_no, entry_no)) end
 
-                    if entry.indexes.cascade then
+                    if entry.indexes.cascade == true then
                         for _, indexes in ipairs(entry.indexes) do
                             table.sort(indexes)
                             table.insert(table_indexes, indexes)
                         end
                     else
-                        if entry.indexes.cascade then
+                        if entry.indexes.cascade ~= nil then
                             error(string.format("%s[%d][%d]: No need to write \'cascade == false\' if indexes not cascaded, just wipe it out!", name, obj_no, entry_no))
                         end
                         local dim4 = {}
@@ -415,7 +415,7 @@ local function getnext(
     dim           -- offset dimension of *t*
 )
     local elem_len = function(e)
-        if (type(e) == 'table') then
+        if type(e) == 'table' then
             return #e
         else
             return 1
@@ -526,51 +526,24 @@ local function group_index_table_getnext(oid, it)
     return getnext(oid, 1, {}, it, 1)
 end
 
--- 
+local ber_tag_match = {
+    [BER_TAG_BOOL] = { t = 'BER_TAG_BOOL', m = 'number' },
+    [BER_TAG_INT] = { t = 'BER_TAG_INT', m = 'number' },
+    [BER_TAG_BITSTR] = { t = 'BER_TAG_BITSTR', m = 'string' },
+    [BER_TAG_OCTSTR] = { t = 'BER_TAG_OCTSTR', m = 'string' },
+    [BER_TAG_NUL] = { t = 'BER_TAG_NUL', m = 'nil' },
+    [BER_TAG_OBJID] = { t = 'BER_TAG_OBJID', m = 'table' },
+    [BER_TAG_IPADDR] = { t = 'BER_TAG_IPADDR', m = 'table' },
+    [BER_TAG_CNT] = { t = 'BER_TAG_CNT', m = 'number' },
+    [BER_TAG_GAU] = { t = 'BER_TAG_GAU', m = 'number' },
+    [BER_TAG_TIMETICKS] = { t = 'BER_TAG_TIMETICKS', m = 'number' },
+    [BER_TAG_OPAQ] = { t = 'BER_TAG_OPAQ', m = 'number' },
+}
+ 
 local function return_value_check(g, v, t)
-    if t == BER_TAG_BOOL then
-        if type(v) ~= 'number' then
-            error(string.format("Group \'%s\' Tag \'BER_TAG_BOOL\' but value is not number", g))
-        end
-    elseif t == BER_TAG_INT then
-        if type(v) ~= 'number' then
-            error(string.format("Group \'%s\' Tag \'BER_TAG_INT\' but value is not number", g))
-        end
-    elseif t == BER_TAG_BITSTR then
-        if type(v) ~= 'string' then
-            error(string.format("Group \'%s\' Tag \'BER_TAG_BITSTR\' but value is not string", g))
-        end
-    elseif t == BER_TAG_OCTSTR then
-        if type(v) ~= 'string' then
-            error(string.format("Group \'%s\' Tag \'BER_TAG_OCTSTR\' but value is not string", g))
-        end
-    elseif t == BER_TAG_NUL then
-        if type(v) ~= 'nil' then
-            error(string.format("Group \'%s\' Tag \'BER_TAG_NUL\' but value is not nil", g))
-        end
-    elseif t == BER_TAG_OBJID then
-        if type(v) ~= 'table' then
-            error(string.format("Group \'%s\' Tag \'BER_TAG_OBJID\' but value is not oid array", g))
-        end
-    elseif t == BER_TAG_IPADDR then
-        if type(v) ~= 'table' then
-            error(string.format("Group \'%s\' Tag \'BER_TAG_IPADDR\' but value is not IP array", g))
-        end
-    elseif t == BER_TAG_CNT then
-        if type(v) ~= 'number' then
-            error(string.format("Group \'%s\' Tag \'BER_TAG_CNT\' but value is not number", g))
-        end
-    elseif t == BER_TAG_GAU then
-        if type(v) ~= 'number' then
-            error(string.format("Group \'%s\' Tag \'BER_TAG_GAU\' but value is not number", g))
-        end
-    elseif t == BER_TAG_TIMETICKS then
-        if type(v) ~= 'number' then
-            error(string.format("Group \'%s\' Tag \'BER_TAG_TIMETICKS\' but value is not number", g))
-        end
-    elseif t == BER_TAG_OPAQ then
-        if type(v) ~= 'number' then
-            error(string.format("Group \'%s\' Tag \'BER_TAG_OPAQ\' but value is not number", g))
+    if ber_tag_match[t] ~= nil then
+        if ber_tag_match[t].m ~= type(v) then
+            error(string.format("Group \'%s\' Tag \'%s\' but value is not \'%s\'", g, ber_tag_match[t].t, ber_tag_match[t].m))
         end
     else
         error(string.format("Group \'%s\' unknown tag: %d", g, t))
@@ -604,11 +577,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         -- Priority for local group community string
         if group.rwcommunity ~= community then
             -- Global community
-            if _M.rwcommunity and _M.rwcommunity ~= '' and _M.rwcommunity ~= community then
+            if _M.rwcommunity ~= nil and _M.rwcommunity ~= '' and _M.rwcommunity ~= community then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- Local community
-            if group.rwcommunity and group.rwcommunity ~= '' then
+            if group.rwcommunity ~= nil and group.rwcommunity ~= '' then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
         end
@@ -665,7 +638,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
 
         return_value_check(name, rsp_val, rsp_val_type)
 
-        if err_stat then
+        if err_stat ~= nil then
             return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
         else
             return 0, rsp_sub_oid, rsp_val, rsp_val_type
@@ -679,11 +652,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         -- priority for local group community string
         if group.rocommunity ~= community then
             -- Global community
-            if _M.rocommunity and _M.rocommunity ~= '' and _M.rocommunity ~= community then
+            if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- Local community
-            if group.rocommunity and group.rocommunity ~= '' then
+            if group.rocommunity ~= nil and group.rocommunity ~= '' then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
         end
@@ -744,7 +717,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
 
         return_value_check(name, rsp_val, rsp_val_type)
 
-        if err_stat then
+        if err_stat ~= nil then
             return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
         else
             return 0, rsp_sub_oid, rsp_val, rsp_val_type
@@ -758,11 +731,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         -- Priority for local group community string
         if group.rocommunity ~= community then
             -- Global community
-            if _M.rocommunity and _M.rocommunity ~= '' and _M.rocommunity ~= community then
+            if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- Local community
-            if group.rocommunity and group.rocommunity ~= '' then
+            if group.rocommunity ~= nil and group.rocommunity ~= '' then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
         end
@@ -830,7 +803,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
 
         return_value_check(name, rsp_val, rsp_val_type)
 
-        if err_stat then
+        if err_stat ~= nil then
             return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
         else
             return 0, rsp_sub_oid, rsp_val, rsp_val_type
