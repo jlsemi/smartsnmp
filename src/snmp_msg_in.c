@@ -101,7 +101,7 @@ mib_instance_search(struct oid_search_res *ret_oid)
   }
 
   if (lua_pcall(L, 5, 4, 0) != 0) {
-    CREDO_SNMP_LOG(SNMP_LOG_ERROR, "MIB search hander %d fail\n", ret_oid->callback);
+    CREDO_SNMP_LOG(SNMP_LOG_ERROR, "MIB search hander %d fail: %s\n", ret_oid->callback, lua_tostring(L, -1));
     ret_oid->exist_state = BER_TAG_NO_SUCH_OBJ;
     return 0;
   }

@@ -133,8 +133,8 @@ local ifGroup = {
                                          end
                                          return time
                                      end),
-            [10] = mib.ConstInt(function (i) return if_entry_get(i, 'in_oct') end),
-            [16] = mib.ConstInt(function (i) return if_entry_get(i, 'out_oct') end),
+            [10] = mib.ConstInt(function (i) return if_entry_get(i, 'in_octet') end),
+            [16] = mib.ConstInt(function (i) return if_entry_get(i, 'out_octet') end),
             [22] = mib.ConstOid(function (i) return if_entry_get(i, 'spec') end),
         }
     }

@@ -112,7 +112,7 @@ function _M.sh_call(command, rmode)
 
     local t = nil
     local f = io.popen(command)
-    if f ~= nil then
+    if f then
         t = f:read(rmode)
         f:close()
     end
@@ -256,7 +256,7 @@ local check_group_index_table = function (it)
         end
         for i in ipairs(v) do
             print(string.format("Dim%d:", i))
-            if next(v[i]) ~= nil then
+            if next(v[i]) then
                 if type(v[i][1]) == 'number' then
                     print(unpack(v[i]))
                 else
@@ -270,8 +270,8 @@ local check_group_index_table = function (it)
 end
 
 local group_index_table_generator = function (group, name)
-    assert(type(group) == 'table', string.format('Group should be container'))
-    assert(type(name) == 'string', string.format('What is the group\'s name?'))
+    if type(group) ~= 'table' then error(string.format('Group should be container')) end
+    if type(name) ~= 'string' then error(string.format('What is the group\'s name?')) end
 
     local group_indexes = {}  -- result to produce
     local scalar_indexes = {{},{0}}  -- 2 dimensions matrix
@@ -288,7 +288,7 @@ local group_index_table_generator = function (group, name)
             end
             return #oid1 < #oid2
         else
-            assert(false, "Invalid element type in comparision")
+            error(string.format("Group \'%s\': Invalid element type in comparision", name))
         end
     end
     for obj_no in pairs(group) do
@@ -301,18 +301,18 @@ local group_index_table_generator = function (group, name)
                 table.insert(table_indexes, dim1)
 
                 local tab = group[obj_no]
-                assert(tab.get_f == nil, string.format('%s[%d]: Table should be container not variable', name, obj_no))
+                if tab.get_f then error(string.format('%s[%d]: Table should be container not variable', name, obj_no)) end
                 -- For simplicity, we hold at most one entry each table.
                 -- If you want multiple entries you may create revelant number of tables.
-                assert(#tab <= 1, string.format('%s[%d]: Sorry but for simplicity, each table can hold one entry at most', name, obj_no))
+                if #tab > 1 then error(string.format('%s[%d]: Sorry but for simplicity, each table can hold one entry at most', name, obj_no)) end
                 local entry_no, entry = next(tab)
-                assert(entry.get_f == nil, string.format('%s[%d][%d]: Entry should be container not variable', name, obj_no, entry_no))
+                if entry.get_f then error(string.format('%s[%d][%d]: Entry should be container not variable', name, obj_no, entry_no)) end
                 if type(entry_no) == 'number' then
                     local dim2 = { entry_no }
                     table.insert(table_indexes, dim2)
                 end
 
-                if entry ~= nil then
+                if entry then
                     -- var_no
                     local dim3 = {}
                     for var_no in pairs(entry) do
@@ -324,15 +324,18 @@ local group_index_table_generator = function (group, name)
                     table.sort(table_indexes[3])
 
                     -- indexes
-                    assert(entry.indexes ~= nil)
+                    if not entry.indexes then error(string.format("%s[%d][%d]: What is the entry.indexes?", name, obj_no, entry_no)) end
+                    if type(entry.indexes) ~= 'table' then error(string.format("%s[%d][%d]: Entry indexes must be table", name, obj_no, entry_no)) end
+
                     if entry.indexes.cascade then
                         for _, indexes in ipairs(entry.indexes) do
-                            assert(type(indexes) == 'table')
                             table.sort(indexes)
                             table.insert(table_indexes, indexes)
                         end
                     else
-                        assert(entry.indexes.cascade == nil, "No need to write \'cascade == false\' if indexes not cascaded, just wipe it out!")
+                        if entry.indexes.cascade then
+                            error(string.format("%s[%d][%d]: No need to write \'cascade == false\' if indexes not cascaded, just wipe it out!", name, obj_no, entry_no))
+                        end
                         local dim4 = {}
                         for key in pairs(entry.indexes) do
                             local index
@@ -396,7 +399,7 @@ local group_index_table_generator = function (group, name)
         end
         i = i + 1
     end
-    if next(scalar_indexes[1]) ~= nil then
+    if next(scalar_indexes[1]) then
         table.insert(group_indexes, scalar_indexes)
     end
 
@@ -465,7 +468,6 @@ local function getnext(
         local found = false
 
         xl = it[dim]
-        assert(next(xl) ~= nil)
         for i, index in ipairs(xl) do
             -- if all match then return
             local cmp = compare(oid, offset, xl[i])
@@ -524,6 +526,57 @@ local function group_index_table_getnext(oid, it)
     return getnext(oid, 1, {}, it, 1)
 end
 
+-- 
+local function return_value_check(g, v, t)
+    if t == BER_TAG_BOOL then
+        if type(v) ~= 'number' then
+            error(string.format("Group \'%s\' Tag \'BER_TAG_BOOL\' but value is not number", g))
+        end
+    elseif t == BER_TAG_INT then
+        if type(v) ~= 'number' then
+            error(string.format("Group \'%s\' Tag \'BER_TAG_INT\' but value is not number", g))
+        end
+    elseif t == BER_TAG_BITSTR then
+        if type(v) ~= 'string' then
+            error(string.format("Group \'%s\' Tag \'BER_TAG_BITSTR\' but value is not string", g))
+        end
+    elseif t == BER_TAG_OCTSTR then
+        if type(v) ~= 'string' then
+            error(string.format("Group \'%s\' Tag \'BER_TAG_OCTSTR\' but value is not string", g))
+        end
+    elseif t == BER_TAG_NUL then
+        if type(v) ~= 'nil' then
+            error(string.format("Group \'%s\' Tag \'BER_TAG_NUL\' but value is not nil", g))
+        end
+    elseif t == BER_TAG_OBJID then
+        if type(v) ~= 'table' then
+            error(string.format("Group \'%s\' Tag \'BER_TAG_OBJID\' but value is not oid array", g))
+        end
+    elseif t == BER_TAG_IPADDR then
+        if type(v) ~= 'table' then
+            error(string.format("Group \'%s\' Tag \'BER_TAG_IPADDR\' but value is not IP array", g))
+        end
+    elseif t == BER_TAG_CNT then
+        if type(v) ~= 'number' then
+            error(string.format("Group \'%s\' Tag \'BER_TAG_CNT\' but value is not number", g))
+        end
+    elseif t == BER_TAG_GAU then
+        if type(v) ~= 'number' then
+            error(string.format("Group \'%s\' Tag \'BER_TAG_GAU\' but value is not number", g))
+        end
+    elseif t == BER_TAG_TIMETICKS then
+        if type(v) ~= 'number' then
+            error(string.format("Group \'%s\' Tag \'BER_TAG_TIMETICKS\' but value is not number", g))
+        end
+    elseif t == BER_TAG_OPAQ then
+        if type(v) ~= 'number' then
+            error(string.format("Group \'%s\' Tag \'BER_TAG_OPAQ\' but value is not number", g))
+        end
+    else
+        error(string.format("Group \'%s\' unknown tag: %d", g, t))
+    end
+end
+
 -- Search and operation
 local mib_node_search = function (group, name, op, community, req_sub_oid, req_val, req_val_type)
     local err_stat = nil
@@ -551,11 +604,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         -- Priority for local group community string
         if group.rwcommunity ~= community then
             -- Global community
-            if _M.rwcommunity ~= nil and _M.rwcommunity ~= '' and _M.rwcommunity ~= community then
+            if _M.rwcommunity and _M.rwcommunity ~= '' and _M.rwcommunity ~= community then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- Local community
-            if group.rwcommunity ~= nil and group.rwcommunity ~= '' then
+            if group.rwcommunity and group.rwcommunity ~= '' then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
         end
@@ -610,7 +663,9 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, rsp_val, rsp_val_type
         end
 
-        if err_stat ~= nil then
+        return_value_check(name, rsp_val, rsp_val_type)
+
+        if err_stat then
             return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
         else
             return 0, rsp_sub_oid, rsp_val, rsp_val_type
@@ -624,11 +679,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         -- priority for local group community string
         if group.rocommunity ~= community then
             -- Global community
-            if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
+            if _M.rocommunity and _M.rocommunity ~= '' and _M.rocommunity ~= community then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- Local community
-            if group.rocommunity ~= nil and group.rocommunity ~= '' then
+            if group.rocommunity and group.rocommunity ~= '' then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
         end
@@ -687,7 +742,9 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
         end
 
-        if err_stat ~= nil then
+        return_value_check(name, rsp_val, rsp_val_type)
+
+        if err_stat then
             return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
         else
             return 0, rsp_sub_oid, rsp_val, rsp_val_type
@@ -701,11 +758,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         -- Priority for local group community string
         if group.rocommunity ~= community then
             -- Global community
-            if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
+            if _M.rocommunity and _M.rocommunity ~= '' and _M.rocommunity ~= community then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
             -- Local community
-            if group.rocommunity ~= nil and group.rocommunity ~= '' then
+            if group.rocommunity and group.rocommunity ~= '' then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
             end
         end
@@ -762,16 +819,18 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                     rsp_sub_oid[4] = 0
                 end
             else
-                assert(false, 'Neighter a scalar variable nor a table')
+                error(string.format('Group \'%s\' Neighter a scalar variable nor a table', name))
             end
         -- Unaccessable node is ignored in getnext traversal.
-        until rsp_val ~= nil and rsp_val_type ~= nil and variable.access ~= MIB_ACES_UNA
+        until rsp_val and rsp_val_type and variable.access ~= MIB_ACES_UNA
 
         if next(rsp_sub_oid) == nil then
             return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
         end
 
-        if err_stat ~= nil then
+        return_value_check(name, rsp_val, rsp_val_type)
+
+        if err_stat then
             return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
         else
             return 0, rsp_sub_oid, rsp_val, rsp_val_type
