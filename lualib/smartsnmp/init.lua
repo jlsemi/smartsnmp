@@ -834,7 +834,7 @@ end
 -- print group index table through generator
 _M.group_index_table_check = function (group, name)
     local it = group_index_table_generator(group, name)
-
+    print(string.format("Group \'%s\' index table:", name))
     for i, v in ipairs(it) do
         if #v == 2 then
             print("scalar indexes:")
