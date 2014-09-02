@@ -98,7 +98,7 @@ AddOption(
 env = Environment(
   ENV = os.environ,
   LIBS = ['m', 'dl'],
-  CFLAGS = '-std=c99 -Wall -Os ',
+  CFLAGS = '-std=c99 -Wall -Os',
 )
 
 # handle options/environment varibles.
