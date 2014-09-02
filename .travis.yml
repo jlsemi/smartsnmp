@@ -26,3 +26,4 @@ script:
         export CFLAGS='-I.';
     fi"
   - "scons --transport=$TRANSPORT"
+  - "cat config.log"
