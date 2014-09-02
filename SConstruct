@@ -98,7 +98,6 @@ AddOption(
 env = Environment(
   ENV = os.environ,
   LIBS = ['m', 'dl'],
-  LIBPATH = ['libubox'],
   CFLAGS = '-std=c99 -Wall -Os ',
 )
 
