@@ -112,7 +112,7 @@ function _M.sh_call(command, rmode)
 
     local t = nil
     local f = io.popen(command)
-    if f ~= nil then
+    if f then
         t = f:read(rmode)
         f:close()
     end
@@ -256,7 +256,7 @@ local check_group_index_table = function (it)
         end
         for i in ipairs(v) do
             print(string.format("Dim%d:", i))
-            if next(v[i]) ~= nil then
+            if next(v[i]) then
                 if type(v[i][1]) == 'number' then
                     print(unpack(v[i]))
                 else
@@ -270,8 +270,8 @@ local check_group_index_table = function (it)
 end
 
 local group_index_table_generator = function (group, name)
-    assert(type(group) == 'table', string.format('Group should be container'))
-    assert(type(name) == 'string', string.format('What is the group\'s name?'))
+    if type(group) ~= 'table' then error(string.format('Group should be container')) end
+    if type(name) ~= 'string' then error(string.format('What is the group\'s name?')) end
 
     local group_indexes = {}  -- result to produce
     local scalar_indexes = {{},{0}}  -- 2 dimensions matrix
@@ -288,7 +288,7 @@ local group_index_table_generator = function (group, name)
             end
             return #oid1 < #oid2
         else
-            assert(false, "Invalid element type in comparision")
+            error(string.format("Group \'%s\': Invalid element type in comparision", name))
         end
     end
     for obj_no in pairs(group) do
@@ -301,18 +301,18 @@ local group_index_table_generator = function (group, name)
                 table.insert(table_indexes, dim1)
 
                 local tab = group[obj_no]
-                assert(tab.get_f == nil, string.format('%s[%d]: Table should be container not variable', name, obj_no))
+                if tab.get_f ~= nil then error(string.format('%s[%d]: Table should be container not variable', name, obj_no)) end
                 -- For simplicity, we hold at most one entry each table.
                 -- If you want multiple entries you may create revelant number of tables.
-                assert(#tab <= 1, string.format('%s[%d]: Sorry but for simplicity, each table can hold one entry at most', name, obj_no))
+                if #tab > 1 then error(string.format('%s[%d]: Sorry but for simplicity, each table can hold one entry at most', name, obj_no)) end
                 local entry_no, entry = next(tab)
-                assert(entry.get_f == nil, string.format('%s[%d][%d]: Entry should be container not variable', name, obj_no, entry_no))
                 if type(entry_no) == 'number' then
                     local dim2 = { entry_no }
                     table.insert(table_indexes, dim2)
                 end
 
                 if entry ~= nil then
+                    if entry.get_f ~= nil then error(string.format('%s[%d][%d]: Entry should be container not variable', name, obj_no, entry_no)) end
                     -- var_no
                     local dim3 = {}
                     for var_no in pairs(entry) do
@@ -324,15 +324,18 @@ local group_index_table_generator = function (group, name)
                     table.sort(table_indexes[3])
 
                     -- indexes
-                    assert(entry.indexes ~= nil)
-                    if entry.indexes.cascade then
+                    if entry.indexes == nil then error(string.format("%s[%d][%d]: What is the entry.indexes?", name, obj_no, entry_no)) end
+                    if type(entry.indexes) ~= 'table' then error(string.format("%s[%d][%d]: Entry indexes must be table", name, obj_no, entry_no)) end
+
+                    if entry.indexes.cascade == true then
                         for _, indexes in ipairs(entry.indexes) do
-                            assert(type(indexes) == 'table')
                             table.sort(indexes)
                             table.insert(table_indexes, indexes)
                         end
                     else
-                        assert(entry.indexes.cascade == nil, "No need to write \'cascade == false\' if indexes not cascaded, just wipe it out!")
+                        if entry.indexes.cascade ~= nil then
+                            error(string.format("%s[%d][%d]: No need to write \'cascade == false\' if indexes not cascaded, just wipe it out!", name, obj_no, entry_no))
+                        end
                         local dim4 = {}
                         for key in pairs(entry.indexes) do
                             local index
@@ -396,7 +399,7 @@ local group_index_table_generator = function (group, name)
         end
         i = i + 1
     end
-    if next(scalar_indexes[1]) ~= nil then
+    if next(scalar_indexes[1]) then
         table.insert(group_indexes, scalar_indexes)
     end
 
@@ -412,7 +415,7 @@ local function getnext(
     dim           -- offset dimension of *t*
 )
     local elem_len = function(e)
-        if (type(e) == 'table') then
+        if type(e) == 'table' then
             return #e
         else
             return 1
@@ -465,7 +468,6 @@ local function getnext(
         local found = false
 
         xl = it[dim]
-        assert(next(xl) ~= nil)
         for i, index in ipairs(xl) do
             -- if all match then return
             local cmp = compare(oid, offset, xl[i])
@@ -522,6 +524,30 @@ end
 -- Group index table iterator
 local function group_index_table_getnext(oid, it)
     return getnext(oid, 1, {}, it, 1)
+end
+
+local ber_tag_match = {
+    [BER_TAG_BOOL] = { t = 'BER_TAG_BOOL', m = 'number' },
+    [BER_TAG_INT] = { t = 'BER_TAG_INT', m = 'number' },
+    [BER_TAG_BITSTR] = { t = 'BER_TAG_BITSTR', m = 'string' },
+    [BER_TAG_OCTSTR] = { t = 'BER_TAG_OCTSTR', m = 'string' },
+    [BER_TAG_NUL] = { t = 'BER_TAG_NUL', m = 'nil' },
+    [BER_TAG_OBJID] = { t = 'BER_TAG_OBJID', m = 'table' },
+    [BER_TAG_IPADDR] = { t = 'BER_TAG_IPADDR', m = 'table' },
+    [BER_TAG_CNT] = { t = 'BER_TAG_CNT', m = 'number' },
+    [BER_TAG_GAU] = { t = 'BER_TAG_GAU', m = 'number' },
+    [BER_TAG_TIMETICKS] = { t = 'BER_TAG_TIMETICKS', m = 'number' },
+    [BER_TAG_OPAQ] = { t = 'BER_TAG_OPAQ', m = 'number' },
+}
+ 
+local function return_value_check(g, v, t)
+    if ber_tag_match[t] ~= nil then
+        if ber_tag_match[t].m ~= type(v) then
+            error(string.format("Group \'%s\' Tag \'%s\' but value is not \'%s\'", g, ber_tag_match[t].t, ber_tag_match[t].m))
+        end
+    else
+        error(string.format("Group \'%s\' unknown tag: %d", g, t))
+    end
 end
 
 -- Search and operation
@@ -610,6 +636,8 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, rsp_val, rsp_val_type
         end
 
+        return_value_check(name, rsp_val, rsp_val_type)
+
         if err_stat ~= nil then
             return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
         else
@@ -687,6 +715,8 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
         end
 
+        return_value_check(name, rsp_val, rsp_val_type)
+
         if err_stat ~= nil then
             return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
         else
@@ -762,14 +792,16 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                     rsp_sub_oid[4] = 0
                 end
             else
-                assert(false, 'Neighter a scalar variable nor a table')
+                error(string.format('Group \'%s\' Neither a scalar variable nor a table', name))
             end
         -- Unaccessable node is ignored in getnext traversal.
-        until rsp_val ~= nil and rsp_val_type ~= nil and variable.access ~= MIB_ACES_UNA
+        until rsp_val and rsp_val_type and variable.access ~= MIB_ACES_UNA
 
         if next(rsp_sub_oid) == nil then
             return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
         end
+
+        return_value_check(name, rsp_val, rsp_val_type)
 
         if err_stat ~= nil then
             return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
