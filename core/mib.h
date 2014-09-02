@@ -27,9 +27,6 @@
 #define MIB_OBJ_GROUP           1
 #define MIB_OBJ_INSTANCE        2
 
-#define INTERNET_PREFIX_LENGTH  4
-#define NBL_STACK_SIZE          (MIB_OID_MAX_LEN - INTERNET_PREFIX_LENGTH + 1)
-
 #define OID_ARRAY_SIZE(arr)     (sizeof(arr) / sizeof(arr[0]))
 
 struct oid_search_res {
