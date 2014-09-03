@@ -27,7 +27,7 @@
 #include "snmp.h"
 
 /* Dummy root node */
-static struct mib_group_node internet_group = {
+static struct mib_group_node mib_dummy_node = {
   MIB_OBJ_GROUP,
   1,
   0,
@@ -35,13 +35,16 @@ static struct mib_group_node internet_group = {
   NULL
 };
 
+static oid_t *root_oid;
+static uint32_t root_oid_len;
+
 oid_t *
 oid_dup(const oid_t *oid, uint32_t len)
 {
   int i;
   oid_t *new_oid;
-
-  new_oid = xmalloc(MIB_OID_MAX_LEN * sizeof(oid_t));
+  /* We need to allocate largest space so as to hold any oid */
+  new_oid = xmalloc(MIB_VALUE_MAX_LEN * sizeof(oid_t));
   for (i = 0; i < len; i++) {
     new_oid[i] = oid[i];
   }
@@ -100,27 +103,21 @@ oid_binary_search(oid_t *arr, int n, oid_t oid)
 struct mib_node *
 mib_tree_search(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_res *ret_oid)
 {
+  oid_t *oid;
+  uint32_t id_len;
   struct mib_node *node;
   struct mib_group_node *gn;
   struct mib_instance_node *in;
-  oid_t *oid;
-  uint32_t id_len;
 
   /* Duplicate OID as return value */
   ret_oid->oid = oid_dup(orig_oid, orig_id_len);
   ret_oid->id_len = orig_id_len;
   ret_oid->exist_state = 0;
 
-  /* Check dummy root oid prefix */
-  if (orig_id_len < INTERNET_PREFIX_LENGTH) {
-    node = NULL;
-    oid = NULL;
-    id_len = 0;
-  } else {
-    node = (struct mib_node *)&internet_group;
-    oid = ret_oid->oid + INTERNET_PREFIX_LENGTH;
-    id_len = ret_oid->id_len - INTERNET_PREFIX_LENGTH;
-  }
+  /* Init something */
+  node = (struct mib_node *)&mib_dummy_node;
+  oid = ret_oid->oid;
+  id_len = ret_oid->id_len;
 
   while (node != NULL && id_len > 0) {
     switch (node->type) {
@@ -177,7 +174,7 @@ struct node_backlog {
 static inline void
 nbl_push(const struct node_backlog *nbl, struct node_backlog **top, struct node_backlog **buttom)
 {
-  if (*top - *buttom < NBL_STACK_SIZE) {
+  if (*top - *buttom < MIB_OID_MAX_LEN) {
     *((*top)++) = *nbl;
   }
 }
@@ -197,53 +194,44 @@ struct mib_node *
 mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_res *ret_oid)
 {
   oid_t *oid;
-  const oid_t dummy_oid[] = { 1, 3, 6, 1 };
   uint32_t id_len;
   uint8_t immediate; /* This is the search state indicator */
-
   struct node_backlog nbl, *p_nbl;
-  struct node_backlog nbl_stk[NBL_STACK_SIZE];
+  struct node_backlog nbl_stk[MIB_OID_MAX_LEN];
   struct node_backlog *stk_top, *stk_buttom;
-
+  struct oid_search_res tmp_res;
   struct mib_node *node;
   struct mib_group_node *gn;
   struct mib_instance_node *in;
 
-  /* Init something first */
-  stk_top = stk_buttom = nbl_stk;
-  node = (struct mib_node *)&internet_group;
-  p_nbl = NULL;
-
   /* Check dummy root oid prefix */
-  if (orig_id_len > INTERNET_PREFIX_LENGTH) {
+  if (orig_id_len > root_oid_len) {
     immediate = 0;  /* 0 is to search the first match node in mib tree. */
     ret_oid->oid = oid_dup(orig_oid, orig_id_len);
     ret_oid->id_len = orig_id_len;
-    if (oid_cmp(orig_oid, OID_ARRAY_SIZE(dummy_oid), dummy_oid, OID_ARRAY_SIZE(dummy_oid)) > 0) {
+    if (oid_cmp(orig_oid, root_oid_len, root_oid, root_oid_len) > 0) {
       /* END_OF_MIB_VIEW */
-      oid = ret_oid->oid + orig_id_len;
-      id_len = ret_oid->id_len - orig_id_len;
       node = NULL;
     } else {
-      oid = ret_oid->oid + INTERNET_PREFIX_LENGTH;
-      id_len = ret_oid->id_len - INTERNET_PREFIX_LENGTH;
+      node = mib_tree_search(root_oid, root_oid_len, &tmp_res);
     }
   } else {
     immediate = 1;  /* 1 is to get the immediate closest instance */
-    if (oid_cmp(orig_oid, orig_id_len, dummy_oid, OID_ARRAY_SIZE(dummy_oid)) > 0) {
+    ret_oid->oid = oid_dup(root_oid, root_oid_len);
+    ret_oid->id_len = root_oid_len;
+    if (oid_cmp(orig_oid, orig_id_len, root_oid, root_oid_len) > 0) {
       /* END_OF_MIB_VIEW */
-      ret_oid->oid = oid_dup(orig_oid, orig_id_len);
-      ret_oid->id_len = orig_id_len;
-      oid = ret_oid->oid + orig_id_len;
-      id_len = ret_oid->id_len - orig_id_len;
       node = NULL;
     } else {
-      ret_oid->oid = oid_dup(dummy_oid, OID_ARRAY_SIZE(dummy_oid));
-      ret_oid->id_len = OID_ARRAY_SIZE(dummy_oid);
-      oid = ret_oid->oid + INTERNET_PREFIX_LENGTH;
-      id_len = ret_oid->id_len - INTERNET_PREFIX_LENGTH;
+      node = mib_tree_search(root_oid, root_oid_len, &tmp_res);
     }
   }
+
+  /* Init something */
+  p_nbl = NULL;
+  stk_top = stk_buttom = nbl_stk;
+  oid = ret_oid->oid + root_oid_len;
+  id_len = ret_oid->id_len - root_oid_len;
   ret_oid->inst_id = NULL;
   ret_oid->inst_id_len = 0;
   ret_oid->exist_state = 0;
@@ -365,11 +353,12 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
     p_nbl = nbl_pop(&stk_top, &stk_buttom);
     if (p_nbl == NULL) {
       /* End of traversal. */
-      ret_oid->id_len = oid - ret_oid->oid;
+      oid_cpy(ret_oid->oid, orig_oid, orig_id_len);
+      ret_oid->id_len = orig_id_len;
       ret_oid->inst_id = NULL;
       ret_oid->inst_id_len = 0;
       ret_oid->exist_state = BER_TAG_END_OF_MIB_VIEW;
-      return (struct mib_node *)&internet_group;
+      return (struct mib_node *)&mib_dummy_node;
     }
     oid--;  /* OID length is ignored once backtracking. */
     node = p_nbl->node;
@@ -384,26 +373,26 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
 static inline void
 mib_tree_init_check(void)
 {
-  if (internet_group.sub_id == NULL || internet_group.sub_ptr == NULL)
+  if (mib_dummy_node.sub_id == NULL || mib_dummy_node.sub_ptr == NULL)
     die("Mib tree not init yet!");
 }
 
 /* Test a newly allocated node. */
 static inline int
-is_leaf(struct mib_group_node *gn)
+is_raw_group(struct mib_group_node *gn)
 {
   assert(gn->sub_id != NULL);
   return gn->sub_id[0] == 0 && gn->sub_id_cnt == 0;
 }
 
 /* Resize group node's sub-id array */
-#define alloc_nr(x) (((x)+5)*3/2)
+#define alloc_nr(x) (((x)+2)*3/2)
 static void
 group_node_expand(struct mib_group_node *gn, int index)
 {
   int i;
 
-  assert(!is_leaf(gn));
+  assert(!is_raw_group(gn));
 
   if (gn->sub_id_cnt + 1 > gn->sub_id_cap) {
     /* resize new sub-id array */
@@ -508,15 +497,14 @@ static struct mib_node *
 mib_tree_node_search(const oid_t *oid, uint32_t id_len, struct node_pair *pair)
 {
   struct mib_group_node *gn;
-  struct mib_node *parent = pair->parent = (struct mib_node *)&internet_group;
+  struct mib_node *parent = pair->parent = (struct mib_node *)&mib_dummy_node;
   struct mib_node *node = pair->child = parent;
   int sub_idx = 0;
 
-  if (id_len < INTERNET_PREFIX_LENGTH)
+  /* Oid must be equal to or greater than root oid */
+  if (id_len < root_oid_len) {
     return NULL;
-
-  oid += INTERNET_PREFIX_LENGTH;
-  id_len -= INTERNET_PREFIX_LENGTH;
+  }
 
   while (node != NULL && id_len > 0) {
     switch (node->type) {
@@ -569,15 +557,15 @@ static void
 __mib_tree_delete(struct node_pair *pair)
 {
   struct node_backlog nbl, *p_nbl;
-  struct node_backlog nbl_stk[NBL_STACK_SIZE];
+  struct node_backlog nbl_stk[MIB_OID_MAX_LEN];
   struct node_backlog *stk_top, *stk_buttom;
 
   struct mib_node *node = pair->child;
   struct mib_group_node *gn;
   struct mib_instance_node *in;
 
-  if (node == (struct mib_node *)&internet_group) {
-    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "OID .1.3.6.1 is the dummy root node in this mib tree which cannot be deleted.\n");
+  if (node == (struct mib_node *)&mib_dummy_node) {
+    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "MIB dummy root node cannot be deleted!\n");
     return;
   }
 
@@ -655,24 +643,24 @@ mib_tree_delete(const oid_t *oid, uint32_t id_len)
   }
 }
 
-/* This function create group node(s) in mib-tree according to oid given in
- * which the prefix can be already created as group node(s) and the last id
- * number must not be created yet. the id number before the last one will be
- * created as new dummy group node(s).
+/* This function will create an instance node in mib-tree according to oid given
+ * in which the prefix can be already created or not existing group node(s), and
+ * the last id number must be the not existing instance node.
  */
-static struct mib_group_node *
-mib_tree_group_insert(const oid_t *oid, uint32_t id_len)
+static struct mib_instance_node *
+mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, int callback)
 {
-  struct mib_node *node;
+  struct mib_node *node = (struct mib_node *)&mib_dummy_node;
   struct mib_group_node *gn;
-  struct node_pair pair;
 
-  /* Init something */
-  pair.parent = pair.child = NULL;
-  node = (struct mib_node *)&internet_group;
+  if (id_len < root_oid_len || id_len > MIB_OID_MAX_LEN) {
+    return NULL;
+  }
 
-  oid += INTERNET_PREFIX_LENGTH;
-  id_len -= INTERNET_PREFIX_LENGTH;
+  /* Prefix must match root oid */
+  if (oid_cmp(oid, root_oid_len, root_oid, root_oid_len)) {
+    return NULL;
+  }
 
   while (id_len > 0) {
     switch (node->type) {
@@ -680,12 +668,17 @@ mib_tree_group_insert(const oid_t *oid, uint32_t id_len)
       case MIB_OBJ_GROUP:
         gn = (struct mib_group_node *)node;
 
-        if (is_leaf(gn)) {
-          /* Allocate intermediate group node */
-          node = gn->sub_ptr[0] = mib_group_node_new();
+        if (is_raw_group(gn)) {
           gn->sub_id_cnt++;
           gn->sub_id[0] = *oid++;
-          id_len--;
+          if (--id_len == 0) {
+            /* Allocate new instance node */
+            node = gn->sub_ptr[0] = mib_instance_node_new(callback);
+            return (struct mib_instance_node *)node;
+          } else {
+            /* Allocate new group node */
+            node = gn->sub_ptr[0] = mib_group_node_new();
+          }
         } else {
           /* Search in exist sub-ids */
           int i = oid_binary_search(gn->sub_id, gn->sub_id_cnt, *oid);
@@ -697,85 +690,21 @@ mib_tree_group_insert(const oid_t *oid, uint32_t id_len)
           } else {
             /* Sub-id not found, that's it. */
             i = -i - 1;
-            /* realloc sub_id[] */
+            /* resize sub_id[] */
             group_node_expand(gn, i);
-            /* Allocate new group node */
-            node = gn->sub_ptr[i] = mib_group_node_new();
             gn->sub_id_cnt++;
             gn->sub_id[i] = *oid++;
-            id_len--;
-            /* Record the new allocated root group node */
-            if (pair.child == NULL && pair.parent == NULL) {
-              pair.parent = (struct mib_node *)gn;
-              pair.child = (struct mib_node *)node;
-              pair.sub_idx = i;
+            if (--id_len == 0) {
+              /* Allocate new instance node */
+              node = gn->sub_ptr[i] = mib_instance_node_new(callback);
+              return (struct mib_instance_node *)node;
+            } else {
+              /* Allocate new group node */
+              node = gn->sub_ptr[i] = mib_group_node_new();
             }
           }
         }
         continue;
-
-      case MIB_OBJ_INSTANCE:
-        /* Bad traversal, clear all temporarily built group nodes */
-        __mib_tree_delete(&pair);
-        return NULL;
-
-      default:
-        assert(0);
-        break;
-    }
-  }
-
-  /* id_len == 0 */
-  return (struct mib_group_node *)node;
-}
-
-/* This function creates one new instance node in mib-tree according to given
- * oid in which the last id number is the first id of the instance. Id number
- * before the last one are regarded as exist group node(s) by default.
- */
-static struct mib_instance_node *
-mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, int callback)
-{
-  struct mib_node *node;
-  struct mib_group_node *gn;
-
-  node = (struct mib_node *)&internet_group;
-  oid += INTERNET_PREFIX_LENGTH;
-  id_len -= INTERNET_PREFIX_LENGTH;
-
-  while (node != NULL && id_len > 0) {
-    switch (node->type) {
-
-      case MIB_OBJ_GROUP:
-        gn = (struct mib_group_node *)node;
-        if (is_leaf(gn) && id_len == 1) {
-          /* Allocate intermediate group node */
-          gn->sub_ptr[0] = mib_instance_node_new(callback);
-          gn->sub_id[0] = *oid;
-          gn->sub_id_cnt++;
-          return gn->sub_ptr[0];
-        } else {
-          /* Search in exist sub-ids */
-          int i = oid_binary_search(gn->sub_id, gn->sub_id_cnt, *oid);
-          if (i >= 0) {
-            /* Sub-id found, go on traversing */
-            oid++;
-            id_len--;
-            node = gn->sub_ptr[i];
-            continue;
-          } else {
-            /* Sub-id not found, that's it. */
-            i = -i - 1;
-            if (id_len == 1) {
-              /* The last only oid is for the new instance node */
-              group_node_expand(gn, i);
-              gn->sub_ptr[i] = mib_instance_node_new(callback);
-              gn->sub_id[i] = *oid;
-              gn->sub_id_cnt++;
-              return gn->sub_ptr[i];
-            }
-          }
-        }
 
       case MIB_OBJ_INSTANCE:
         /* Bad traversal */
@@ -795,31 +724,16 @@ mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, int callback)
 int
 mib_node_reg(const oid_t *oid, uint32_t len, int callback)
 {
-  int i;
-  struct mib_group_node *gn;
   struct mib_instance_node *in;
 
   mib_tree_init_check();
 
-  gn = mib_tree_group_insert(oid, len - 1);
-  if (gn == NULL) {
-    goto NODE_REG_FAIL;
-  }
-
   in = mib_tree_instance_insert(oid, len, callback);
-  if (in == NULL) {
-    goto NODE_REG_FAIL;
+  if (in != NULL) {
+    return 0;
+  } else {
+    return -1;
   }
-
-  return 0;
-
-NODE_REG_FAIL:
-  CREDO_SNMP_LOG(SNMP_LOG_WARNING, "Register oid: ");
-  for (i = 0; i < len; i++) {
-    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "%d ", oid[i]);
-  }
-  CREDO_SNMP_LOG(SNMP_LOG_WARNING, "fail, node already exists or oid overlaps.\n");
-  return -1;
 }
 
 /* Unregister node(s) in mib-tree according to given oid. */
@@ -833,21 +747,26 @@ mib_node_unreg(const oid_t *oid, uint32_t len)
 
 /* Init dummy root node */
 static void
-mib_internet_group_init(void)
+mib_dummy_node_init(void)
 {
-  struct mib_group_node *gn = &internet_group;
-  gn->type = MIB_OBJ_GROUP;
-  gn->sub_id_cap = 1;
-  gn->sub_id_cnt = 0;
-  gn->sub_id = xmalloc(sizeof(oid_t));
-  gn->sub_id[0] = 0;
-  gn->sub_ptr = xmalloc(sizeof(void *));
-  gn->sub_ptr[0] = NULL;
+  const oid_t dummy_oid[] = { 1, 3, 6, 1 };
+
+  root_oid = xmalloc(OID_ARRAY_SIZE(dummy_oid) * sizeof(oid_t));
+  oid_cpy(root_oid, dummy_oid, OID_ARRAY_SIZE(dummy_oid));
+  root_oid_len = OID_ARRAY_SIZE(dummy_oid);
+
+  mib_dummy_node.type = MIB_OBJ_GROUP;
+  mib_dummy_node.sub_id_cap = 1;
+  mib_dummy_node.sub_id_cnt = 0;
+  mib_dummy_node.sub_id = xmalloc(sizeof(oid_t));
+  mib_dummy_node.sub_id[0] = 0;
+  mib_dummy_node.sub_ptr = xmalloc(sizeof(void *));
+  mib_dummy_node.sub_ptr[0] = NULL;
 }
 
 void
 mib_init(void)
 {
-  mib_internet_group_init();
+  mib_dummy_node_init();
 }
 
