@@ -82,13 +82,13 @@ local function ip_hex2num(hex)
     return table.concat(num, ".")
 end
 
-local function port_hex2num(hex)
+local function hex2num(hex)
     assert(type(hex) == 'string')
     local num = 0
     for i = 1, #hex do
         num = num * 16 + hextab[string.char(string.byte(hex, i))]
     end
-    return tostring(num)
+    return num
 end
 
 local function __load_config()
@@ -110,10 +110,10 @@ local function __load_config()
         local key = {}
         if loc_addr ~= nil and loc_port ~= nil and rem_addr ~= nil and rem_port ~= nil and conn_stat ~= nil then
             table.insert(key, ip_hex2num(loc_addr))
-            table.insert(key, port_hex2num(loc_port))
+            table.insert(key, tostring(hex2num(loc_port)))
             table.insert(key, ip_hex2num(rem_addr))
-            table.insert(key, port_hex2num(rem_port))
-            conn_stat = port_hex2num(conn_stat)
+            table.insert(key, tostring(hex2num(rem_port)))
+            conn_stat = hex2num(conn_stat)
             tcp_conn_entry_cache[table.concat(key, '.')] = {}
             tcp_conn_entry_cache[table.concat(key, '.')].conn_stat = tcp_snmp_conn_stat_map[conn_stat]
         end
