@@ -653,15 +653,6 @@ mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, int callback)
   struct mib_node *node = (struct mib_node *)&mib_dummy_node;
   struct mib_group_node *gn;
 
-  if (id_len < root_oid_len || id_len > MIB_OID_MAX_LEN) {
-    return NULL;
-  }
-
-  /* Prefix must match root oid */
-  if (oid_cmp(oid, root_oid_len, root_oid, root_oid_len)) {
-    return NULL;
-  }
-
   while (id_len > 0) {
     switch (node->type) {
 
@@ -724,16 +715,32 @@ mib_tree_instance_insert(const oid_t *oid, uint32_t id_len, int callback)
 int
 mib_node_reg(const oid_t *oid, uint32_t len, int callback)
 {
+  int i;
   struct mib_instance_node *in;
 
   mib_tree_init_check();
 
-  in = mib_tree_instance_insert(oid, len, callback);
-  if (in != NULL) {
-    return 0;
-  } else {
+  /* Prefix must match root oid */
+  if (len < root_oid_len || oid_cmp(oid, root_oid_len, root_oid, root_oid_len)) {
     return -1;
   }
+
+  if (len > MIB_OID_MAX_LEN) {
+    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "The length of oid cannot be longer than %d\n", MIB_OID_MAX_LEN);
+    return -1;
+  }
+
+  in = mib_tree_instance_insert(oid, len, callback);
+  if (in == NULL) {
+    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "Register oid: ");
+    for (i = 0; i < len; i++) {
+      CREDO_SNMP_LOG(SNMP_LOG_WARNING, "%d ", oid[i]);
+    }
+    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "fail, node already exists or oid overlaps.\n");
+    return -1;
+  }
+
+  return 0;
 }
 
 /* Unregister node(s) in mib-tree according to given oid. */
