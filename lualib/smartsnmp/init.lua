@@ -246,29 +246,6 @@ end
   Currently we don't support IP address as an instance index.
 ]]--
 
--- For debug print
-local check_group_index_table = function (it)
-    for i, v in ipairs(it) do
-        if #v == 2 then
-            print("scalar indexes:")
-        else
-            print("table indexes:")
-        end
-        for i in ipairs(v) do
-            print(string.format("Dim%d:", i))
-            if next(v[i]) then
-                if type(v[i][1]) == 'number' then
-                    print(unpack(v[i]))
-                else
-                    for _, t in ipairs(v[i]) do
-                        print(unpack(t))
-                    end
-                end
-            end
-        end
-    end
-end
-
 local group_index_table_generator = function (group, name)
     if type(group) ~= 'table' then error(string.format('Group should be container')) end
     if type(name) ~= 'string' then error(string.format('What is the group\'s name?')) end
@@ -852,6 +829,31 @@ end
 -- unregister a group of snmp mib nodes
 _M.unregister_mib_group = function(oid)
     core.mib_node_unreg(oid)
+end
+
+-- print group index table through generator
+_M.group_index_table_check = function (group, name)
+    local it = group_index_table_generator(group, name)
+    print(string.format("Group \'%s\' index table:", name))
+    for i, v in ipairs(it) do
+        if #v == 2 then
+            print("scalar indexes:")
+        else
+            print("table indexes:")
+        end
+        for i in ipairs(v) do
+            print(string.format("Dim%d:", i))
+            if next(v[i]) then
+                if type(v[i][1]) == 'number' then
+                    print(unpack(v[i]))
+                else
+                    for _, t in ipairs(v[i]) do
+                        print(unpack(t))
+                    end
+                end
+            end
+        end
+    end
 end
 
 return _M
