@@ -56,6 +56,11 @@ if status == false then
 end
 
 -- check configurations
+if type(root) ~= 'string' then
+    print("Can't get root oid for SNMP agent, please check your configuration file!")
+    os.exit(-1)
+end
+
 if type(port) ~= 'number' then
     print("Can't get listen port number for SNMP agent, please check your configuration file!")
     os.exit(-1)
@@ -84,6 +89,7 @@ end
 -------------------------------------------------------------------------------
 -- setup snmp agent, load mib modules and run it.
 -------------------------------------------------------------------------------
+snmpd.root(utils.str2oid(root))
 
 snmpd.init(port)
 

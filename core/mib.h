@@ -74,7 +74,7 @@ struct mib_node *mib_tree_search_next(const oid_t *oid, uint32_t id_len, struct 
 
 int mib_node_reg(const oid_t *oid, uint32_t id_len, int callback);
 void mib_node_unreg(const oid_t *oid, uint32_t id_len);
-
+void mib_root_oid_setting(const oid_t *oid, uint32_t id_len);
 void mib_init(void);
 
 #endif /* _MIB_H_ */

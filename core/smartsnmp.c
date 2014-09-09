@@ -141,7 +141,33 @@ snmpd_run(lua_State *L)
   return 1;  
 }
 
+static int
+snmpd_mib_root_setting(lua_State *L)
+{
+  oid_t *root_oid;
+  int i, root_oid_len;
+
+  /* Check if the first argument is a table. */
+  luaL_checktype(L, 1, LUA_TTABLE);
+
+  /* Get oid length */
+  root_oid_len = lua_objlen(L, 1);
+  /* Get oid */
+  root_oid = xmalloc(root_oid_len * sizeof(oid_t));
+  for (i = 0; i < root_oid_len; i++) {
+    lua_rawgeti(L, 1, i + 1);
+    root_oid[i] = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+  }
+
+  /* Set root oid */
+  mib_root_oid_setting(root_oid, root_oid_len);
+
+  return 0;  
+}
+
 static const luaL_Reg snmpd_func[] = {
+  { "root", snmpd_mib_root_setting },
   { "init", snmpd_init },
   { "run", snmpd_run },
   { "mib_node_reg", snmpd_mib_node_reg },
