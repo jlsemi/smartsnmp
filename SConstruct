@@ -21,7 +21,7 @@ import os
 AddOption(
   '--transport',
   dest='transport',
-  default = 'libevent',
+  default = '',
   type='string',
   nargs=1,
   action='store',
@@ -98,7 +98,7 @@ AddOption(
 env = Environment(
   ENV = os.environ,
   LIBS = ['m', 'dl'],
-  CFLAGS = ['-std=c99', '-Wall', '-Os']
+  CFLAGS = ['-std=c99', '-Wall', '-g', '-O0']
 )
 
 # handle options/environment varibles.
@@ -139,9 +139,11 @@ if GetOption("libubox_dir") is not "":
 if GetOption("transport") == 'libevent':
   env.Append(LIBS = ['event'])
   transport_src = env.Glob("core/libevent_transport.c")
-else:
+elif GetOption("transport") == 'uloop':
   env.Append(LIBS = ['ubox'])
   transport_src = env.Glob("core/uloop_transport.c")
+else:
+  transport_src = env.Glob("core/transport.c") + env.Glob("core/ev_loop.c")
 
 # autoconf
 conf = Configure(env)
