@@ -28,7 +28,7 @@ script:
         export CFLAGS='-I.';
     fi"
   - "if [ $TRANSPORT = 'built-in' ]; then 
-        scons --transport=$TRANSPORT --evloop=EVLOOP
+        scons --transport=$TRANSPORT --evloop=$EVLOOP
     else
         scons --transport=$TRANSPORT
     fi"
