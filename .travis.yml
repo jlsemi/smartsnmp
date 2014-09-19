@@ -2,7 +2,7 @@ language: c
 
 env:
   matrix:
-    - "LUA=lua5.1 TRANSPORT=built-in EVLOOP=epool"
+    - "LUA=lua5.1 TRANSPORT=built-in EVLOOP=epoll"
     - "LUA=lua5.1 TRANSPORT=built-in EVLOOP=select"
     - "LUA=lua5.1 TRANSPORT=libevent"
     - "LUA=lua5.1 TRANSPORT=uloop"
@@ -28,8 +28,8 @@ script:
         export CFLAGS='-I.';
     fi"
   - "if [ $TRANSPORT = 'built-in' ]; then 
-        scons --transport=$TRANSPORT --evloop=$EVLOOP
+        scons --transport=$TRANSPORT --evloop=$EVLOOP;
     else
-        scons --transport=$TRANSPORT
+        scons --transport=$TRANSPORT;
     fi"
   - "cat config.log"

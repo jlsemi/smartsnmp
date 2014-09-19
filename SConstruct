@@ -217,7 +217,7 @@ else:
 
 env = conf.Finish()
 
-src = env.Glob("core/asn1_*.c") + env.Glob("core/snmp_msg_*.c") + env.Glob("core/ans1_*.c") + env.Glob("core/smartsnmp.c") + env.Glob("core/mib_tree.c") + transport_src + env.Glob("scons_tools/*.py")
+src = env.Glob("core/asn1_*.c") + env.Glob("core/snmp_msg_*.c") + env.Glob("core/ans1_*.c") + env.Glob("core/smartsnmp.c") + env.Glob("core/mib_tree.c") + transport_src
 
 # generate lua c module
 libsmartsnmp_core = env.SharedLibrary('build/smartsnmp/core', src, SHLIBPREFIX = '')
