@@ -16,6 +16,13 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import os
+import sys
+
+sys.path.append(os.path.join(os.getcwd(), "scons_tools"))
+
+from select_probe import *
+from kqueue_probe import *
+from epoll_probe import *
 
 # options 
 AddOption(
@@ -155,26 +162,42 @@ elif GetOption("transport") == 'uloop':
   transport_src = env.Glob("core/uloop_transport.c")
 elif GetOption("transport") == 'built-in' or GetOption("transport") == '':
   transport_src = env.Glob("core/transport.c") + env.Glob("core/ev_loop.c")
+  # built-in event loop check
+  if GetOption("evloop") == 'epoll':
+    env.Append(CFLAGS = ["-DUSE_EPOLL"])
+  elif GetOption("evloop") == 'kqueue':
+    env.Append(CFLAGS = ["-DUSE_KQUEUE"])
+  elif GetOption("evloop") == 'select' or GetOption("evloop") == '':
+    pass
+  else:
+    print "Error: Not the right event driving type"
+    Exit(1)
 else:
   print "Error: Transport not found!"
   Exit(1)
 
-# built-in event loop
-if GetOption("evloop") == 'epoll':
-  env.Append(CFLAGS = ["-DUSE_EPOLL"])
-elif GetOption("evloop") == 'kqueue':
-  env.Append(CFLAGS = ["-DUSE_KQUEUE"])
-elif GetOption("evloop") == 'select' or GetOption("evloop") == '':
-  print ""
-else:
-  print "Error: Not the right event driving type"
-  Exit(1)
-
 # autoconf
-conf = Configure(env)
+conf = Configure(env, custom_tests = {'CheckEpoll' : CheckEpoll, 'CheckSelect' : CheckSelect, 'CheckKqueue' : CheckKqueue})
 
-# find liblua
-# on Ubuntu, liblua is named liblua5.1, so we need to check this.
+# built-in event loop check
+if GetOption("transport") == 'built-in' or GetOption("transport") == '':
+  if GetOption("evloop") == 'epoll':
+    if not conf.CheckEpoll():
+      print "Error: epoll failed"
+      Exit(1)
+  elif GetOption("evloop") == 'kqueue':
+    if not conf.CheckKqueue():
+      print "Error: Kqueue failed"
+      Exit(1)
+  elif GetOption("evloop") == 'select' or GetOption("evloop") == '':
+    if not conf.CheckSelect():
+      print "Error: select failed"
+      Exit(1)
+  else:
+    print "Error: Not the right event driving type"
+    Exit(1)
+
+# find liblua. On Ubuntu, liblua is named liblua5.1, so we need to check this.
 if conf.CheckLib('lua'):
   env.Append(LIBS = ['lua'])
 elif conf.CheckLib('lua5.1'):
@@ -194,7 +217,7 @@ else:
 
 env = conf.Finish()
 
-src = env.Glob("core/asn1_*.c") + env.Glob("core/snmp_msg_*.c") + env.Glob("core/ans1_*.c") + env.Glob("core/smartsnmp.c") + env.Glob("core/mib_tree.c") + transport_src
+src = env.Glob("core/asn1_*.c") + env.Glob("core/snmp_msg_*.c") + env.Glob("core/ans1_*.c") + env.Glob("core/smartsnmp.c") + env.Glob("core/mib_tree.c") + transport_src + env.Glob("scons_tools/*.py")
 
 # generate lua c module
 libsmartsnmp_core = env.SharedLibrary('build/smartsnmp/core', src, SHLIBPREFIX = '')
