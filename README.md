@@ -33,6 +33,10 @@ Dependencies
 
 - Lua 5.1
 - One of transports
+  - built-in
+    - select
+    - kqueue (not tested yet)
+    - epoll
   - libevent
   - libubox/uloop (for OpenWrt)
 
@@ -69,8 +73,10 @@ You will get:
 
     ... SCons Options ...
     Local Options:
-      --transport=[libevent|uloop]
+      --transport=[built-in|libevent|uloop]
                                   transport you want to use
+      --evloop=[select|kqueue|epoll]
+                                  built-in event loop type
       --with-cflags=CFLAGS        use CFLAGS as compile time arguments (will
                                     ignore CFLAGS env)
       --with-ldflags=LDFLAGS      use LDFLAGS as link time arguments to ld (will

@@ -2,6 +2,8 @@ language: c
 
 env:
   matrix:
+    - "LUA=lua5.1 TRANSPORT=built-in EVLOOP=epoll"
+    - "LUA=lua5.1 TRANSPORT=built-in EVLOOP=select"
     - "LUA=lua5.1 TRANSPORT=libevent"
     - "LUA=lua5.1 TRANSPORT=uloop"
 
@@ -25,5 +27,9 @@ script:
         export LDFLAGS='-L./libubox' && 
         export CFLAGS='-I.';
     fi"
-  - "scons --transport=$TRANSPORT"
+  - "if [ $TRANSPORT = 'built-in' ]; then 
+        scons --transport=$TRANSPORT --evloop=$EVLOOP;
+    else
+        scons --transport=$TRANSPORT;
+    fi"
   - "cat config.log"
