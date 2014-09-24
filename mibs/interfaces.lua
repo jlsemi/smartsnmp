@@ -18,6 +18,7 @@
 -- 
 
 local mib = require "smartsnmp"
+local utils = require "smartsnmp.utils"
 
 local if_entry_cache = {}
 
@@ -26,7 +27,7 @@ local entry = {
     type = 24,
     mtu = 65535,
     speed = 10000000,
-    phy_addr = 'aa0f163e7942',
+    phy_addr = utils.mac2str('aa0f163e7942'),
     admin_stat = 1,
     open_stat = 1,
     in_octet = 2449205,
@@ -40,7 +41,7 @@ entry = {
     type = 6,
     mtu = 1500,
     speed = 1000000,
-    phy_addr = '001f1633e721',
+    phy_addr = utils.mac2str('001f1633e721'),
     admin_stat = 1,
     open_stat = 1,
     in_octet = 672549159,
@@ -54,7 +55,7 @@ entry = {
     type = 6,
     mtu = 1500,
     speed = 100000000,
-    phy_addr = '8cae4cfe179c',
+    phy_addr = utils.mac2str('8cae4cfe179c'),
     admin_stat = 1,
     open_stat = 1,
     in_octet = 4914346,
@@ -68,7 +69,7 @@ entry = {
     type = 6,
     mtu = 1500,
     speed = 0,
-    phy_addr = '0026c6606030',
+    phy_addr = utils.mac2str('0026c6606030'),
     admin_stat = 2,
     open_stat = 2,
     in_octet = 0,
@@ -82,7 +83,7 @@ entry = {
     type = 6,
     mtu = 1500,
     speed = 0,
-    phy_addr = '160a8074ee77',
+    phy_addr = utils.mac2str('160a8074ee77'),
     admin_stat = 1,
     open_stat = 2,
     in_octet = 0,

@@ -48,15 +48,39 @@ utils.getopt = function (arg, options)
   return tab
 end
 
-------------------------------------------------------------------------------
+-----------------------------------------
 -- convert oid string to oid lua table
-------------------------------------------------------------------------------
+-----------------------------------------
 utils.str2oid = function (s)
     local oid = {}
     for n in string.gmatch(s, '%d+') do
         table.insert(oid, tonumber(n))
     end
     return oid
+end
+
+local hexval = function(x)
+    if x >= string.byte('0') and x <= string.byte('9') then
+        return x - string.byte('0')
+    elseif x >= string.byte('a') and x <= string.byte('f') then
+        return x - string.byte('a') + 10
+    elseif x >= string.byte('A') and x <= string.byte('F') then
+        return x - string.byte('A') + 10
+    else
+        assert(0)
+    end
+end
+
+------------------------------------------
+-- convert physical address to string 
+------------------------------------------
+utils.mac2str = function(mac)
+    assert(type(mac) == 'string')
+    local s = {}
+    for i = 1, #mac, 2 do
+        table.insert(s, string.char(hexval(string.byte(mac, i)) * 16 + hexval(string.byte(mac, i + 1))))
+    end
+    return table.concat(s)
 end
 
 return utils
