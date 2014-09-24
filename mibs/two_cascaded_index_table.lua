@@ -61,7 +61,7 @@ local TwoIndexTableGroup = {
                                                      end
                                                      return nil
                                                  end),
-            [TwoIndexTableDescr] = mib.ConstString(function (sub_oid)
+            [TwoIndexTableDescr] = mib.ConstOctString(function (sub_oid)
                                                         local i = sub_oid[1]
                                                         local j = sub_oid[2]
                                                         if two_dim_cache[i][j] then
