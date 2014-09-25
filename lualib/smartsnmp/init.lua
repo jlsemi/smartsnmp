@@ -807,6 +807,11 @@ end
 -- User Interface
 --
 
+-- set mib root oid
+_M.root = function (root_oid)
+    core.root(root_oid)
+end
+
 -- initialize snmp agent
 _M.init = function (port)
     core.init(port)

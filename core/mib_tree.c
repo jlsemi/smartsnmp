@@ -35,7 +35,7 @@ static struct mib_group_node mib_dummy_node = {
   NULL
 };
 
-static oid_t *root_oid;
+static const oid_t *root_oid;
 static uint32_t root_oid_len;
 
 oid_t *
@@ -54,7 +54,7 @@ oid_dup(const oid_t *oid, uint32_t len)
 int
 oid_cmp(const oid_t *src, uint32_t src_len, const oid_t *target, uint32_t tar_len)
 {
-  int ret;
+  int ret = 0;
 
   while (tar_len-- && src_len-- && !(ret = (int)(*src++ - *target++)))
     continue;
@@ -721,7 +721,7 @@ mib_node_reg(const oid_t *oid, uint32_t len, int callback)
   mib_tree_init_check();
 
   /* Prefix must match root oid */
-  if (len < root_oid_len || oid_cmp(oid, root_oid_len, root_oid, root_oid_len)) {
+  if (len == 0 || len < root_oid_len || oid_cmp(oid, root_oid_len, root_oid, root_oid_len)) {
     return -1;
   }
 
@@ -752,16 +752,18 @@ mib_node_unreg(const oid_t *oid, uint32_t len)
   mib_tree_delete(oid, len);
 }
 
+/* Set mib-tree root node oid */
+void
+mib_root_oid_setting(const oid_t *oid, uint32_t len)
+{
+  root_oid = oid;
+  root_oid_len = len;
+}
+
 /* Init dummy root node */
 static void
 mib_dummy_node_init(void)
 {
-  const oid_t dummy_oid[] = { 1, 3, 6, 1 };
-
-  root_oid = xmalloc(OID_ARRAY_SIZE(dummy_oid) * sizeof(oid_t));
-  oid_cpy(root_oid, dummy_oid, OID_ARRAY_SIZE(dummy_oid));
-  root_oid_len = OID_ARRAY_SIZE(dummy_oid);
-
   mib_dummy_node.type = MIB_OBJ_GROUP;
   mib_dummy_node.sub_id_cap = 1;
   mib_dummy_node.sub_id_cnt = 0;
@@ -771,6 +773,7 @@ mib_dummy_node_init(void)
   mib_dummy_node.sub_ptr[0] = NULL;
 }
 
+/* Init mib-tree */
 void
 mib_init(void)
 {
