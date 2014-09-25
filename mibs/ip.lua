@@ -18,6 +18,7 @@
 -- 
 
 local mib = require "smartsnmp"
+local utils = require "smartsnmp.utils"
 
 local ip_scalar_cache = {}
 
@@ -44,8 +45,8 @@ local ip_RouteIf_cache = {
 }
 
 local ip_NetToMedia_cache = {
-    ["2.10.2.12.1"] = { phyaddr = "0C-82-68-42-A0-A5", type = 3 },
-    ["2.10.2.12.164"] = { phyaddr = "00-1B-77-7C-E5-7C", type = 3 },
+    ["2.10.2.12.1"] = { phyaddr = utils.mac2str("0C826842A0A5"), type = 3 },
+    ["2.10.2.12.164"] = { phyaddr = utils.mac2str("001B777CE57C"), type = 3 },
 }
 
 local function __load_config()
@@ -131,7 +132,7 @@ local function ip_NetToMedia_entry_get(sub_oid, name)
     assert(type(name) == 'string')
     local value
     local key = table.concat(sub_oid, ".")
-    if ip_NetToMedia_cache[i] then
+    if ip_NetToMedia_cache[key] then
         value = ip_NetToMedia_cache[key][name]
     end
     return value
@@ -146,94 +147,94 @@ local function ip_NetToMedia_entry_set(sub_oid, v, name)
 end
 
 local ipGroup = {
-     rwcommunity = 'ipprivate',
-     [1]  = mib.Int(function () load_config() return ip_scalar_cache[1] end, function (v) ip_scalar_cache[1] = v end),
-     [2]  = mib.Int(function () load_config() return ip_scalar_cache[2] end, function (v) ip_scalar_cache[2] = v end),
-     [3]  = mib.ConstInt(function () load_config() return ip_scalar_cache[3] end),
-     [4]  = mib.ConstInt(function () load_config() return ip_scalar_cache[4] end),
-     [5]  = mib.ConstInt(function () load_config() return ip_scalar_cache[5] end),
-     [6]  = mib.ConstInt(function () load_config() return ip_scalar_cache[6] end),
-     [7]  = mib.ConstInt(function () load_config() return ip_scalar_cache[7] end),
-     [8]  = mib.ConstInt(function () load_config() return ip_scalar_cache[8] end),
-     [9]  = mib.ConstInt(function () load_config() return ip_scalar_cache[9] end),
-     [10] = mib.ConstInt(function () load_config() return ip_scalar_cache[10] end),
-     [11] = mib.ConstInt(function () load_config() return ip_scalar_cache[11] end),
-     [12] = mib.ConstInt(function () load_config() return ip_scalar_cache[12] end),
-     [13] = mib.ConstInt(function () load_config() return ip_scalar_cache[13] end),
-     [14] = mib.ConstInt(function () load_config() return ip_scalar_cache[14] end),
-     [15] = mib.ConstInt(function () load_config() return ip_scalar_cache[15] end),
-     [16] = mib.ConstInt(function () load_config() return ip_scalar_cache[16] end),
-     [17] = mib.ConstInt(function () load_config() return ip_scalar_cache[17] end),
-     [18] = mib.ConstInt(function () load_config() return ip_scalar_cache[18] end),
-     [19] = mib.ConstInt(function () load_config() return ip_scalar_cache[19] end),
-     [20] = {
-         [1] = {
-             indexes = ip_AdEnt_cache,
-             [1] = mib.ConstIpaddr(function (sub_oid) load_config() return ip_AdEnt_entry_get(sub_oid, '') end),
-             [3] = mib.ConstIpaddr(function (sub_oid) load_config() return ip_AdEnt_entry_get(sub_oid, 'mask') end),
-             [4] = mib.ConstInt(function (sub_oid) load_config() return ip_AdEnt_entry_get(sub_oid, 'bcast') end),
-         }
-     },
-     [21] = {
-         [1] = {
-             indexes = ip_RouteIf_cache,
-             [1] = mib.Ipaddr(function (sub_oid) load_config() return ip_RouteIf_entry_get(sub_oid, '') end,
-                              function (sub_oid, value) load_config() return ip_RouteIf_entry_set(sub_oid, value, '') end),
-             [7] = mib.Ipaddr(function (sub_oid) load_config() return ip_RouteIf_entry_get(sub_oid, 'next_hop') end,
-                              function (sub_oid, value) load_config() return ip_RouteIf_entry_set(sub_oid, value, 'next_hop') end),
-             [11] = mib.Ipaddr(function (sub_oid) load_config() return ip_RouteIf_entry_get(sub_oid, 'mask') end,
-                               function (sub_oid, value) load_config() return ip_RouteIf_entry_set(sub_oid, value, 'mask') end),
-         }
-     },
-     [22] = {
-         [1] = {
-             indexes = ip_NetToMedia_cache,
-             [1] = mib.Int(function (sub_oid)
-                               load_config()
-                               local index
-                               if ip_NetToMedia_cache[table.concat(sub_oid, ".")] then
-                                   index = sub_oid[1]
-                               end
-                               return index
-                           end,
-                           function (sub_oid, value)
-                               load_config()
-                               local old = ip_NetToMedia_cache[table.concat(sub_oid, ".")]
-                               if old then
-                                   sub_oid[1] = value
-                                   ip_NetToMedia_cache[table.concat(sub_oid, ".")] = old
-                                   old = nil
-                               end
-                           end),
-             [2] = mib.String(function (sub_oid) load_config() return ip_NetToMedia_entry_get(sub_oid, 'phyaddr') end,
-                              function (sub_oid, value) load_config() return ip_NetToMedia_entry_set(sub_oid, value, 'phyaddr') end),
-             [3] = mib.Ipaddr(function (sub_oid)
-                                  load_config()
-                                  local ipaddr
-                                  if ip_NetToMedia_cache[table.concat(sub_oid, ".")] then
-                                      ipaddr = {}
-                                      for i = 2, 5 do
-                                          table.insert(ipaddr, sub_oid[i])
-                                      end
-                                  end
-                                  return ipaddr
-                              end,
-                              function (sub_oid, value)
-                                  load_config()
-                                  local old = ip_NetToMedia_cache[table.concat(sub_oid, ".")]
-                                  if old then
-                                      for i = 1, 4 do
-                                          sub_oid[i + 1] = value[i]
-                                      end
-                                      ip_NetToMedia_cache[table.concat(sub_oid, ".")] = old
-                                      old = nil
-                                  end
-                              end),
-             [4] = mib.Int(function (sub_oid) load_config() return ip_NetToMedia_entry_get(sub_oid, 'type') end,
-                           function (sub_oid, value) load_config() return ip_NetToMedia_entry_set(sub_oid, value, 'type') end),
-         }
-     },
-     [23] = mib.ConstInt(function () load_config() return 0 end),
+    rwcommunity = 'ipprivate',
+    [1]  = mib.Int(function () load_config() return ip_scalar_cache[1] end, function (v) ip_scalar_cache[1] = v end),
+    [2]  = mib.Int(function () load_config() return ip_scalar_cache[2] end, function (v) ip_scalar_cache[2] = v end),
+    [3]  = mib.ConstInt(function () load_config() return ip_scalar_cache[3] end),
+    [4]  = mib.ConstInt(function () load_config() return ip_scalar_cache[4] end),
+    [5]  = mib.ConstInt(function () load_config() return ip_scalar_cache[5] end),
+    [6]  = mib.ConstInt(function () load_config() return ip_scalar_cache[6] end),
+    [7]  = mib.ConstInt(function () load_config() return ip_scalar_cache[7] end),
+    [8]  = mib.ConstInt(function () load_config() return ip_scalar_cache[8] end),
+    [9]  = mib.ConstInt(function () load_config() return ip_scalar_cache[9] end),
+    [10] = mib.ConstInt(function () load_config() return ip_scalar_cache[10] end),
+    [11] = mib.ConstInt(function () load_config() return ip_scalar_cache[11] end),
+    [12] = mib.ConstInt(function () load_config() return ip_scalar_cache[12] end),
+    [13] = mib.ConstInt(function () load_config() return ip_scalar_cache[13] end),
+    [14] = mib.ConstInt(function () load_config() return ip_scalar_cache[14] end),
+    [15] = mib.ConstInt(function () load_config() return ip_scalar_cache[15] end),
+    [16] = mib.ConstInt(function () load_config() return ip_scalar_cache[16] end),
+    [17] = mib.ConstInt(function () load_config() return ip_scalar_cache[17] end),
+    [18] = mib.ConstInt(function () load_config() return ip_scalar_cache[18] end),
+    [19] = mib.ConstInt(function () load_config() return ip_scalar_cache[19] end),
+    [20] = {
+        [1] = {
+            indexes = ip_AdEnt_cache,
+            [1] = mib.ConstIpaddr(function (sub_oid) load_config() return ip_AdEnt_entry_get(sub_oid, '') end),
+            [3] = mib.ConstIpaddr(function (sub_oid) load_config() return ip_AdEnt_entry_get(sub_oid, 'mask') end),
+            [4] = mib.ConstInt(function (sub_oid) load_config() return ip_AdEnt_entry_get(sub_oid, 'bcast') end),
+        }
+    },
+    [21] = {
+        [1] = {
+            indexes = ip_RouteIf_cache,
+            [1] = mib.Ipaddr(function (sub_oid) load_config() return ip_RouteIf_entry_get(sub_oid, '') end,
+                             function (sub_oid, value) load_config() return ip_RouteIf_entry_set(sub_oid, value, '') end),
+            [7] = mib.Ipaddr(function (sub_oid) load_config() return ip_RouteIf_entry_get(sub_oid, 'next_hop') end,
+                             function (sub_oid, value) load_config() return ip_RouteIf_entry_set(sub_oid, value, 'next_hop') end),
+            [11] = mib.Ipaddr(function (sub_oid) load_config() return ip_RouteIf_entry_get(sub_oid, 'mask') end,
+                              function (sub_oid, value) load_config() return ip_RouteIf_entry_set(sub_oid, value, 'mask') end),
+        }
+    },
+    [22] = {
+        [1] = {
+            indexes = ip_NetToMedia_cache,
+            [1] = mib.Int(function (sub_oid)
+                              load_config()
+                              local index
+                              if ip_NetToMedia_cache[table.concat(sub_oid, ".")] then
+                                  index = sub_oid[1]
+                              end
+                              return index
+                          end,
+                          function (sub_oid, value)
+                              load_config()
+                              local old = ip_NetToMedia_cache[table.concat(sub_oid, ".")]
+                              if old then
+                                  sub_oid[1] = value
+                                  ip_NetToMedia_cache[table.concat(sub_oid, ".")] = old
+                                  old = nil
+                              end
+                          end),
+            [2] = mib.String(function (sub_oid) load_config() return ip_NetToMedia_entry_get(sub_oid, 'phyaddr') end,
+                             function (sub_oid, value) load_config() return ip_NetToMedia_entry_set(sub_oid, value, 'phyaddr') end),
+            [3] = mib.Ipaddr(function (sub_oid)
+                                 load_config()
+                                 local ipaddr
+                                 if ip_NetToMedia_cache[table.concat(sub_oid, ".")] then
+                                     ipaddr = {}
+                                     for i = 2, 5 do
+                                         table.insert(ipaddr, sub_oid[i])
+                                     end
+                                 end
+                                 return ipaddr
+                             end,
+                             function (sub_oid, value)
+                                 load_config()
+                                 local old = ip_NetToMedia_cache[table.concat(sub_oid, ".")]
+                                 if old then
+                                     for i = 1, 4 do
+                                         sub_oid[i + 1] = value[i]
+                                     end
+                                     ip_NetToMedia_cache[table.concat(sub_oid, ".")] = old
+                                     old = nil
+                                 end
+                             end),
+            [4] = mib.Int(function (sub_oid) load_config() return ip_NetToMedia_entry_get(sub_oid, 'type') end,
+                          function (sub_oid, value) load_config() return ip_NetToMedia_entry_set(sub_oid, value, 'type') end),
+        }
+    },
+    [23] = mib.ConstInt(function () load_config() return 0 end),
 }
 
 return ipGroup
