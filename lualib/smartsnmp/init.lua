@@ -119,13 +119,24 @@ function _M.sh_call(command, rmode)
     return t
 end
 
--- String get/set function.
-function _M.ConstString(g)
+-- Bit String get/set function.
+function _M.ConstBitString(g)
+    assert(type(g) == 'function', 'Argument must be function type')
+    return { tag = BER_TAG_BITSTR, access = MIB_ACES_RO, get_f = g }
+end
+
+function _M.BitString(g, s)
+    assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
+    return { tag = BER_TAG_BITSTR, access = MIB_ACES_RW, get_f = g, set_f = s }
+end
+
+-- Octet String get/set function.
+function _M.ConstOctString(g)
     assert(type(g) == 'function', 'Argument must be function type')
     return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RO, get_f = g }
 end
 
-function _M.String(g, s)
+function _M.OctString(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
     return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RW, get_f = g, set_f = s }
 end

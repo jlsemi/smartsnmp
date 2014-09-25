@@ -206,7 +206,7 @@ local ipGroup = {
                                   old = nil
                               end
                           end),
-            [2] = mib.String(function (sub_oid) load_config() return ip_NetToMedia_entry_get(sub_oid, 'phyaddr') end,
+            [2] = mib.OctString(function (sub_oid) load_config() return ip_NetToMedia_entry_get(sub_oid, 'phyaddr') end,
                              function (sub_oid, value) load_config() return ip_NetToMedia_entry_set(sub_oid, value, 'phyaddr') end),
             [3] = mib.Ipaddr(function (sub_oid)
                                  load_config()

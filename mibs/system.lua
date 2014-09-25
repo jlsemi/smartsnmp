@@ -100,12 +100,12 @@ mib.module_method_register(sysMethods)
 
 local sysGroup = {
     rocommunity = 'public',
-    [sysDesc]         = mib.ConstString(function () return mib.sh_call("uname -a", "*line") end),
+    [sysDesc]         = mib.ConstOctString(function () return mib.sh_call("uname -a", "*line") end),
     [sysObjectID]     = mib.ConstOid(function () return { 1, 3, 6, 1, 2, 1, 1 } end),
     [sysUpTime]       = mib.ConstTimeticks(function () return os.difftime(os.time(), startup_time) * 100 end),
-    [sysContact]      = mib.ConstString(function () return "Me <Me@example.org>" end),
-    [sysName]         = mib.ConstString(function () return mib.sh_call("uname -n", "*line") end),
-    [sysLocation]     = mib.ConstString(function () return "Shanghai" end),
+    [sysContact]      = mib.ConstOctString(function () return "Me <Me@example.org>" end),
+    [sysName]         = mib.ConstOctString(function () return mib.sh_call("uname -n", "*line") end),
+    [sysLocation]     = mib.ConstOctString(function () return "Shanghai" end),
     [sysServices]     = mib.ConstInt(function () return 72 end),
     [sysORLastChange] = mib.ConstTimeticks(function () return os.difftime(os.time(), or_last_changed_time) * 100 end),
     [sysORTable]      = {
@@ -113,7 +113,7 @@ local sysGroup = {
             indexes = or_entry_cache,
             [sysORIndex]  = mib.ConstInt(function () return nil, mib.SNMP_ERR_STAT_UNACCESS end),
             [sysORID]     = mib.ConstOid(function (i) return or_entry_get(i, 'oid') end),
-            [sysORDesc]   = mib.ConstString(function (i) return or_entry_get(i, 'desc') end),
+            [sysORDesc]   = mib.ConstOctString(function (i) return or_entry_get(i, 'desc') end),
             [sysORUpTime] = mib.ConstTimeticks(function (i) return or_entry_get(i, 'uptime') end),
         }
     }
