@@ -19,15 +19,14 @@
  */
 
 #include <sys/socket.h>
-#include <sys/queue.h>
 #include <netinet/in.h>
 
 #include <assert.h>
 #include <stdio.h>
-#include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "agentx.h"
 #include "transport.h"
 #include "ev_loop.h"
 
@@ -37,44 +36,41 @@ struct snmp_data_entry {
   int sock;
   uint8_t *buf;
   int len;
-  struct sockaddr_in *client_sin;
 };
 
 static struct snmp_data_entry snmp_entry;
-static TRANSPORT_RECEIVER snmp_receiver;
+static TRANSPORT_RECEIVER agentx_receiver;
 
 static void
-snmp_write_handler(int sock, unsigned char flag, void *ud)
+agentx_write_handler(int sock, unsigned char flag, void *ud)
 {
   struct snmp_data_entry *entry = ud;
 
-  if (sendto(sock, entry->buf, entry->len, 0, (struct sockaddr *)entry->client_sin, sizeof(struct sockaddr_in)) == -1) {
-    perror("sendto()");
+  if (send(sock, entry->buf, entry->len, 0) == -1) {
+    perror("send()");
     snmp_event_done();
   }
 
   free(entry->buf);
-  free(entry->client_sin);
 
   snmp_event_remove(sock, flag);
 }
 
 
-/* Send snmp datagram as a UDP packet to the remote */
-  void
+/* Send angentX as TCP packet to the remote */
+void
 transport_send(uint8_t *buf, int len)
 {
   snmp_entry.buf = buf;
   snmp_entry.len = len;
-  snmp_event_add(snmp_entry.sock, SNMP_EV_WRITE, snmp_write_handler, &snmp_entry);
+  snmp_event_add(snmp_entry.sock, SNMP_EV_WRITE, agentx_write_handler, &snmp_entry);
 }
 
 static void
-snmp_read_handler(int sock, unsigned char flag, void *ud)
+agentx_read_handler(int sock, unsigned char flag, void *ud)
 {
-  socklen_t server_sz = sizeof(struct sockaddr_in);
-  int len;
   uint8_t *buf;
+  int len;
 
   buf = malloc(BUF_SIZE);
   if (buf == NULL) {
@@ -82,21 +78,15 @@ snmp_read_handler(int sock, unsigned char flag, void *ud)
     exit(EXIT_FAILURE);
   }
 
-  snmp_entry.client_sin = malloc(server_sz);
-  if (snmp_entry.client_sin == NULL) {
-    perror("malloc()");
-    exit(EXIT_FAILURE);
-  }
-
-  /* Receive UDP data, store the address of the sender in client_sin */
-  len = recvfrom(sock, buf, BUF_SIZE - 1, 0, (struct sockaddr *)snmp_entry.client_sin, &server_sz);
+  /* Receive TCP data */
+  len = recv(sock, buf, BUF_SIZE - 1, 0);
   if (len == -1) {
-    perror("recvfrom()");
+    perror("recv()");
     snmp_event_done();
   }
 
-  if (snmp_receiver != NULL) {
-    snmp_receiver(buf, len);
+  if (agentx_receiver != NULL) {
+    agentx_receiver(buf, len);
   }
 }
 
@@ -104,7 +94,7 @@ void
 transport_running(void)
 {
   snmp_event_init();
-  snmp_event_add(snmp_entry.sock, SNMP_EV_READ, snmp_read_handler, NULL);
+  snmp_event_add(snmp_entry.sock, SNMP_EV_READ, agentx_read_handler, NULL);
   snmp_event_run();
 }
 
@@ -113,9 +103,7 @@ transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 {
   struct sockaddr_in sin;
 
-  snmp_receiver = recv_cb;
-
-  snmp_entry.sock = socket(AF_INET, SOCK_DGRAM, 0);
+  agentx_datagram.sock = snmp_entry.sock = socket(AF_INET, SOCK_STREAM, 0);
   if (snmp_entry.sock < 0) {
     perror("usock");
     exit(EXIT_FAILURE);
@@ -123,11 +111,13 @@ transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 
   memset(&sin, 0, sizeof(sin));
   sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = INADDR_ANY;
-  sin.sin_port = htons(port);
+  sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  sin.sin_port = htons(705);
 
-  if (bind(snmp_entry.sock, (struct sockaddr *)&sin, sizeof(sin))) {
-    perror("bind()");
+  if (connect(snmp_entry.sock, (struct sockaddr *)&sin, sizeof(sin))) {
+    perror("connect()");
     exit(EXIT_FAILURE);
   }
+
+  agentx_receiver = recv_cb;
 }

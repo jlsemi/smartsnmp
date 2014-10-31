@@ -85,11 +85,6 @@ end
 -- setup snmp agent, load mib modules and run it.
 -------------------------------------------------------------------------------
 
-snmpd.init(port)
-
-snmpd.set_ro_community(ro_community)
-snmpd.set_rw_community(rw_community)
-
 -- load mib module with error handling
 local register_mib_module = function(oid_str, mib_module_name)
     -- TODO: check if oid is illegal
@@ -123,6 +118,13 @@ for oid_str, mib_module_name in pairs(mib_modules) do
         table.insert(mib_mod_refs, row)
     end
 end
+
+snmpd.set_ro_community(ro_community)
+snmpd.set_rw_community(rw_community)
+
+snmpd.init(port)
+
+snmpd.open()
 
 for i, v in ipairs(mib_mod_refs) do
     status, err = register_mib_module(v['oid'], v['name'])

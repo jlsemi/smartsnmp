@@ -116,7 +116,7 @@ AddOption(
 env = Environment(
   ENV = os.environ,
   LIBS = ['m', 'dl'],
-  CFLAGS = ['-std=c99', '-Wall', '-Os']
+  CFLAGS = ['-std=c99', '-g', '-Wall', '-O0'],
 )
 
 # handle options/environment varibles.
@@ -161,7 +161,7 @@ elif GetOption("transport") == 'uloop':
   env.Append(LIBS = ['ubox'])
   transport_src = env.Glob("core/uloop_transport.c")
 elif GetOption("transport") == 'built-in' or GetOption("transport") == '':
-  transport_src = env.Glob("core/transport.c") + env.Glob("core/ev_loop.c")
+  transport_src = env.Glob("core/tcp_transport.c") + env.Glob("core/ev_loop.c")
   # built-in event loop check
   if GetOption("evloop") == 'epoll':
     env.Append(CFLAGS = ["-DUSE_EPOLL"])
@@ -217,7 +217,7 @@ else:
 
 env = conf.Finish()
 
-src = env.Glob("core/asn1_*.c") + env.Glob("core/snmp_msg_*.c") + env.Glob("core/ans1_*.c") + env.Glob("core/smartsnmp.c") + env.Glob("core/mib_tree.c") + transport_src
+src = env.Glob("core/agentx_*.c") + env.Glob("core/agentx.c") + env.Glob("core/mib_tree.c") + transport_src
 
 # generate lua c module
 libsmartsnmp_core = env.SharedLibrary('build/smartsnmp/core', src, SHLIBPREFIX = '')

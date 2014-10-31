@@ -25,6 +25,7 @@
 
 #include "mib.h"
 #include "snmp.h"
+#include "util.h"
 
 static struct snmp_datagram snmp_datagram;
 
@@ -62,30 +63,30 @@ mib_instance_search(struct oid_search_res *ret_oid)
   if (ret_oid->request == SNMP_REQ_SET) {
     /* req_val */
     switch (tag(var)) {
-      case BER_TAG_INT:
+      case ASN1_TAG_INT:
         lua_pushinteger(L, integer(var));
         break;
-      case BER_TAG_OCTSTR:
+      case ASN1_TAG_OCTSTR:
         lua_pushlstring(L, octstr(var), length(var));
         break;
-      case BER_TAG_CNT:
+      case ASN1_TAG_CNT:
         lua_pushnumber(L, count(var));
         break;
-      case BER_TAG_IPADDR:
+      case ASN1_TAG_IPADDR:
         lua_pushlstring(L, (char *)ipaddr(var), length(var));
         break;
-      case BER_TAG_OBJID:
+      case ASN1_TAG_OBJID:
         lua_newtable(L);
         for (i = 0; i < length(var); i++) {
           lua_pushnumber(L, oid(var)[i]);
           lua_rawseti(L, -2, i + 1);
         }
         break;
-      case BER_TAG_GAU:
+      case ASN1_TAG_GAU:
         lua_pushnumber(L, gauge(var));
         break;
-      case BER_TAG_TIMETICKS:
-        lua_pushnumber(L, timiticks(var));
+      case ASN1_TAG_TIMETICKS:
+        lua_pushnumber(L, timeticks(var));
         break;
       default:
         lua_pushnil(L);
@@ -102,7 +103,7 @@ mib_instance_search(struct oid_search_res *ret_oid)
 
   if (lua_pcall(L, 5, 4, 0) != 0) {
     CREDO_SNMP_LOG(SNMP_LOG_ERROR, "MIB search hander %d fail: %s\n", ret_oid->callback, lua_tostring(L, -1));
-    ret_oid->exist_state = BER_TAG_NO_SUCH_OBJ;
+    ret_oid->exist_state = ASN1_TAG_NO_SUCH_OBJ;
     return 0;
   }
 
@@ -112,19 +113,19 @@ mib_instance_search(struct oid_search_res *ret_oid)
     if (ret_oid->request != SNMP_REQ_SET) {
       tag(var) = lua_tonumber(L, -1);
       switch (tag(var)) {
-        case BER_TAG_INT:
+        case ASN1_TAG_INT:
           length(var) = 1;
           integer(var) = lua_tointeger(L, -2);
           break;
-        case BER_TAG_OCTSTR:
+        case ASN1_TAG_OCTSTR:
           length(var) = lua_objlen(L, -2);
           memcpy(octstr(var), lua_tostring(L, -2), length(var));
           break;
-        case BER_TAG_CNT:
+        case ASN1_TAG_CNT:
           length(var) = 1;
           count(var) = lua_tonumber(L, -2);
           break;
-        case BER_TAG_IPADDR:
+        case ASN1_TAG_IPADDR:
           length(var) = lua_objlen(L, -2);
           for (i = 0; i < length(var); i++) {
             lua_rawgeti(L, -2, i + 1);
@@ -132,7 +133,7 @@ mib_instance_search(struct oid_search_res *ret_oid)
             lua_pop(L, 1);
           }
           break;
-        case BER_TAG_OBJID:
+        case ASN1_TAG_OBJID:
           length(var) = lua_objlen(L, -2);
           for (i = 0; i < length(var); i++) {
             lua_rawgeti(L, -2, i + 1);
@@ -140,13 +141,13 @@ mib_instance_search(struct oid_search_res *ret_oid)
             lua_pop(L, 1);
           }
           break;
-        case BER_TAG_GAU:
+        case ASN1_TAG_GAU:
           length(var) = 1;
           gauge(var) = lua_tonumber(L, -2);
           break;
-        case BER_TAG_TIMETICKS:
+        case ASN1_TAG_TIMETICKS:
           length(var) = 1;
-          timiticks(var) = lua_tonumber(L, -2);
+          timeticks(var) = lua_tonumber(L, -2);
           break;
         default:
           assert(0);
@@ -238,7 +239,7 @@ snmp_get(struct snmp_datagram *sdg)
     vb_in = list_entry(curr, struct var_bind, link);
 
     /* Search at the input oid */
-    mib_tree_search(vb_in->oid, vb_in->oid_len, &ret_oid);
+    mib_tree_search(vb_in, &ret_oid);
 
     if (ret_oid.exist_state) {
       /* Community authorization */
@@ -264,7 +265,7 @@ snmp_get(struct snmp_datagram *sdg)
     }
 
     /* Test OID encoding length. */
-    oid_len = ber_value_enc_test(vb_out->oid, vb_out->oid_len, BER_TAG_OBJID);
+    oid_len = ber_value_enc_test(vb_out->oid, vb_out->oid_len, ASN1_TAG_OBJID);
     len_len = ber_length_enc_test(oid_len);
     vb_out->vb_len = tag_len + len_len + oid_len;
 
@@ -325,7 +326,7 @@ snmp_getnext(struct snmp_datagram *sdg)
     }
 
     /* Test OID encoding length. */
-    oid_len = ber_value_enc_test(vb_out->oid, vb_out->oid_len, BER_TAG_OBJID);
+    oid_len = ber_value_enc_test(vb_out->oid, vb_out->oid_len, ASN1_TAG_OBJID);
     len_len = ber_length_enc_test(oid_len);
     vb_out->vb_len = tag_len + len_len + oid_len;
 
@@ -381,7 +382,7 @@ snmp_set(struct snmp_datagram *sdg)
     vb_out->value_len = vb_in->value_len;
     memcpy(vb_out->value, vb_in->value, vb_out->value_len);
 
-    if (ret_oid.exist_state >= BER_TAG_NO_SUCH_OBJ) {
+    if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
       /* Object not found */
       vb_out->value_type = ret_oid.exist_state;
     } else {
@@ -390,7 +391,7 @@ snmp_set(struct snmp_datagram *sdg)
     }
 
     /* Test OID encoding length. */
-    oid_len = ber_value_enc_test(vb_out->oid, vb_out->oid_len, BER_TAG_OBJID);
+    oid_len = ber_value_enc_test(vb_out->oid, vb_out->oid_len, ASN1_TAG_OBJID);
     len_len = ber_length_enc_test(oid_len);
     vb_out->vb_len = tag_len + len_len + oid_len;
 
@@ -462,7 +463,7 @@ snmp_bulkget(struct snmp_datagram *sdg)
       }
 
       /* Test OID encoding length. */
-      oid_len = ber_value_enc_test(vb_out->oid, vb_out->oid_len, BER_TAG_OBJID);
+      oid_len = ber_value_enc_test(vb_out->oid, vb_out->oid_len, ASN1_TAG_OBJID);
       len_len = ber_length_enc_test(oid_len);
       vb_out->vb_len = tag_len + len_len + oid_len;
 
@@ -524,7 +525,7 @@ var_bind_alloc(uint8_t *buf, enum snmp_err_code *err)
 
   /* OID */
   oid_t = *buf++;
-  if (oid_t != BER_TAG_OBJID) {
+  if (oid_t != ASN1_TAG_OBJID) {
     *err = SNMP_ERR_VB_TYPE;
     return NULL;
   }
@@ -533,7 +534,7 @@ var_bind_alloc(uint8_t *buf, enum snmp_err_code *err)
   buf += oid_len;
 
   /* OID decoding length test, keep from overflow. */
-  oid_dec_len = ber_value_dec_test(buf1, oid_len, BER_TAG_OBJID);
+  oid_dec_len = ber_value_dec_test(buf1, oid_len, ASN1_TAG_OBJID);
   if (oid_dec_len > MIB_OID_MAX_LEN) {
     *err = SNMP_ERR_VB_OID_LEN;
     return NULL;
@@ -555,7 +556,7 @@ var_bind_alloc(uint8_t *buf, enum snmp_err_code *err)
   }
 
   /* vb->oid_len is the actually length of oid */
-  vb->oid_len = ber_value_dec(buf1, oid_len, BER_TAG_OBJID, vb->oid);
+  vb->oid_len = ber_value_dec(buf1, oid_len, ASN1_TAG_OBJID, vb->oid);
 
   /* Value */
   vb->value_type = val_t;
@@ -582,33 +583,33 @@ pdu_hdr_parse(struct snmp_datagram *sdg, uint8_t **buffer)
   buf += ber_length_dec(buf, &ph->pdu_len);
 
   /* Request ID */
-  if (*buf++ != BER_TAG_INT) {
+  if (*buf++ != ASN1_TAG_INT) {
     err = SNMP_ERR_PDU_REQID;
     CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: %d\n", err);
     return err;
   }
   buf += ber_length_dec(buf, &ph->req_id_len);
-  ber_value_dec(buf, ph->req_id_len, BER_TAG_INT, &ph->req_id);
+  ber_value_dec(buf, ph->req_id_len, ASN1_TAG_INT, &ph->req_id);
   buf += ph->req_id_len;
 
   /* Error status */
-  if (*buf++ != BER_TAG_INT) {
+  if (*buf++ != ASN1_TAG_INT) {
     err = SNMP_ERR_PDU_ERRSTAT;
     CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: %d\n", err);
     return err;
   }
   buf += ber_length_dec(buf, &ph->err_stat_len);
-  ber_value_dec(buf, ph->err_stat_len, BER_TAG_INT, &ph->err_stat);
+  ber_value_dec(buf, ph->err_stat_len, ASN1_TAG_INT, &ph->err_stat);
   buf += ph->err_stat_len;
 
   /* Error index */
-  if (*buf++ != BER_TAG_INT) {
+  if (*buf++ != ASN1_TAG_INT) {
     err = SNMP_ERR_PDU_ERRIDX;
     CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: %d\n", err);
     return err;
   }
   buf += ber_length_dec(buf, &ph->err_idx_len);
-  ber_value_dec(buf, ph->err_idx_len, BER_TAG_INT, &ph->err_idx);
+  ber_value_dec(buf, ph->err_idx_len, ASN1_TAG_INT, &ph->err_idx);
   buf += ph->err_idx_len;
 
   *buffer = buf;
@@ -620,7 +621,7 @@ static SNMP_ERR_CODE_E
 var_bind_parse(struct snmp_datagram *sdg, uint8_t **buffer)
 {
   SNMP_ERR_CODE_E err;
-  struct var_bind *vb = NULL;
+  struct var_bind *vb;
   uint8_t *buf;
   uint32_t vb_len, len_len;
   const uint32_t tag_len = 1;
@@ -628,7 +629,7 @@ var_bind_parse(struct snmp_datagram *sdg, uint8_t **buffer)
   err = SNMP_ERR_OK;
   buf = *buffer;
 
-  if (*buf++ != BER_TAG_SEQ) {
+  if (*buf++ != ASN1_TAG_SEQ) {
     err = SNMP_ERR_VB_TYPE;
     CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: %d\n", err);
     return err;
@@ -637,7 +638,7 @@ var_bind_parse(struct snmp_datagram *sdg, uint8_t **buffer)
 
   while (sdg->vb_list_len > 0) {
     /* check vb_list type */
-    if (*buf++ != BER_TAG_SEQ) {
+    if (*buf++ != ASN1_TAG_SEQ) {
       err = SNMP_ERR_VB_TYPE;
       CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: %d\n", err);
       break;
@@ -664,7 +665,7 @@ var_bind_parse(struct snmp_datagram *sdg, uint8_t **buffer)
 
 /* Decode snmp datagram */
 static void
-asn1_decode(struct snmp_datagram *sdg)
+snmp_decode(struct snmp_datagram *sdg)
 {
   SNMP_ERR_CODE_E err;
   uint8_t *buffer, dec_fail = 0;
@@ -675,17 +676,17 @@ asn1_decode(struct snmp_datagram *sdg)
   buffer += ber_length_dec(buffer, &snmp_datagram.data_len);
 
   /* Version */
-  if (*buffer++ != BER_TAG_INT) {
+  if (*buffer++ != ASN1_TAG_INT) {
     CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: %d\n", SNMP_ERR_PDU_TYPE);
     dec_fail = 1;
     goto DECODE_FINISH;
   }
   buffer += ber_length_dec(buffer, &sdg->ver_len);
-  ber_value_dec(buffer, sdg->ver_len, BER_TAG_INT, &sdg->version);
+  ber_value_dec(buffer, sdg->ver_len, ASN1_TAG_INT, &sdg->version);
   buffer += sdg->ver_len;
 
   /* Community */
-  if (*buffer++ != BER_TAG_OCTSTR) {
+  if (*buffer++ != ASN1_TAG_OCTSTR) {
     CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: %d\n", SNMP_ERR_PDU_TYPE);
     dec_fail = 1;
     goto DECODE_FINISH;
@@ -696,7 +697,7 @@ asn1_decode(struct snmp_datagram *sdg)
     dec_fail = 1;
     goto DECODE_FINISH;
   }
-  ber_value_dec(buffer, sdg->comm_len, BER_TAG_OCTSTR, sdg->community);
+  ber_value_dec(buffer, sdg->comm_len, ASN1_TAG_OCTSTR, sdg->community);
   buffer += sdg->comm_len;
 
   /* PDU header */
@@ -721,12 +722,13 @@ DECODE_FINISH:
     snmp_msg_clear(sdg);
   }
 
-  /* We should free receive buffer here */
+  /* We should free received buffer here */
   free(sdg->recv_buf);
 }
 
 /* Receive snmp datagram from transport module */
-void snmp_recv(uint8_t *buffer, int len, void *arg)
+void
+snmpd_recv(uint8_t *buffer, int len, void *arg)
 {
   uint32_t len_len;
   const uint32_t tag_len = 1;
@@ -735,7 +737,7 @@ void snmp_recv(uint8_t *buffer, int len, void *arg)
 
   /* Check buffer type and length. */
   len_len = ber_length_dec(buffer + tag_len, &snmp_datagram.data_len);
-  if (buffer[0] != BER_TAG_SEQ || tag_len + len_len + snmp_datagram.data_len != len) {
+  if (buffer[0] != ASN1_TAG_SEQ || tag_len + len_len + snmp_datagram.data_len != len) {
     CREDO_SNMP_LOG(SNMP_LOG_ERROR, "ERR: %d\n", SNMP_ERR_PDU_LEN);
     free(buffer);
     return;
@@ -747,8 +749,8 @@ void snmp_recv(uint8_t *buffer, int len, void *arg)
   INIT_LIST_HEAD(&snmp_datagram.vb_in_list);
   INIT_LIST_HEAD(&snmp_datagram.vb_out_list);
 
-  /* Decode asn.1 data */
-  asn1_decode(&snmp_datagram);
+  /* Decode snmp datagram */
+  snmp_decode(&snmp_datagram);
 
   /* Invoke relavant events. */
   event_invoke(&snmp_datagram);

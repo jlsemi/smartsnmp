@@ -23,38 +23,30 @@
 
 #include <stdint.h>
 
-#define HTON16(x) NTOH16(x)
-#define HTON32(x) NTOH32(x)
-
-#define NTOH16(x) \
-  ((uint16_t)((((uint16_t)(x) & 0x00ff) << 8) | \
-  (((uint16_t)(x) & 0xff00) >> 8)))
-
-#define NTOH32(x) \
-  ((uint32_t)((((uint32_t)(x) & 0x000000ffU) << 24) | \
-  (((uint32_t)(x) & 0x0000ff00U) << 8) | \
-  (((uint32_t)(x) & 0x00ff0000U) >> 8) | \
-  (((uint32_t)(x) & 0xff000000U) >> 24)))
-
-/* BER tags */
-#define BER_TAG_BOOL            0x01
-#define BER_TAG_INT             0x02
-#define BER_TAG_BITSTR          0x03
-#define BER_TAG_OCTSTR          0x04
-#define BER_TAG_NUL             0x05
-#define BER_TAG_OBJID           0x06
-#define BER_TAG_SEQ             0x30
-#define BER_TAG_IPADDR          0x40
-#define BER_TAG_CNT             0x41
-#define BER_TAG_GAU             0x42
-#define BER_TAG_TIMETICKS       0x43
-#define BER_TAG_OPAQ            0x44
-#define BER_TAG_NO_SUCH_OBJ     0x80
-#define BER_TAG_NO_SUCH_INST    0x81
-#define BER_TAG_END_OF_MIB_VIEW 0x82
-
 #define MIB_OID_MAX_LEN       64
 #define MIB_VALUE_MAX_LEN     (1024)
+
+#define OID_ARRAY_SIZE(arr)     (sizeof(arr) / sizeof(arr[0]))
+
+/* ASN1 variable type */
+enum asn1_variable_type {
+  ASN1_TAG_BOOL            = 0x01,
+  ASN1_TAG_INT             = 0x02,
+  ASN1_TAG_BITSTR          = 0x03,
+  ASN1_TAG_OCTSTR          = 0x04,
+  ASN1_TAG_NUL             = 0x05,
+  ASN1_TAG_OBJID           = 0x06,
+  ASN1_TAG_SEQ             = 0x30,
+  ASN1_TAG_IPADDR          = 0x40,
+  ASN1_TAG_CNT             = 0x41,
+  ASN1_TAG_GAU             = 0x42,
+  ASN1_TAG_TIMETICKS       = 0x43,
+  ASN1_TAG_OPAQ            = 0x44,
+  ASN1_TAG_CNT64           = 0x46,
+  ASN1_TAG_NO_SUCH_OBJ     = 0x80,
+  ASN1_TAG_NO_SUCH_INST    = 0x81,
+  ASN1_TAG_END_OF_MIB_VIEW = 0x82,
+};
 
 uint32_t ber_value_enc_test(const void *value, uint32_t len, uint8_t type);
 uint32_t ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf);
@@ -69,11 +61,12 @@ uint32_t ber_length_dec(const uint8_t *buf, uint32_t *value);
 /* A map of simple data type syntax between ANSI C and ASN.1 */
 typedef int integer_t;
 typedef char octstr_t;
+typedef char opaq_t;
+typedef unsigned char ipaddr_t;
+typedef unsigned int oid_t;
 typedef unsigned int count_t;
 typedef unsigned int count32_t;
 typedef unsigned long count64_t;
-typedef unsigned short oid_t;
-typedef unsigned char ipaddr_t;
 typedef unsigned int gauge_t;
 typedef unsigned int timeticks_t;
 
@@ -84,9 +77,12 @@ typedef struct {
   union {
     integer_t i;
     count_t c;
+    count32_t c32;
+    count64_t c64;
     ipaddr_t ip[6];
     octstr_t s[MIB_VALUE_MAX_LEN];
-    oid_t o[MIB_OID_MAX_LEN];
+    opaq_t o[MIB_VALUE_MAX_LEN];
+    oid_t id[MIB_OID_MAX_LEN];
     gauge_t g;
     timeticks_t t;
   } value;
@@ -96,11 +92,14 @@ typedef struct {
 #define length(var) ((var)->len)
 #define value(var) ((void *)&((var)->value))
 #define integer(var) ((var)->value.i)
+#define opaque(var) ((var)->value.o)
 #define octstr(var) ((var)->value.s)
 #define count(var) ((var)->value.c)
-#define oid(var) ((var)->value.o)
+#define count32(var) ((var)->value.c32)
+#define count64(var) ((var)->value.c64)
+#define oid(var) ((var)->value.id)
 #define ipaddr(var) ((var)->value.ip)
 #define gauge(var) ((var)->value.g)
-#define timiticks(var) ((var)->value.t)
+#define timeticks(var) ((var)->value.t)
 
 #endif /* _ANS1_H_ */

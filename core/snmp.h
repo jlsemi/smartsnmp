@@ -62,14 +62,16 @@
 #endif
 
 /* SNMP request type */
-#define SNMP_REQ_GET        0xA0
-#define SNMP_REQ_GETNEXT    0xA1
-#define SNMP_RESP           0xA2
-#define SNMP_REQ_SET        0xA3
-#define SNMP_REQ_BULKGET    0xA5
-#define SNMP_REQ_INF        0xA6
-#define SNMP_TRAP           0xA7
-#define SNMP_REPO           0xA8
+typedef enum snmp_request {
+  SNMP_REQ_GET = 0xA0,
+  SNMP_REQ_GETNEXT,
+  SNMP_RESP,
+  SNMP_REQ_SET,
+  SNMP_REQ_BULKGET,
+  SNMP_REQ_INF,
+  SNMP_TRAP,
+  SNMP_REPO,
+} SNMP_REQ_E;
 
 /* vocal information */
 typedef enum snmp_log_level {
@@ -120,10 +122,9 @@ typedef enum snmp_err_code {
   SNMP_ERR_PDU_ERRIDX   = -104,
 
   SNMP_ERR_VB_TYPE      = -200,
-  SNMP_ERR_VB_LEN       = -201,
-  SNMP_ERR_VB_VAR       = -202,
-  SNMP_ERR_VB_VALUE_LEN = -203,
-  SNMP_ERR_VB_OID_LEN   = -204,
+  SNMP_ERR_VB_VAR       = -201,
+  SNMP_ERR_VB_VALUE_LEN = -202,
+  SNMP_ERR_VB_OID_LEN   = -203,
 } SNMP_ERR_CODE_E;
 
 struct var_bind {
@@ -177,73 +178,7 @@ struct snmp_datagram {
 };
 
 void snmp_send_response(struct snmp_datagram *sdg);
-void snmp_recv(uint8_t *buffer, int len, void *arg);
+void snmpd_recv(uint8_t *buffer, int len, void *arg);
 void snmpd_send(uint8_t *buf, int len);
-
-#include <stdarg.h>
-
-static inline void
-report(const char *prefix, const char *err, va_list params)
-{
-  fputs(prefix, stderr);
-  vfprintf(stderr, err, params);
-  fputs("\n", stderr);
-}
-
-static inline void
-usage(const char *err)
-{
-  fprintf(stderr, "usage: %s\n", err);
-  exit(1);
-}
-
-static inline void
-die(const char *err, ...)
-{
-  va_list params;
-
-  va_start(params, err);
-  report("fatal: ", err, params);
-  va_end(params);
-  exit(1);
-}
-
-static inline int
-error(const char *err, ...)
-{
-  va_list params;
-
-  va_start(params, err);
-  report("error: ", err, params);
-  va_end(params);
-  return -1;
-}
-
-static inline void *
-xmalloc(int size)
-{
-  void *ret = malloc(size);
-  if (!ret)
-    die("Out of memory, malloc failed");
-  return ret;
-}
-
-static inline void *
-xrealloc(void *ptr, int size)
-{
-  void *ret = realloc(ptr, size);
-  if (!ret)
-    die("Out of memory, realloc failed");
-  return ret;
-}
-
-static inline void *
-xcalloc(int nr, int size)
-{
-  void *ret = calloc(nr, size);
-  if (!ret)
-    die("Out of memory, calloc failed");
-  return ret;
-}
 
 #endif /* _SNMP_H_ */

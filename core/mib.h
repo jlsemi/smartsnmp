@@ -22,6 +22,7 @@
 #define _MIB_H_
 
 #include "asn1.h"
+#include "agentx.h"
 
 #define MIB_OBJ_UNKNOWN         0
 #define MIB_OBJ_GROUP           1
@@ -63,7 +64,7 @@ struct mib_instance_node {
   int callback;
 };
 
-oid_t * oid_dup(const oid_t *oid, uint32_t len);
+oid_t *oid_dup(const oid_t *oid, uint32_t len);
 oid_t *oid_cpy(oid_t *oid_dest, const oid_t *oid_src, uint32_t len);
 int oid_cmp(const oid_t *src, uint32_t src_len, const oid_t *target, uint32_t tar_len);
 
@@ -71,6 +72,7 @@ void mib_handler_unref(int handler);
 int mib_instance_search(struct oid_search_res *ret_oid);
 struct mib_node *mib_tree_search(const oid_t *oid, uint32_t id_len, struct oid_search_res *ret_oid);
 struct mib_node *mib_tree_search_next(const oid_t *oid, uint32_t id_len, struct oid_search_res *ret_oid);
+struct mib_node *x_mib_tree_search_next(struct x_search_range *sr, struct oid_search_res *ret_oid);
 
 int mib_node_reg(const oid_t *oid, uint32_t id_len, int callback);
 void mib_node_unreg(const oid_t *oid, uint32_t id_len);

@@ -25,6 +25,7 @@
 
 #include "mib.h"
 #include "snmp.h"
+#include "util.h"
 
 /* Dummy root node */
 static struct mib_group_node mib_dummy_node = {
@@ -54,13 +55,16 @@ oid_dup(const oid_t *oid, uint32_t len)
 int
 oid_cmp(const oid_t *src, uint32_t src_len, const oid_t *target, uint32_t tar_len)
 {
-  int ret;
+  int ret = 0;
 
-  while (tar_len-- && src_len-- && !(ret = (int)(*src++ - *target++)))
+  while (src_len && tar_len && !(ret = (int)(*src++ - *target++))) {
+    src_len--;
+    tar_len--;
     continue;
+  }
 
   if (!ret)
-    return src_len;
+    return src_len - tar_len;
   else
     return ret;
 }
@@ -135,7 +139,7 @@ mib_tree_search(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_r
           /* Sub-id not found */
           ret_oid->inst_id = oid;
           ret_oid->inst_id_len = id_len;
-          ret_oid->exist_state = BER_TAG_NO_SUCH_OBJ;
+          ret_oid->exist_state = ASN1_TAG_NO_SUCH_OBJ;
           return node;
         }
 
@@ -157,9 +161,9 @@ mib_tree_search(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_r
   ret_oid->inst_id = oid;
   ret_oid->inst_id_len = id_len;
   if (node && node->type == MIB_OBJ_INSTANCE) {
-    ret_oid->exist_state = BER_TAG_NO_SUCH_INST;
+    ret_oid->exist_state = ASN1_TAG_NO_SUCH_INST;
   } else {
-    ret_oid->exist_state = BER_TAG_NO_SUCH_OBJ;
+    ret_oid->exist_state = ASN1_TAG_NO_SUCH_OBJ;
   }
   return node;
 }
@@ -243,11 +247,9 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
 
       case MIB_OBJ_GROUP:
         gn = (struct mib_group_node *)node;
-
         if (immediate) {
           /* Fetch the immediate instance node. */
           int i;
-
           if (p_nbl != NULL) {
             /* Fetch the sub-id next to the pop-up backlogged one. */
             i = p_nbl->n_idx;
@@ -273,11 +275,9 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
           /* Search the match sub-id */
           int index = oid_binary_search(gn->sub_id, gn->sub_id_cnt, *oid);
           int i = index;
-
           if (index < 0) {
             /* Not found, switch to the immediate search mode */
             immediate = 1;
-
             /* Reverse the sign to locate the right position. */
             i = -i - 1;
             if (i == gn->sub_id_cnt) {
@@ -320,7 +320,6 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
 
       case MIB_OBJ_INSTANCE:
         in = (struct mib_instance_node *)node;
-
         if (immediate || id_len == 0) {
           /* Fetch the first instance variable */
           ret_oid->inst_id_len = 0;
@@ -328,7 +327,6 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
           /* Search the closest instance whose oid is greater than the target */
           ret_oid->inst_id_len = id_len;
         }
-
         /* Find instance variable through lua handler function */
         ret_oid->inst_id = oid;
         ret_oid->callback = in->callback;
@@ -338,7 +336,6 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
           assert(ret_oid->id_len <= MIB_OID_MAX_LEN);
           return node;
         }
-
         break;  /* Instance not found */
 
       default:
@@ -347,7 +344,7 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
 
     /* Backtracking condition:
      * 1. No greater sub-id in group node;
-     * 2. Seek the immediate closest instance node.
+     * 2. Seek the immediate closest instance node;
      * 3. Node not exists(node == NULL).
      */
     p_nbl = nbl_pop(&stk_top, &stk_buttom);
@@ -357,8 +354,175 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
       ret_oid->id_len = orig_id_len;
       ret_oid->inst_id = NULL;
       ret_oid->inst_id_len = 0;
-      ret_oid->exist_state = BER_TAG_END_OF_MIB_VIEW;
+      ret_oid->exist_state = ASN1_TAG_END_OF_MIB_VIEW;
       return (struct mib_node *)&mib_dummy_node;
+    }
+    oid--;  /* OID length is ignored once backtracking. */
+    node = p_nbl->node;
+    immediate = 1;  /* Switch to the immediate search mode. */
+  }
+
+  assert(0);
+  return node;
+}
+
+/* GETNEXT request search, depth-first traversal in mib-tree, find the closest next oid. */
+struct mib_node *
+x_mib_tree_search_next(struct x_search_range *sr, struct oid_search_res *ret_oid)
+{
+  oid_t *oid;
+  uint32_t id_len;
+  uint8_t immediate; /* This is the search state indicator */
+  struct node_backlog nbl, *p_nbl;
+  struct node_backlog nbl_stk[MIB_OID_MAX_LEN];
+  struct node_backlog *stk_top, *stk_buttom;
+  struct mib_node *node;
+  struct mib_group_node *gn;
+  struct mib_instance_node *in;
+
+  /* Init something */
+  oid = oid_dup(sr->start, sr->start_len);
+  id_len = sr->start_len;
+  if (sr->start_include) {
+    immediate = 1;
+  } else {
+    immediate = 0;
+  }
+  p_nbl = NULL;
+  node = (struct mib_node *)&mib_dummy_node;
+  stk_top = stk_buttom = nbl_stk;
+  ret_oid->oid = oid;
+  ret_oid->id_len = id_len;
+  ret_oid->inst_id = NULL;
+  ret_oid->inst_id_len = 0;
+  ret_oid->exist_state = 0;
+
+  for (; ;) {
+
+    if (node != NULL)
+    switch (node->type) {
+
+      case MIB_OBJ_GROUP:
+        gn = (struct mib_group_node *)node;
+        if (immediate) {
+          /* Fetch the immediate instance node. */
+          int i;
+          if (p_nbl != NULL) {
+            /* Fetch the sub-id next to the pop-up backlogged one. */
+            i = p_nbl->n_idx;
+            p_nbl = NULL;
+          } else {
+            /* Fetch the first sub-id. */
+            i = 0;
+          }
+
+          /* Check if oid exceeds search range */
+          *oid++ = gn->sub_id[i];
+          if ((sr->end_include && oid_cmp(ret_oid->oid, (oid - ret_oid->oid) / sizeof(oid_t), sr->end, sr->end_len) > 0) ||
+            (!sr->end_include && oid_cmp(ret_oid->oid, (oid - ret_oid->oid) / sizeof(oid_t), sr->end, sr->end_len) >= 0)) {
+            /* end_of_mib_view */
+            oid_cpy(ret_oid->oid, sr->start, sr->start_len);
+            ret_oid->id_len = sr->start_len;
+            ret_oid->inst_id = NULL;
+            ret_oid->inst_id_len = 0;
+            ret_oid->exist_state = ASN1_TAG_END_OF_MIB_VIEW;
+            return NULL;
+          }
+
+          if (i + 1 >= gn->sub_id_cnt) {
+            /* Last sub-id, mark NULL and -1. */
+            nbl.node = NULL;
+            nbl.n_idx = -1;
+          } else {
+            nbl.node = node;
+            nbl.n_idx = i + 1;
+          }
+          /* Backlog the current node and move on. */
+          nbl_push(&nbl, &stk_top, &stk_buttom);
+          node = gn->sub_ptr[i];
+        } else {
+          /* Search the match sub-id */
+          int index = oid_binary_search(gn->sub_id, gn->sub_id_cnt, *oid);
+          int i = index;
+          if (index < 0) {
+            /* Not found, switch to the immediate search mode */
+            immediate = 1;
+            /* Reverse the sign to locate the right position. */
+            i = -i - 1;
+            if (i == gn->sub_id_cnt) {
+              /* All sub-ids are greater than the target;
+               * Backtrack and fetch the next one. */
+              break;
+            } else if (i == 0) {
+              /* 1. All sub-ids are less than the target;
+               * 2. No sub-id in this group node;
+               * Just switch to the immediate search mode */
+              continue;
+            } /* else {
+              Target is between the two sub-ids and [i] is the next one,
+              switch to immediate mode and move on.
+            } */
+          }
+
+          /* Sub-id found is greater or just equal to the target,
+           * Anyway, record the next node and push it into stack. */
+          if (i + 1 >= gn->sub_id_cnt) {
+            /* Last sub-id, mark NULL and -1. */
+            nbl.node = NULL;
+            nbl.n_idx = -1;
+          } else {
+            nbl.node = node;
+            nbl.n_idx = i + 1;
+          }
+          /* Backlog the current node and move on. */
+          nbl_push(&nbl, &stk_top, &stk_buttom);
+          *oid++ = gn->sub_id[i];
+          node = gn->sub_ptr[i];
+          if (--id_len == 0 && node->type == MIB_OBJ_GROUP) {
+            /* When oid length is decreased to zero, switch to the immediate mode */
+            immediate = 1;
+          }
+        }
+        continue; /* Go on loop */
+
+      case MIB_OBJ_INSTANCE:
+        in = (struct mib_instance_node *)node;
+        if (immediate || id_len == 0) {
+          /* Fetch the first instance variable */
+          ret_oid->inst_id_len = 0;
+        } else {
+          /* Search the closest instance whose oid is greater than the target */
+          ret_oid->inst_id_len = id_len;
+        }
+        /* Find instance variable through lua handler function */
+        ret_oid->inst_id = oid;
+        ret_oid->callback = in->callback;
+        ret_oid->exist_state = mib_instance_search(ret_oid);
+        if (ret_oid->exist_state == 0) {
+          ret_oid->id_len = oid - ret_oid->oid + ret_oid->inst_id_len;
+          assert(ret_oid->id_len <= MIB_OID_MAX_LEN);
+          return node;
+        }
+        break;  /* Instance not found */
+
+      default:
+        assert(0);
+    }
+
+    /* Backtracking condition:
+     * 1. No greater sub-id in group node;
+     * 2. Seek the immediate closest instance node;
+     * 3. Node not exists(node == NULL).
+     */
+    p_nbl = nbl_pop(&stk_top, &stk_buttom);
+    if (p_nbl == NULL) {
+      /* End of traversal. */
+      oid_cpy(ret_oid->oid, sr->start, sr->start_len);
+      ret_oid->id_len = sr->start_len;
+      ret_oid->inst_id = NULL;
+      ret_oid->inst_id_len = 0;
+      ret_oid->exist_state = ASN1_TAG_END_OF_MIB_VIEW;
+      return NULL;
     }
     oid--;  /* OID length is ignored once backtracking. */
     node = p_nbl->node;
@@ -386,7 +550,6 @@ is_raw_group(struct mib_group_node *gn)
 }
 
 /* Resize group node's sub-id array */
-#define alloc_nr(x) (((x)+2)*3/2)
 static void
 group_node_expand(struct mib_group_node *gn, int index)
 {

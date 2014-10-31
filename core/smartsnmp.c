@@ -38,7 +38,7 @@ static lua_State *l_state;
 void
 snmpd_receive(uint8_t *buf, int len)
 {
-  snmp_recv(buf, len, l_state);
+  snmpd_recv(buf, len, l_state);
 }
 
 /* Send SNMP response datagram to transport layer */

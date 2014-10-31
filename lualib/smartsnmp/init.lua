@@ -44,21 +44,21 @@ local SNMP_REQ_INF        = 0xA6
 local SNMP_TRAP           = 0xA7
 local SNMP_REPO           = 0xA8
 
--- BER tag
-local BER_TAG_BOOL              = 0x01
-local BER_TAG_INT               = 0x02
-local BER_TAG_BITSTR            = 0x03
-local BER_TAG_OCTSTR            = 0x04
-local BER_TAG_NUL               = 0x05
-local BER_TAG_OBJID             = 0x06
-local BER_TAG_SEQ               = 0x30
-local BER_TAG_IPADDR            = 0x40
-local BER_TAG_CNT               = 0x41
-local BER_TAG_GAU               = 0x42
-local BER_TAG_TIMETICKS         = 0x43
-local BER_TAG_OPAQ              = 0x44
-local BER_TAG_NO_SUCH_OBJ       = 0x80
-local BER_TAG_NO_SUCH_INST      = 0x81
+-- ASN1 tag
+local ASN1_TAG_BOOL              = 0x01
+local ASN1_TAG_INT               = 0x02
+local ASN1_TAG_BITSTR            = 0x03
+local ASN1_TAG_OCTSTR            = 0x04
+local ASN1_TAG_NUL               = 0x05
+local ASN1_TAG_OBJID             = 0x06
+local ASN1_TAG_SEQ               = 0x30
+local ASN1_TAG_IPADDR            = 0x40
+local ASN1_TAG_CNT               = 0x41
+local ASN1_TAG_GAU               = 0x42
+local ASN1_TAG_TIMETICKS         = 0x43
+local ASN1_TAG_OPAQ              = 0x44
+local ASN1_TAG_NO_SUCH_OBJ       = 0x80
+local ASN1_TAG_NO_SUCH_INST      = 0x81
 
 -- Error status
 -- v1
@@ -122,89 +122,89 @@ end
 -- Bit String get/set function.
 function _M.ConstBitString(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { tag = BER_TAG_BITSTR, access = MIB_ACES_RO, get_f = g }
+    return { tag = ASN1_TAG_BITSTR, access = MIB_ACES_RO, get_f = g }
 end
 
 function _M.BitString(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { tag = BER_TAG_BITSTR, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = ASN1_TAG_BITSTR, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Octet String get/set function.
 function _M.ConstOctString(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RO, get_f = g }
+    return { tag = ASN1_TAG_OCTSTR, access = MIB_ACES_RO, get_f = g }
 end
 
 function _M.OctString(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { tag = BER_TAG_OCTSTR, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = ASN1_TAG_OCTSTR, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Integer get/set function.
 function _M.ConstInt(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { tag = BER_TAG_INT, access = MIB_ACES_RO, get_f = g }
+    return { tag = ASN1_TAG_INT, access = MIB_ACES_RO, get_f = g }
 end
 
 function _M.Int(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { tag = BER_TAG_INT, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = ASN1_TAG_INT, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Count get/set function.
 function _M.ConstCount(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { tag = BER_TAG_CNT, access = MIB_ACES_RO, get_f = g }
+    return { tag = ASN1_TAG_CNT, access = MIB_ACES_RO, get_f = g }
 end
 
 function _M.Count(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { tag = BER_TAG_CNT, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = ASN1_TAG_CNT, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- IP address get/set function.
 function _M.ConstIpaddr(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { tag = BER_TAG_IPADDR, access = MIB_ACES_RO, get_f = g }
+    return { tag = ASN1_TAG_IPADDR, access = MIB_ACES_RO, get_f = g }
 end
 
 function _M.Ipaddr(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { tag = BER_TAG_IPADDR, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = ASN1_TAG_IPADDR, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Oid get/set function for RO.
 function _M.ConstOid(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { tag = BER_TAG_OBJID, access = MIB_ACES_RO, get_f = g }
+    return { tag = ASN1_TAG_OBJID, access = MIB_ACES_RO, get_f = g }
 end
 
 function _M.Oid(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { tag = BER_TAG_OBJID, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = ASN1_TAG_OBJID, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Timeticks get/set function.
 function _M.ConstTimeticks(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RO, get_f = g }
+    return { tag = ASN1_TAG_TIMETICKS, access = MIB_ACES_RO, get_f = g }
 end
 
 function _M.Timeticks(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { tag = BER_TAG_TIMETICKS, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = ASN1_TAG_TIMETICKS, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 -- Gauge get/set function.
 function _M.ConstGauge(g)
     assert(type(g) == 'function', 'Argument must be function type')
-    return { tag = BER_TAG_GAU, access = MIB_ACES_RO, get_f = g }
+    return { tag = ASN1_TAG_GAU, access = MIB_ACES_RO, get_f = g }
 end
 
 function _M.Gauge(g, s)
     assert(type(g) == 'function' and type(s) == 'function', 'Arguments must be function type')
-    return { tag = BER_TAG_GAU, access = MIB_ACES_RW, get_f = g, set_f = s }
+    return { tag = ASN1_TAG_GAU, access = MIB_ACES_RW, get_f = g, set_f = s }
 end
 
 --
@@ -515,17 +515,17 @@ local function group_index_table_getnext(oid, it)
 end
 
 local ber_tag_match = {
-    [BER_TAG_BOOL] = { t = 'BER_TAG_BOOL', m = 'number' },
-    [BER_TAG_INT] = { t = 'BER_TAG_INT', m = 'number' },
-    [BER_TAG_BITSTR] = { t = 'BER_TAG_BITSTR', m = 'string' },
-    [BER_TAG_OCTSTR] = { t = 'BER_TAG_OCTSTR', m = 'string' },
-    [BER_TAG_NUL] = { t = 'BER_TAG_NUL', m = 'nil' },
-    [BER_TAG_OBJID] = { t = 'BER_TAG_OBJID', m = 'table' },
-    [BER_TAG_IPADDR] = { t = 'BER_TAG_IPADDR', m = 'table' },
-    [BER_TAG_CNT] = { t = 'BER_TAG_CNT', m = 'number' },
-    [BER_TAG_GAU] = { t = 'BER_TAG_GAU', m = 'number' },
-    [BER_TAG_TIMETICKS] = { t = 'BER_TAG_TIMETICKS', m = 'number' },
-    [BER_TAG_OPAQ] = { t = 'BER_TAG_OPAQ', m = 'number' },
+    [ASN1_TAG_BOOL] = { t = 'ASN1_TAG_BOOL', m = 'number' },
+    [ASN1_TAG_INT] = { t = 'ASN1_TAG_INT', m = 'number' },
+    [ASN1_TAG_BITSTR] = { t = 'ASN1_TAG_BITSTR', m = 'string' },
+    [ASN1_TAG_OCTSTR] = { t = 'ASN1_TAG_OCTSTR', m = 'string' },
+    [ASN1_TAG_NUL] = { t = 'ASN1_TAG_NUL', m = 'nil' },
+    [ASN1_TAG_OBJID] = { t = 'ASN1_TAG_OBJID', m = 'table' },
+    [ASN1_TAG_IPADDR] = { t = 'ASN1_TAG_IPADDR', m = 'table' },
+    [ASN1_TAG_CNT] = { t = 'ASN1_TAG_CNT', m = 'number' },
+    [ASN1_TAG_GAU] = { t = 'ASN1_TAG_GAU', m = 'number' },
+    [ASN1_TAG_TIMETICKS] = { t = 'ASN1_TAG_TIMETICKS', m = 'number' },
+    [ASN1_TAG_OPAQ] = { t = 'ASN1_TAG_OPAQ', m = 'number' },
 }
  
 local function return_value_check(g, v, t)
@@ -621,7 +621,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
 
             err_stat = variable.set_f(inst_no, rsp_val)
         else
-            return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, rsp_val, rsp_val_type
+            return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, rsp_val, rsp_val_type
         end
 
         return_value_check(name, rsp_val, rsp_val_type)
@@ -656,11 +656,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             local scalar = group[obj_no]
             -- Check access
             if scalar.access == MIB_ACES_UNA then
-                return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+                return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
             end
             -- Check existence
             if not(#req_sub_oid == 2 and req_sub_oid[2] == 0) then
-                return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
+                return ASN1_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
             end
             rsp_val, err_stat = scalar.get_f()
             rsp_val_type = scalar.tag
@@ -671,12 +671,12 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             local var_no = req_sub_oid[3]
             local tab = group[table_no]
             if #req_sub_oid < 3 or tab[entry_no] == nil or tab[entry_no][var_no] == nil then
-                return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+                return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
             end
             -- Check access
             local variable = tab[entry_no][var_no]
             if variable.access == MIB_ACES_UNA then
-                return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+                return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
             end
             -- Check instance existence
             local inst_no
@@ -690,17 +690,17 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
             end
             if type(inst_no) == 'number' and inst_no == nil or
                type(inst_no) == 'table' and next(inst_no) == nil then
-                return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
+                return ASN1_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
             end
             -- Get instance value
             rsp_val, err_stat = variable.get_f(inst_no)
             rsp_val_type = variable.tag
         else
-            return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+            return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
         end
 
         if rsp_val == nil or rsp_val_type == nil then
-            return BER_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
+            return ASN1_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
         end
 
         return_value_check(name, rsp_val, rsp_val_type)
@@ -786,7 +786,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         until rsp_val and rsp_val_type and variable.access ~= MIB_ACES_UNA
 
         if next(rsp_sub_oid) == nil then
-            return BER_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+            return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
         end
 
         return_value_check(name, rsp_val, rsp_val_type)
@@ -810,6 +810,11 @@ end
 -- initialize snmp agent
 _M.init = function (port)
     core.init(port)
+end
+
+-- open snmp agent
+_M.open = function ()
+    core.open()
 end
 
 -- start snmp agent
