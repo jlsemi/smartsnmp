@@ -246,19 +246,16 @@ agentx_msg_clear(struct agentx_datagram *xdg)
   sr_list_free(&xdg->sr_out_list);
   xdg->sr_in_cnt = 0;
   xdg->sr_out_cnt = 0;
+  /* clear response context */
+  xdg->u.response.sys_up_time = 0;
+  xdg->u.response.error = 0;
+  xdg->u.response.index = 0;
 }
 
 /* Make response packet */
 static void
 agentx_response(struct agentx_datagram *xdg)
 {
-  /* free search range in list */
-  sr_list_free(&xdg->sr_in_list);
-  xdg->sr_in_cnt = 0;
-  /* free var bind in list */
-  vb_list_free(&xdg->vb_in_list);
-  xdg->vb_in_cnt = 0;
-
   /* send response PDU as TCP packet */
   struct x_pdu_buf x_pdu = agentx_response_pdu(xdg);
   if (send(xdg->sock, x_pdu.buf, x_pdu.len, 0) == -1) {
@@ -266,18 +263,8 @@ agentx_response(struct agentx_datagram *xdg)
   }
   /* free response packet */
   free(x_pdu.buf);
-
-  /* clear response context */
-  xdg->u.response.sys_up_time = 0;
-  xdg->u.response.error = 0;
-  xdg->u.response.index = 0;
-
-  /* free search range out list */
-  sr_list_free(&xdg->sr_out_list);
-  xdg->sr_out_cnt = 0;
-  /* free var bind out list */
-  vb_list_free(&xdg->vb_out_list);
-  xdg->vb_out_cnt = 0;
+  /* clear datagram */
+  agentx_msg_clear(xdg);
 }
 
 /* GET request function */
