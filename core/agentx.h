@@ -108,8 +108,6 @@ typedef enum agentx_err_code {
   AGENTX_ERR_PDU_ERRSTAT        = -102,
   AGENTX_ERR_PDU_ERRIDX         = -103,
 
-  AGENTX_ERR_STAT_AUTHORIZATION = -200,
-
   AGENTX_ERR_VB_VAR             = -201,
   AGENTX_ERR_VB_VALUE_LEN       = -202,
   AGENTX_ERR_VB_OID_LEN         = -203,
@@ -118,6 +116,32 @@ typedef enum agentx_err_code {
   AGENTX_ERR_SR_VALUE_LEN       = -302,
   AGENTX_ERR_SR_OID_LEN         = -303,
 } AGENTX_ERR_CODE_E;
+
+/* Error status */
+typedef enum agentx_err_stat {
+  /* v1 */
+  AGENTX_ERR_STAT_NO_ERR,
+  AGENTX_ERR_STAT_TOO_BIG = 1,
+  AGENTX_ERR_STAT_NO_SUCH_NAME,
+  AGENTX_ERR_STAT_BAD_VALUE,
+  AGENTX_ERR_STAT_READ_ONLY,
+  AGENTX_ERR_STAT_GEN_ERR,
+
+  /* v2c */
+  AGENTX_ERR_STAT_ON_ACCESS,
+  AGENTX_ERR_STAT_WRONG_TYPE,
+  AGENTX_ERR_STAT_WRONG_LEN,
+  AGENTX_ERR_STAT_ENCODING,
+  AGENTX_ERR_STAT_WRONG_VALUE,
+  AGENTX_ERR_STAT_NO_CREATION,
+  AGENTX_ERR_STAT_INCONSISTENT_VALUE,
+  AGENTX_ERR_STAT_RESOURCE_UNAVAIL,
+  AGENTX_ERR_STAT_COMMIT_FAILED,
+  AGENTX_ERR_STAT_UNDO_FAILED,
+  AGENTX_ERR_STAT_AUTHORIZATION,
+  AGENTX_ERR_STAT_NOT_WRITABLE,
+  AGENTX_ERR_STAT_INCONSISTENT_NAME,
+} AGENTX_ERR_STAT_E;
 
 /* Close PDU reason */
 typedef enum agentx_close_reason {
@@ -129,7 +153,7 @@ typedef enum agentx_close_reason {
   R_MANAGE,
 } AGENTX_CLOSE_REASON_E;
 
-/* Error status in response */
+/* Administrative error in response */
 typedef enum agentx_err_response {
   E_OPEN_FAILED = 0x100,
   E_NOT_OPEN,
@@ -141,7 +165,22 @@ typedef enum agentx_err_response {
   E_DUPLICATE_REGISTRATION,
   E_UNKNOWN_REGISTRATION,
   E_UNKNOWN_AGENT_CAPS,
+  E_PARSE_ERROR,
+  E_REQUEST_DENIED,
+  E_PROCESSING_ERROR,
 } AGENTX_ERR_RESPONSE_E;
+
+/* AgentX request type */
+typedef enum agentx_request {
+  AGENTX_REQ_GET = 0xA0,
+  AGENTX_REQ_GETNEXT,
+  AGENTX_RESP,
+  AGENTX_REQ_SET,
+  AGENTX_REQ_BULKGET,
+  AGENTX_REQ_INF,
+  AGENTX_TRAP,
+  AGENTX_REPO,
+} AGENTX_REQ_E;
 
 struct x_pdu_hdr {
   uint8_t version;
@@ -234,9 +273,9 @@ struct agentx_datagram {
 extern struct agentx_datagram agentx_datagram;
 
 uint32_t agentx_value_dec(uint8_t **buffer, uint8_t flag, uint8_t type, void *value);
-uint32_t agentx_value_dec_test(uint8_t *buf, uint8_t flag, uint8_t type);
+uint32_t agentx_value_dec_test(const uint8_t *buf, uint8_t flag, uint8_t type);
 uint32_t agentx_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf);
-uint32_t agentx_value_enc_test(const void *value, uint32_t len, uint8_t type);
+uint32_t agentx_value_enc_test(uint32_t len, uint8_t type);
 
 void agentx_send_response(struct agentx_datagram *xdg);
 int agentx_recv(uint8_t *buffer, int len, void *arg);

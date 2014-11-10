@@ -40,9 +40,9 @@ struct oid_search_res {
   /* Instance search callback in Lua */
   int callback;
   /* Request id */
-  uint8_t request;
+  int request;
   /* Search return status */
-  uint8_t exist_state;
+  int exist_state;
   /* Search return value */
   Variable var;
 };

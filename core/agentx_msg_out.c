@@ -37,7 +37,7 @@ agentx_open_pdu(struct agentx_datagram *xdg, oid_t *oid, uint32_t oid_len, const
   struct x_octstr_t *octstr;
 
   assert(oid_len > 4 && oid_len + 5 <= MIB_OID_MAX_LEN && descr_len <= MIB_VALUE_MAX_LEN);
-  descr_len = (descr_len + 3) / 4 * 4;
+  descr_len = uint_sizeof(descr_len);
 
   /* PDU length */
   len = sizeof(*ph) + sizeof(*timeout) + 4 + (oid_len - 5) * sizeof(uint32_t) + 4 + descr_len;
@@ -148,7 +148,7 @@ agentx_register_pdu(struct agentx_datagram *xdg, oid_t *oid, uint32_t oid_len, c
   struct x_octstr_t *octstr;
 
   assert(oid_len > 4 && oid_len + 5 <= MIB_OID_MAX_LEN && comm_len <= 40);
-  comm_len = (comm_len + 3) / 4 * 4;
+  comm_len = uint_sizeof(comm_len);
 
   /* PDU length */
   len = sizeof(*ph);
@@ -239,7 +239,7 @@ agentx_unregister_pdu(struct agentx_datagram *xdg, oid_t *oid, uint32_t oid_len,
   struct x_octstr_t *octstr;
 
   assert(oid_len > 4 && oid_len + 5 <= MIB_OID_MAX_LEN && comm_len <= 40);
-  comm_len = (comm_len + 3) / 4 * 4;
+  comm_len = uint_sizeof(comm_len);
 
   /* PDU length */
   len = sizeof(*ph);
@@ -332,7 +332,7 @@ agentx_notify_pdu(struct agentx_datagram *xdg, const char *context, uint32_t con
   struct x_varbind_t *vb;
 
   assert(context_len < 40);
-  context_len = (context_len + 3) / 4 * 4;
+  context_len = uint_sizeof(context_len);
 
   /* PDU length */
   len = sizeof(*ph);
@@ -394,7 +394,7 @@ agentx_ping_pdu(struct agentx_datagram *xdg, const char *context, uint32_t conte
   struct x_octstr_t *octstr;
 
   assert(context_len < 40);
-  context_len = (context_len + 3) / 4 * 4;
+  context_len = uint_sizeof(context_len);
 
   /* PDU length */
   len = sizeof(*ph);
@@ -476,7 +476,7 @@ agentx_response_pdu(struct agentx_datagram *xdg)
       case ASN1_TAG_OCTSTR:
       case ASN1_TAG_IPADDR:
       case ASN1_TAG_OPAQ:
-        len += sizeof(uint32_t) + (vb_out->val_len + 3) / 4 * 4;
+        len += sizeof(uint32_t) + uint_sizeof(vb_out->val_len);
         break;
       case ASN1_TAG_OBJID:
         if (vb_out->val_len > 5 * sizeof(uint32_t)) {
@@ -579,7 +579,7 @@ agentx_response_pdu(struct agentx_datagram *xdg)
           octstr->len = vb_out->val_len;
         }
         memcpy(octstr->str, vb_out->value, vb_out->val_len);
-        buf += sizeof(uint32_t) + (vb_out->val_len + 3) / 4 * 4;
+        buf += sizeof(uint32_t) + uint_sizeof(vb_out->val_len);
         break;
       case ASN1_TAG_OBJID:
         objid = (struct x_objid_t *)buf;

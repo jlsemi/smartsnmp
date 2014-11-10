@@ -30,7 +30,7 @@
  * Return: value bytes
  */
 uint32_t
-agentx_value_dec_test(uint8_t *buf, uint8_t flag, uint8_t type)
+agentx_value_dec_test(const uint8_t *buf, uint8_t flag, uint8_t type)
 {
   uint32_t ret;
 
@@ -115,7 +115,7 @@ agentx_value_dec(uint8_t **buffer, uint8_t flag, uint8_t type, void *value)
       ret = *(uint32_t *)buf;
       buf += 4;
       memcpy(value, buf, ret);
-      buf += (ret + 3) / 4 * 4;
+      buf += uint_sizeof(ret);
       break;
     case ASN1_TAG_OBJID:
       ret = *buf++;

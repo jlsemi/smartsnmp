@@ -56,7 +56,11 @@ mib_instance_search(struct oid_search_res *ret_oid)
   /* op */
   lua_pushinteger(L, ret_oid->request);
   /* Community authorization */
-  lua_pushstring(L, "public");
+  if (ret_oid->request == AGENTX_REQ_SET) {
+    lua_pushstring(L, "private");
+  } else {
+    lua_pushstring(L, "public");
+  }
   /* req_sub_oid */
   lua_newtable(L);
   for (i = 0; i < ret_oid->inst_id_len; i++) {
@@ -64,7 +68,7 @@ mib_instance_search(struct oid_search_res *ret_oid)
     lua_rawseti(L, -2, i + 1);
   }
 
-  if (ret_oid->request == 0xA3/*AGENTX_PDU_TESTSET*/) {
+  if (ret_oid->request == AGENTX_REQ_SET) {
     /* req_val */
     switch (tag(var)) {
       case ASN1_TAG_INT:
@@ -114,7 +118,7 @@ mib_instance_search(struct oid_search_res *ret_oid)
   ret_oid->exist_state = lua_tointeger(L, -4);
 
   if (ret_oid->exist_state == 0) {
-    if (ret_oid->request != 0xA3/*AGENTX_PDU_TESTSET*/) {
+    if (ret_oid->request != AGENTX_REQ_SET) {
       tag(var) = lua_tonumber(L, -1);
       switch (tag(var)) {
         case ASN1_TAG_INT:
@@ -160,7 +164,7 @@ mib_instance_search(struct oid_search_res *ret_oid)
     }
 
     /* For GETNEXT request, return the new oid */
-    if (ret_oid->request == 0xA1/*AGENTX_PDU_GETNEXT*/) {
+    if (ret_oid->request == AGENTX_REQ_GETNEXT) {
       ret_oid->inst_id_len = lua_objlen(L, -3);
       for (i = 0; i < ret_oid->inst_id_len; i++) {
         lua_rawgeti(L, -3, i + 1);
@@ -244,20 +248,18 @@ agentx_msg_clear(struct agentx_datagram *xdg)
   xdg->sr_out_cnt = 0;
 }
 
+/* Make response packet */
 static void
 agentx_response(struct agentx_datagram *xdg)
 {
-  if (xdg->u.response.error) {
-    xdg->u.response.index = xdg->sr_in_cnt;
-  } else {
-    xdg->u.response.index = 0;
-  }
-
-  /* free search range list */
+  /* free search range in list */
   sr_list_free(&xdg->sr_in_list);
   xdg->sr_in_cnt = 0;
+  /* free var bind in list */
+  vb_list_free(&xdg->vb_in_list);
+  xdg->vb_in_cnt = 0;
 
-  /* Send response PDU as TCP packet */
+  /* send response PDU as TCP packet */
   struct x_pdu_buf x_pdu = agentx_response_pdu(xdg);
   if (send(xdg->sock, x_pdu.buf, x_pdu.len, 0) == -1) {
     CREDO_AGENTX_LOG(AGENTX_LOG_ERROR, "ERR: Send response PDU failure!\n");
@@ -265,7 +267,15 @@ agentx_response(struct agentx_datagram *xdg)
   /* free response packet */
   free(x_pdu.buf);
 
-  /* free var bind list */
+  /* clear response context */
+  xdg->u.response.sys_up_time = 0;
+  xdg->u.response.error = 0;
+  xdg->u.response.index = 0;
+
+  /* free search range out list */
+  sr_list_free(&xdg->sr_out_list);
+  xdg->sr_out_cnt = 0;
+  /* free var bind out list */
   vb_list_free(&xdg->vb_out_list);
   xdg->vb_out_cnt = 0;
 }
@@ -274,35 +284,38 @@ agentx_response(struct agentx_datagram *xdg)
 static void
 agentx_get(struct agentx_datagram *xdg)
 {
+  uint32_t val_len, sr_in_cnt = 0;
   struct list_head *curr, *next;
   struct x_var_bind *vb_out;
   struct x_search_range *sr_in;
   struct oid_search_res ret_oid;
 
-  ret_oid.request = 0xA0;//AGENTX_PDU_GET;
+  ret_oid.request = AGENTX_REQ_GET; 
 
   list_for_each_safe(curr, next, &xdg->sr_in_list) {
     sr_in = list_entry(curr, struct x_search_range, link);
+    sr_in_cnt++;
 
     /* Search at the input oid */
     mib_tree_search(sr_in->start, sr_in->start_len, &ret_oid);
 
     if (ret_oid.exist_state) {
-      /* Community authorization */
-      if (ret_oid.exist_state == AGENTX_ERR_STAT_AUTHORIZATION) {
-        CREDO_AGENTX_LOG(AGENTX_LOG_ERROR, "ERR: Community authorization failure\n");
-        agentx_msg_clear(xdg);
-        return;
-      }
-      /* not exist */
+      /* Something wrong */
       vb_out = xmalloc(sizeof(*vb_out));
       vb_out->oid = ret_oid.oid;
       vb_out->oid_len = ret_oid.id_len;
-      vb_out->val_type = ret_oid.exist_state;
       vb_out->val_len = 0;
+      if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
+        vb_out->val_type = ret_oid.exist_state;
+      } else {
+        /* Error status */
+        vb_out->val_type = 0;
+        xdg->u.response.error = ret_oid.exist_state;
+        xdg->u.response.index = sr_in_cnt;
+      }
     } else {
       /* Gotcha */
-      uint32_t val_len = agentx_value_enc_test(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var));
+      val_len = agentx_value_enc_test(length(&ret_oid.var), tag(&ret_oid.var));
       vb_out = xmalloc(sizeof(*vb_out) + val_len);
       vb_out->oid = ret_oid.oid;
       vb_out->oid_len = ret_oid.id_len;
@@ -322,35 +335,37 @@ agentx_get(struct agentx_datagram *xdg)
 static void
 agentx_getnext(struct agentx_datagram *xdg)
 {
+  uint32_t val_len, sr_in_cnt = 0;
   struct list_head *curr, *next;
   struct x_var_bind *vb_out;
   struct x_search_range *sr_in;
   struct oid_search_res ret_oid;
 
-  ret_oid.request = 0xA1;//AGENTX_PDU_GETNEXT;
+  ret_oid.request = AGENTX_REQ_GETNEXT; 
 
   list_for_each_safe(curr, next, &xdg->sr_in_list) {
     sr_in = list_entry(curr, struct x_search_range, link);
+    sr_in_cnt++;
 
     /* Search at the input oid */
     x_mib_tree_search_next(sr_in, &ret_oid);
-    //ret_oid.exist_state = AGENTX_ERR_STAT_AUTHORIZATION;
 
     if (ret_oid.exist_state) {
-      /* Community authorization */
-      if (ret_oid.exist_state == AGENTX_ERR_STAT_AUTHORIZATION) {
-        CREDO_AGENTX_LOG(AGENTX_LOG_ERROR, "ERR: Community authorization failure\n");
-        agentx_msg_clear(xdg);
-        return;
-      }
-      /* This situation is only for traversal when end-of-mib-tree */
+      /* Something wrong */
       vb_out = xmalloc(sizeof(*vb_out));
       vb_out->oid = ret_oid.oid;
       vb_out->oid_len = ret_oid.id_len;
-      vb_out->val_type = ret_oid.exist_state;
       vb_out->val_len = 0;
+      if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
+        vb_out->val_type = ret_oid.exist_state;
+      } else {
+        /* Error status */
+        vb_out->val_type = 0;
+        xdg->u.response.error = ret_oid.exist_state;
+        xdg->u.response.index = sr_in_cnt;
+      }
     } else {
-      uint32_t val_len = agentx_value_enc_test(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var));
+      val_len = agentx_value_enc_test(length(&ret_oid.var), tag(&ret_oid.var));
       vb_out = xmalloc(sizeof(*vb_out) + val_len);
       vb_out->oid = ret_oid.oid;
       vb_out->oid_len = ret_oid.id_len;
@@ -366,57 +381,54 @@ agentx_getnext(struct agentx_datagram *xdg)
   agentx_response(xdg);
 }
 
-#if 0
 /* SET request function */
 static void
 agentx_set(struct agentx_datagram *xdg)
 {
+  uint32_t val_len, vb_in_cnt = 0;
   struct list_head *curr, *next;
   struct x_var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
 
-  ret_oid.request = 0xA3;//AGENTX_PDU_TESTSET;
+  ret_oid.request = AGENTX_REQ_SET;
 
   list_for_each_safe(curr, next, &xdg->vb_in_list) {
     vb_in = list_entry(curr, struct x_var_bind, link);
+    vb_in_cnt++;
 
     /* Decode the setting value ahead */
-    tag(&ret_oid.var) = vb_in->value_type;
-    length(&ret_oid.var) = agentx_value_dec(vb_in->value, vb_in->value_len, tag(&ret_oid.var), value(&ret_oid.var));
+    tag(&ret_oid.var) = vb_in->val_type;
+    length(&ret_oid.var) = vb_in->val_len;
+    val_len = agentx_value_enc_test(length(&ret_oid.var), tag(&ret_oid.var));
+    memcpy(value(&ret_oid.var), vb_in->value, val_len);
 
     /* Search at the input oid and set it */
     mib_tree_search(vb_in->oid, vb_in->oid_len, &ret_oid);
-
-    /* Community authorization */
-    if (ret_oid.exist_state == AGENTX_ERR_STAT_AUTHORIZATION) {
-      CREDO_AGENTX_LOG(AGENTX_LOG_ERROR, "ERR: Community authorization failure\n");
-      agentx_msg_clear(xdg);
-      return;
+    
+    if (ret_oid.exist_state) {
+      /* Something wrong */
+      vb_out = xmalloc(sizeof(*vb_out) + vb_in->val_len);
+      vb_out->oid = ret_oid.oid;
+      vb_out->oid_len = ret_oid.id_len;
+      memcpy(vb_out->value, vb_in->value, vb_in->val_len);
+      if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
+        vb_out->val_type = ret_oid.exist_state;
+        vb_out->val_len = 0;
+      } else {
+        /* Error status */
+        vb_out->val_type = vb_in->val_type;
+        vb_out->val_len = vb_in->val_len;
+        xdg->u.response.error = ret_oid.exist_state;
+        xdg->u.response.index = vb_in_cnt;
+      }
+      /* Add into list. */
+      list_add_tail(&vb_out->link, &xdg->vb_out_list);
+      xdg->vb_out_cnt++;
     }
-
-    vb_out = xmalloc(sizeof(*vb_out) + vb_in->value_len);
-    vb_out->oid = ret_oid.oid;
-    vb_out->oid_len = ret_oid.id_len;
-    vb_out->value_type = vb_in->value_type;
-    vb_out->value_len = vb_in->value_len;
-    memcpy(vb_out->value, vb_in->value, vb_out->value_len);
-
-    if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
-      /* Object not found */
-      vb_out->value_type = ret_oid.exist_state;
-    } else {
-      /* 0 means success, while others mean some failure */
-      xdg->pdu_hdr.error = ret_oid.exist_state;
-    }
-
-    /* Add into list. */
-    list_add_tail(&vb_out->link, &xdg->vb_out_list);
-    xdg->vb_out_cnt++;
   }
 
   agentx_response(xdg);
 }
-#endif
 
 /* Request callback */
 static void
@@ -431,10 +443,12 @@ event_invoke(struct agentx_datagram *xdg)
       agentx_getnext(xdg);
       break;
     case AGENTX_PDU_TESTSET:
+      agentx_set(xdg);
+      break;
     case AGENTX_PDU_COMMITSET:
     case AGENTX_PDU_UNDOSET:
     case AGENTX_PDU_CLEANUPSET:
-      //agentx_set(xdg);
+      agentx_response(xdg);
       break;
     case AGENTX_PDU_INDEXALLOC:
     case AGENTX_PDU_INDEXDEALLOC:
@@ -467,7 +481,7 @@ var_bind_alloc(uint8_t **buffer, uint8_t flag, enum agentx_err_code *err)
 
   /* oid length */
   buf1 = buf;
-  oid_len = agentx_value_dec_test(buf, flag, ASN1_TAG_OBJID);
+  oid_len = agentx_value_dec_test(buf1, flag, ASN1_TAG_OBJID);
   if (oid_len / sizeof(uint32_t) > MIB_OID_MAX_LEN) {
     *err = AGENTX_ERR_VB_OID_LEN;
     return NULL;
@@ -656,8 +670,8 @@ pdu_hdr_parse(struct agentx_datagram *xdg, uint8_t **buffer)
     }
     buf += sizeof(uint32_t);
     memcpy(xdg->context, buf, xdg->ctx_len);
-    buf += (xdg->ctx_len + 3) / 4 * 4;
-    xdg->pdu_hdr.payload_length -= 4 + (xdg->ctx_len + 3) / 4 * 4;
+    buf += uint_sizeof(xdg->ctx_len);
+    xdg->pdu_hdr.payload_length -= 4 + uint_sizeof(xdg->ctx_len);
   }
 
   /* additional data */

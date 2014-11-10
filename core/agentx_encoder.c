@@ -29,7 +29,7 @@
  * Return: byte length.
  */
 uint32_t
-agentx_value_enc_test(const void *value, uint32_t len, uint8_t type)
+agentx_value_enc_test(uint32_t len, uint8_t type)
 {
   uint32_t ret;
 
