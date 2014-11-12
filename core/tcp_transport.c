@@ -30,21 +30,19 @@
 #include "transport.h"
 #include "ev_loop.h"
 
-#define BUF_SIZE     (65536)
-
-struct snmp_data_entry {
+struct agentx_data_entry {
   int sock;
   uint8_t *buf;
   int len;
 };
 
-static struct snmp_data_entry snmp_entry;
+static struct agentx_data_entry agentx_entry;
 static TRANSPORT_RECEIVER agentx_receiver;
 
 static void
 agentx_write_handler(int sock, unsigned char flag, void *ud)
 {
-  struct snmp_data_entry *entry = ud;
+  struct agentx_data_entry *entry = ud;
 
   if (send(sock, entry->buf, entry->len, 0) == -1) {
     perror("send()");
@@ -56,30 +54,20 @@ agentx_write_handler(int sock, unsigned char flag, void *ud)
   snmp_event_remove(sock, flag);
 }
 
-
-/* Send angentX as TCP packet to the remote */
-void
-transport_send(uint8_t *buf, int len)
-{
-  snmp_entry.buf = buf;
-  snmp_entry.len = len;
-  snmp_event_add(snmp_entry.sock, SNMP_EV_WRITE, agentx_write_handler, &snmp_entry);
-}
-
 static void
 agentx_read_handler(int sock, unsigned char flag, void *ud)
 {
   uint8_t *buf;
   int len;
 
-  buf = malloc(BUF_SIZE);
+  buf = malloc(TRANS_BUF_SIZ);
   if (buf == NULL) {
     perror("malloc()");
     exit(EXIT_FAILURE);
   }
 
   /* Receive TCP data */
-  len = recv(sock, buf, BUF_SIZE - 1, 0);
+  len = recv(sock, buf, TRANS_BUF_SIZ - 1, 0);
   if (len == -1) {
     perror("recv()");
     snmp_event_done();
@@ -90,21 +78,30 @@ agentx_read_handler(int sock, unsigned char flag, void *ud)
   }
 }
 
+/* Send angentX as TCP packet to the remote */
 void
-transport_running(void)
+tcp_transport_send(uint8_t *buf, int len)
+{
+  agentx_entry.buf = buf;
+  agentx_entry.len = len;
+  snmp_event_add(agentx_entry.sock, SNMP_EV_WRITE, agentx_write_handler, &agentx_entry);
+}
+
+void
+tcp_transport_running(void)
 {
   snmp_event_init();
-  snmp_event_add(snmp_entry.sock, SNMP_EV_READ, agentx_read_handler, NULL);
+  snmp_event_add(agentx_entry.sock, SNMP_EV_READ, agentx_read_handler, NULL);
   snmp_event_run();
 }
 
 void
-transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+tcp_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 {
   struct sockaddr_in sin;
 
-  agentx_datagram.sock = snmp_entry.sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (snmp_entry.sock < 0) {
+  agentx_datagram.sock = agentx_entry.sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (agentx_entry.sock < 0) {
     perror("usock");
     exit(EXIT_FAILURE);
   }
@@ -114,10 +111,17 @@ transport_init(int port, TRANSPORT_RECEIVER recv_cb)
   sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
   sin.sin_port = htons(705);
 
-  if (connect(snmp_entry.sock, (struct sockaddr *)&sin, sizeof(sin))) {
+  if (connect(agentx_entry.sock, (struct sockaddr *)&sin, sizeof(sin))) {
     perror("connect()");
     exit(EXIT_FAILURE);
   }
 
   agentx_receiver = recv_cb;
 }
+
+struct smartsnmp_transport_ops tcp_trans_ops = {
+  "tcp",
+  tcp_transport_init,
+  tcp_transport_running,
+  tcp_transport_send,
+};

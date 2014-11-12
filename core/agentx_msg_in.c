@@ -28,154 +28,9 @@
 
 #include "mib.h"
 #include "agentx.h"
-#include "ev_loop.h"
 #include "util.h"
 
 struct agentx_datagram agentx_datagram;
-
-/* Unrefer mib search handler */
-void
-mib_handler_unref(int handler)
-{
-  lua_State *L = agentx_datagram.lua_state;
-  luaL_unref(L, LUA_ENVIRONINDEX, handler);
-}
-
-/* Embedded code is not funny at all... */
-int
-mib_instance_search(struct oid_search_res *ret_oid)
-{
-  int i;
-  Variable *var = &ret_oid->var;
-  lua_State *L = agentx_datagram.lua_state;
-
-  /* Empty lua stack. */
-  lua_pop(L, -1);
-  /* Get function. */
-  lua_rawgeti(L, LUA_ENVIRONINDEX, ret_oid->callback);
-  /* op */
-  lua_pushinteger(L, ret_oid->request);
-  /* Community authorization */
-  if (ret_oid->request == AGENTX_REQ_SET) {
-    lua_pushstring(L, "private");
-  } else {
-    lua_pushstring(L, "public");
-  }
-  /* req_sub_oid */
-  lua_newtable(L);
-  for (i = 0; i < ret_oid->inst_id_len; i++) {
-    lua_pushinteger(L, ret_oid->inst_id[i]);
-    lua_rawseti(L, -2, i + 1);
-  }
-
-  if (ret_oid->request == AGENTX_REQ_SET) {
-    /* req_val */
-    switch (tag(var)) {
-      case ASN1_TAG_INT:
-        lua_pushinteger(L, integer(var));
-        break;
-      case ASN1_TAG_OCTSTR:
-        lua_pushlstring(L, octstr(var), length(var));
-        break;
-      case ASN1_TAG_CNT:
-        lua_pushnumber(L, count(var));
-        break;
-      case ASN1_TAG_IPADDR:
-        lua_pushlstring(L, (char *)ipaddr(var), length(var));
-        break;
-      case ASN1_TAG_OBJID:
-        lua_newtable(L);
-        for (i = 0; i < length(var); i++) {
-          lua_pushnumber(L, oid(var)[i]);
-          lua_rawseti(L, -2, i + 1);
-        }
-        break;
-      case ASN1_TAG_GAU:
-        lua_pushnumber(L, gauge(var));
-        break;
-      case ASN1_TAG_TIMETICKS:
-        lua_pushnumber(L, timeticks(var));
-        break;
-      default:
-        lua_pushnil(L);
-        break;
-    }
-    /* req_val_type */
-    lua_pushinteger(L, tag(var));
-  } else {
-    /* req_val */
-    lua_pushnil(L);
-    /* req_val_type */
-    lua_pushnil(L);
-  }
-
-  if (lua_pcall(L, 5, 4, 0) != 0) {
-    CREDO_AGENTX_LOG(AGENTX_LOG_ERROR, "MIB search hander %d fail: %s\n", ret_oid->callback, lua_tostring(L, -1));
-    ret_oid->exist_state = ASN1_TAG_NO_SUCH_OBJ;
-    return 0;
-  }
-
-  ret_oid->exist_state = lua_tointeger(L, -4);
-
-  if (ret_oid->exist_state == 0) {
-    if (ret_oid->request != AGENTX_REQ_SET) {
-      tag(var) = lua_tonumber(L, -1);
-      switch (tag(var)) {
-        case ASN1_TAG_INT:
-          length(var) = 1;
-          integer(var) = lua_tointeger(L, -2);
-          break;
-        case ASN1_TAG_OCTSTR:
-          length(var) = lua_objlen(L, -2);
-          memcpy(octstr(var), lua_tostring(L, -2), length(var));
-          break;
-        case ASN1_TAG_CNT:
-          length(var) = 1;
-          count(var) = lua_tonumber(L, -2);
-          break;
-        case ASN1_TAG_IPADDR:
-          length(var) = lua_objlen(L, -2);
-          for (i = 0; i < length(var); i++) {
-            lua_rawgeti(L, -2, i + 1);
-            ipaddr(var)[i] = lua_tointeger(L, -1);
-            lua_pop(L, 1);
-          }
-          break;
-        case ASN1_TAG_OBJID:
-          length(var) = lua_objlen(L, -2);
-          for (i = 0; i < length(var); i++) {
-            lua_rawgeti(L, -2, i + 1);
-            oid(var)[i] = lua_tointeger(L, -1);
-            lua_pop(L, 1);
-          }
-          break;
-        case ASN1_TAG_GAU:
-          length(var) = 1;
-          gauge(var) = lua_tonumber(L, -2);
-          break;
-        case ASN1_TAG_TIMETICKS:
-          length(var) = 1;
-          timeticks(var) = lua_tonumber(L, -2);
-          break;
-        default:
-          assert(0);
-          break;
-      }
-    }
-
-    /* For GETNEXT request, return the new oid */
-    if (ret_oid->request == AGENTX_REQ_GETNEXT) {
-      ret_oid->inst_id_len = lua_objlen(L, -3);
-      for (i = 0; i < ret_oid->inst_id_len; i++) {
-        lua_rawgeti(L, -3, i + 1);
-        ret_oid->inst_id[i] = lua_tointeger(L, -1);
-        lua_pop(L, 1);
-      }
-    }
-  }
-
-  return ret_oid->exist_state;
-}
 
 static struct x_var_bind *
 vb_new(uint32_t oid_len, uint32_t val_len)
@@ -259,7 +114,7 @@ agentx_response(struct agentx_datagram *xdg)
   /* send response PDU as TCP packet */
   struct x_pdu_buf x_pdu = agentx_response_pdu(xdg);
   if (send(xdg->sock, x_pdu.buf, x_pdu.len, 0) == -1) {
-    CREDO_AGENTX_LOG(AGENTX_LOG_ERROR, "ERR: Send response PDU failure!\n");
+    SMARTSNMP_LOG(L_ERROR, "ERR: Send response PDU failure!\n");
   }
   /* free response packet */
   free(x_pdu.buf);
@@ -277,7 +132,7 @@ agentx_get(struct agentx_datagram *xdg)
   struct x_search_range *sr_in;
   struct oid_search_res ret_oid;
 
-  ret_oid.request = AGENTX_REQ_GET; 
+  ret_oid.request = MIB_REQ_GET; 
 
   list_for_each_safe(curr, next, &xdg->sr_in_list) {
     sr_in = list_entry(curr, struct x_search_range, link);
@@ -328,7 +183,7 @@ agentx_getnext(struct agentx_datagram *xdg)
   struct x_search_range *sr_in;
   struct oid_search_res ret_oid;
 
-  ret_oid.request = AGENTX_REQ_GETNEXT; 
+  ret_oid.request = MIB_REQ_GETNEXT; 
 
   list_for_each_safe(curr, next, &xdg->sr_in_list) {
     sr_in = list_entry(curr, struct x_search_range, link);
@@ -377,7 +232,7 @@ agentx_set(struct agentx_datagram *xdg)
   struct x_var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
 
-  ret_oid.request = AGENTX_REQ_SET;
+  ret_oid.request = MIB_REQ_SET;
 
   list_for_each_safe(curr, next, &xdg->vb_in_list) {
     vb_in = list_entry(curr, struct x_var_bind, link);
@@ -568,7 +423,7 @@ var_bind_parse(struct agentx_datagram *xdg, uint8_t **buffer)
     /* Alloc a new var_bind and add into var_bind list. */
     struct x_var_bind *vb = var_bind_alloc(&buf, xdg->pdu_hdr.flags, &err);
     if (vb == NULL) {
-      CREDO_AGENTX_LOG(AGENTX_LOG_ERROR, "ERR: %d\n", err);
+      SMARTSNMP_LOG(L_ERROR, "ERR: %d\n", err);
       *buffer = buf;
       break;
     }
@@ -595,7 +450,7 @@ search_range_parse(struct agentx_datagram *xdg, uint8_t **buffer)
     /* Alloc a new search range and add into search range list. */
     struct x_search_range *sr = search_range_alloc(&buf, xdg->pdu_hdr.flags, &err);
     if (sr == NULL) {
-      CREDO_AGENTX_LOG(AGENTX_LOG_ERROR, "ERR: %d\n", err);
+      SMARTSNMP_LOG(L_ERROR, "ERR: %d\n", err);
       *buffer = buf;
       break;
     }
@@ -724,7 +579,7 @@ agentx_decode(struct agentx_datagram *xdg)
   /* PDU header */
   err = pdu_hdr_parse(xdg, &buf);
   if (err) {
-    CREDO_AGENTX_LOG(AGENTX_LOG_ERROR, "ERR: %d\n", err);
+    SMARTSNMP_LOG(L_ERROR, "ERR: %d\n", err);
     dec_fail = 1;
     goto DECODE_FINISH;
   }
@@ -737,7 +592,7 @@ agentx_decode(struct agentx_datagram *xdg)
       /* search range */
       err = search_range_parse(xdg, &buf);
       if (err) {
-        CREDO_AGENTX_LOG(AGENTX_LOG_ERROR, "ERR: %d\n", err);
+        SMARTSNMP_LOG(L_ERROR, "ERR: %d\n", err);
         dec_fail = 1;
       }
       break;
@@ -746,7 +601,7 @@ agentx_decode(struct agentx_datagram *xdg)
       /* var bind */
       err = var_bind_parse(xdg, &buf);
       if (err) {
-        CREDO_AGENTX_LOG(AGENTX_LOG_ERROR, "ERR: %d\n", err);
+        SMARTSNMP_LOG(L_ERROR, "ERR: %d\n", err);
         dec_fail = 1;
       }
       break;
@@ -768,13 +623,12 @@ DECODE_FINISH:
 
 /* Receive agentx datagram from transport module */
 int
-agentx_recv(uint8_t *buffer, int len, void *arg)
+agentx_recv(uint8_t *buffer, int len)
 {
   int ret;
 
-  assert(buffer != NULL && len > 0 && arg != NULL);
+  assert(buffer != NULL && len > 0);
 
-  agentx_datagram.lua_state = arg;
   agentx_datagram.recv_buf = buffer;
   INIT_LIST_HEAD(&agentx_datagram.vb_in_list);
   INIT_LIST_HEAD(&agentx_datagram.vb_out_list);

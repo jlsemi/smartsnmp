@@ -49,6 +49,51 @@
   (((uint64_t)(x) & 0x00ff000000000000U) >> 40) | \
   (((uint64_t)(x) & 0xff00000000000000U) >> 56)))
 
+//#define LOGOFF
+
+#ifdef SYSLOG
+  #ifdef LOGOFF
+    #define SMARTSNMP_LOG(level, fmt...)
+  #else
+    #define SMARTSNMP_LOG(level, fmt...) \
+      do { \
+        switch (level) { \
+          case L_DEBUG: \
+          case L_INFO: \
+          case L_WARNING: error(fmt); break;\
+          case L_ERROR: die(fmt);     break; \
+          default:                           break; \
+        } \
+      } while (0)
+  #endif
+#else
+  #ifdef LOGOFF
+    #define SMARTSNMP_LOG(level, fmt...)
+  #else
+    #define SMARTSNMP_LOG(level, fmt...) \
+      do { \
+        switch (level) { \
+          case L_DEBUG: \
+          case L_INFO: \
+          case L_WARNING: fprintf(stdout, fmt); break; \
+          case L_ERROR: fprintf(stderr, fmt);   break; \
+          default:                                     break; \
+        } \
+      } while (0)
+  #endif
+#endif
+
+/* vocal information */
+typedef enum smartsnmp_log_level {
+  L_ALL,
+  L_DEBUG = 1,
+  L_INFO,
+  L_WARNING,
+  L_ERROR,
+  L_OFF,
+  L_LEVEL_NUM
+} SMARTSNMP_LOG_LEVEL_E;
+
 static inline void
 report(const char *prefix, const char *err, va_list params)
 {

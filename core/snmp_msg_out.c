@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "mib.h"
 #include "snmp.h"
 #include "util.h"
 
@@ -75,7 +76,7 @@ asn1_encode(struct snmp_datagram *sdg)
   buf += ber_value_enc(sdg->community, sdg->comm_len, ASN1_TAG_OCTSTR, buf);
 
   /* PDU header */
-  *buf++ = SNMP_RESP;
+  *buf++ = MIB_RESP;
   buf += ber_length_enc(ph->pdu_len, buf);
 
   /* Request ID */

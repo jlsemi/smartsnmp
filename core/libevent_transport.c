@@ -32,8 +32,6 @@
 
 #include "transport.h"
 
-#define BUF_SIZE        (65536)
-
 static TRANSPORT_RECEIVER le_receiver;
 
 static struct event_base *event_base;
@@ -88,7 +86,7 @@ udp_read_cb(const int sock, short int which, void *arg)
   int len;
   uint8_t * buf;
 
-  buf = malloc(BUF_SIZE);
+  buf = malloc(TRANS_BUF_SIZE);
   if (buf == NULL) {
     perror("malloc()");
     exit(EXIT_FAILURE);
@@ -101,7 +99,7 @@ udp_read_cb(const int sock, short int which, void *arg)
   }
 
   /* Receive UDP data, store the address of the sender in client_sin */
-  len = recvfrom(sock, buf, BUF_SIZE - 1, 0, (struct sockaddr *)client_sin, &server_sz);
+  len = recvfrom(sock, buf, TRANS_BUF_SIZE - 1, 0, (struct sockaddr *)client_sin, &server_sz);
   if (len == -1) {
     perror("recvfrom()");
     event_loopbreak();
@@ -113,7 +111,7 @@ udp_read_cb(const int sock, short int which, void *arg)
 }
 
 void
-transport_send(uint8_t * buf, int len)
+le_transport_send(uint8_t * buf, int len)
 {
   struct send_data_entry * entry;
 
@@ -136,7 +134,7 @@ transport_send(uint8_t * buf, int len)
 }
 
 void
-transport_running(void)
+le_transport_running(void)
 {
   /* Initialize libevent */
   event_base = event_base_new();
@@ -152,7 +150,7 @@ transport_running(void)
 }
 
 void
-transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+le_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 {
   struct sockaddr_in sin;
 
@@ -177,3 +175,10 @@ transport_init(int port, TRANSPORT_RECEIVER recv_cb)
     exit(EXIT_FAILURE);
   }
 }
+
+struct smartsnmp_transport_ops le_trans_ops = {
+  "libevent",
+  le_transport_init,
+  le_transport_running,
+  le_transport_send,
+};

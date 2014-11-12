@@ -281,4 +281,3 @@ ber_length_enc(uint32_t value, uint8_t *buf)
 
   return len;
 }
-

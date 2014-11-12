@@ -29,8 +29,6 @@
 #include "transport.h"
 #include "ev_loop.h"
 
-#define BUF_SIZE     (65536)
-
 struct snmp_data_entry {
   int sock;
   uint8_t *buf;
@@ -57,16 +55,6 @@ snmp_write_handler(int sock, unsigned char flag, void *ud)
   snmp_event_remove(sock, flag);
 }
 
-
-/* Send snmp datagram as a UDP packet to the remote */
-void
-transport_send(uint8_t *buf, int len)
-{
-  snmp_entry.buf = buf;
-  snmp_entry.len = len;
-  snmp_event_add(snmp_entry.sock, SNMP_EV_WRITE, snmp_write_handler, &snmp_entry);
-}
-
 static void
 snmp_read_handler(int sock, unsigned char flag, void *ud)
 {
@@ -74,7 +62,7 @@ snmp_read_handler(int sock, unsigned char flag, void *ud)
   int len;
   uint8_t *buf;
 
-  buf = malloc(BUF_SIZE);
+  buf = malloc(TRANS_BUF_SIZ);
   if (buf == NULL) {
     perror("malloc()");
     exit(EXIT_FAILURE);
@@ -87,7 +75,7 @@ snmp_read_handler(int sock, unsigned char flag, void *ud)
   }
 
   /* Receive UDP data, store the address of the sender in client_sin */
-  len = recvfrom(sock, buf, BUF_SIZE - 1, 0, (struct sockaddr *)snmp_entry.client_sin, &server_sz);
+  len = recvfrom(sock, buf, TRANS_BUF_SIZ, 0, (struct sockaddr *)snmp_entry.client_sin, &server_sz);
   if (len == -1) {
     perror("recvfrom()");
     snmp_event_done();
@@ -98,8 +86,17 @@ snmp_read_handler(int sock, unsigned char flag, void *ud)
   }
 }
 
+/* Send snmp datagram as a UDP packet to the remote */
 void
-transport_running(void)
+udp_transport_send(uint8_t *buf, int len)
+{
+  snmp_entry.buf = buf;
+  snmp_entry.len = len;
+  snmp_event_add(snmp_entry.sock, SNMP_EV_WRITE, snmp_write_handler, &snmp_entry);
+}
+
+void
+udp_transport_running(void)
 {
   snmp_event_init();
   snmp_event_add(snmp_entry.sock, SNMP_EV_READ, snmp_read_handler, NULL);
@@ -107,7 +104,7 @@ transport_running(void)
 }
 
 void
-transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+udp_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 {
   struct sockaddr_in sin;
 
@@ -129,3 +126,10 @@ transport_init(int port, TRANSPORT_RECEIVER recv_cb)
     exit(EXIT_FAILURE);
   }
 }
+
+struct smartsnmp_transport_ops udp_trans_ops = {
+  "udp",
+  udp_transport_init,
+  udp_transport_running,
+  udp_transport_send,
+};

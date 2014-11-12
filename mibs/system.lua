@@ -99,7 +99,6 @@ local sysMethods = {
 mib.module_method_register(sysMethods)
 
 local sysGroup = {
-    rocommunity = 'public',
     [sysDesc]         = mib.ConstOctString(function () return mib.sh_call("uname -a", "*line") end),
     [sysObjectID]     = mib.ConstOid(function () return { 1, 3, 6, 1, 2, 1, 1 } end),
     [sysUpTime]       = mib.ConstTimeticks(function () return os.difftime(os.time(), startup_time) * 100 end),

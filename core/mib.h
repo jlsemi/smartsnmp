@@ -30,6 +30,18 @@
 
 #define OID_ARRAY_SIZE(arr)     (sizeof(arr) / sizeof(arr[0]))
 
+/* MIB request type */
+typedef enum mib_request {
+  MIB_REQ_GET     = 0xA0,
+  MIB_REQ_GETNEXT = 0xA1,
+  MIB_RESP        = 0xA2,
+  MIB_REQ_SET     = 0xA3,
+  MIB_REQ_BULKGET = 0xA5,
+  MIB_REQ_INF     = 0xA6,
+  MIB_TRAP        = 0xA7,
+  MIB_REPO        = 0xA8,
+} MIB_REQ_E;
+
 struct oid_search_res {
   /* Return oid */
   oid_t *oid;
@@ -63,6 +75,8 @@ struct mib_instance_node {
   uint8_t type;
   int callback;
 };
+
+extern lua_State *mib_lua_state;
 
 oid_t *oid_dup(const oid_t *oid, uint32_t len);
 oid_t *oid_cpy(oid_t *oid_dest, const oid_t *oid_src, uint32_t len);

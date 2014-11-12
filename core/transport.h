@@ -21,10 +21,23 @@
 #ifndef _TRANSPORT_H_
 #define _TRANSPORT_H_
 
+#include <stdint.h>
+
+#define TRANS_BUF_SIZ  (65536)
+
 typedef void (*TRANSPORT_RECEIVER)(uint8_t *buf, int len);
 
-void transport_send(uint8_t * buf, int len);
-void transport_init(int port, TRANSPORT_RECEIVER recv_cb);
-void transport_running(void);
+struct smartsnmp_transport_ops {
+  const char *name;
+  void (*init)(int port, TRANSPORT_RECEIVER recv_cb);
+  void (*running)(void);
+  void (*send)(uint8_t *buf, int len);
+};
+
+extern struct smartsnmp_transport_ops *smartsnmp_trans_ops;
+extern struct smartsnmp_transport_ops tcp_trans_ops;
+extern struct smartsnmp_transport_ops udp_trans_ops;
+extern struct smartsnmp_transport_ops le_trans_ops;
+extern struct smartsnmp_transport_ops uloop_trans_ops;
 
 #endif /* _TRANSPORT_H_ */

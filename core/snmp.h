@@ -27,64 +27,6 @@
 #include "lualib.h"
 #include "lauxlib.h"
 
-//#define LOGOFF
-
-#ifdef SYSLOG
-  #ifdef LOGOFF
-    #define CREDO_SNMP_LOG(level, fmt...)
-  #else
-    #define CREDO_SNMP_LOG(level, fmt...) \
-      do { \
-        switch (level) { \
-          case SNMP_LOG_DEBUG: \
-          case SNMP_LOG_INFO: \
-          case SNMP_LOG_WARNING: error(fmt); break;\
-          case SNMP_LOG_ERROR: die(fmt);     break; \
-          default:                           break; \
-        } \
-      } while (0)
-  #endif
-#else
-  #ifdef LOGOFF
-    #define CREDO_SNMP_LOG(level, fmt...)
-  #else
-    #define CREDO_SNMP_LOG(level, fmt...) \
-      do { \
-        switch (level) { \
-          case SNMP_LOG_DEBUG: \
-          case SNMP_LOG_INFO: \
-          case SNMP_LOG_WARNING: fprintf(stdout, fmt); break; \
-          case SNMP_LOG_ERROR: fprintf(stderr, fmt);   break; \
-          default:                                     break; \
-        } \
-      } while (0)
-  #endif
-#endif
-
-/* SNMP request type */
-typedef enum snmp_request {
-  SNMP_REQ_GET = 0xA0,
-  SNMP_REQ_GETNEXT,
-  SNMP_RESP,
-  SNMP_REQ_SET,
-  SNMP_REQ_BULKGET,
-  SNMP_REQ_INF,
-  SNMP_TRAP,
-  SNMP_REPO,
-} SNMP_REQ_E;
-
-/* vocal information */
-typedef enum snmp_log_level {
-  SNMP_LOG_ALL,
-  SNMP_LOG_DEBUG = 1,
-  SNMP_LOG_INFO,
-  SNMP_LOG_WARNING,
-  SNMP_LOG_ERROR,
-  SNMP_LOG_OFF,
-
-  SNMP_LOG_LEVEL_NUM
-} SNMP_LOG_LEVEL_E;
-
 /* Error status */
 typedef enum snmp_err_stat {
   /* v1 */
@@ -154,8 +96,6 @@ struct pdu_hdr {
 };
 
 struct snmp_datagram {
-  lua_State *lua_state;
-
   void *recv_buf;
   void *send_buf;
 
@@ -177,8 +117,24 @@ struct snmp_datagram {
   struct list_head vb_out_list;
 };
 
+uint32_t ber_value_enc_test(const void *value, uint32_t len, uint8_t type);
+uint32_t ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf);
+uint32_t ber_length_enc_test(uint32_t value);
+uint32_t ber_length_enc(uint32_t value, uint8_t *buf);
+
+uint32_t ber_value_dec_test(const uint8_t *buf, uint32_t len, uint8_t type);
+uint32_t ber_value_dec(const uint8_t *buf, uint32_t len, uint8_t type, void *value);
+uint32_t ber_length_dec_test(const uint8_t *buf);
+uint32_t ber_length_dec(const uint8_t *buf, uint32_t *value);
+
 void snmp_send_response(struct snmp_datagram *sdg);
-void snmpd_recv(uint8_t *buffer, int len, void *arg);
+void snmpd_recv(uint8_t *buffer, int len);
 void snmpd_send(uint8_t *buf, int len);
+
+int snmpd_init(lua_State *L);
+int snmpd_open(lua_State *L);
+int snmpd_run(lua_State *L);
+int snmpd_mib_node_reg(lua_State *L);
+int snmpd_mib_node_unreg(lua_State *L);
 
 #endif /* _SNMP_H_ */

@@ -48,16 +48,6 @@ enum asn1_variable_type {
   ASN1_TAG_END_OF_MIB_VIEW = 0x82,
 };
 
-uint32_t ber_value_enc_test(const void *value, uint32_t len, uint8_t type);
-uint32_t ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf);
-uint32_t ber_length_enc_test(uint32_t value);
-uint32_t ber_length_enc(uint32_t value, uint8_t *buf);
-
-uint32_t ber_value_dec_test(const uint8_t *buf, uint32_t len, uint8_t type);
-uint32_t ber_value_dec(const uint8_t *buf, uint32_t len, uint8_t type, void *value);
-uint32_t ber_length_dec_test(const uint8_t *buf);
-uint32_t ber_length_dec(const uint8_t *buf, uint32_t *value);
-
 /* A map of simple data type syntax between ANSI C and ASN.1 */
 typedef int integer_t;
 typedef char octstr_t;

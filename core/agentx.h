@@ -27,56 +27,12 @@
 #include "lualib.h"
 #include "lauxlib.h"
 
-#ifdef SYSLOG
-  #ifdef LOGOFF
-    #define CREDO_AGENTX_LOG(level, fmt...)
-  #else
-    #define CREDO_AGENTX_LOG(level, fmt...) \
-      do { \
-        switch (level) { \
-          case AGENTX_LOG_DEBUG: \
-          case AGENTX_LOG_INFO: \
-          case AGENTX_LOG_WARNING: error(fmt); break;\
-          case AGENTX_LOG_ERROR: die(fmt);     break; \
-          default:                             break; \
-        } \
-      } while (0)
-  #endif
-#else
-  #ifdef LOGOFF
-    #define CREDO_AGENTX_LOG(level, fmt...)
-  #else
-    #define CREDO_AGENTX_LOG(level, fmt...) \
-      do { \
-        switch (level) { \
-          case AGENTX_LOG_DEBUG: \
-          case AGENTX_LOG_INFO: \
-          case AGENTX_LOG_WARNING: fprintf(stdout, fmt); break; \
-          case AGENTX_LOG_ERROR: fprintf(stderr, fmt);   break; \
-          default:                                       break; \
-        } \
-      } while (0)
-  #endif
-#endif
-
 /* AgentX PDU flags */
 #define INSTANCE_REGISTRATION  0x1
 #define NEW_INDEX              0x2
 #define ANY_INDEX              0x4
 #define NON_DEFAULT_CONTEXT    0x8
 #define NETWORD_BYTE_ORDER     0x10
-
-/* vocal information */
-typedef enum agentx_log_level {
-  AGENTX_LOG_ALL,
-  AGENTX_LOG_DEBUG = 1,
-  AGENTX_LOG_INFO,
-  AGENTX_LOG_WARNING,
-  AGENTX_LOG_ERROR,
-  AGENTX_LOG_OFF,
-
-  AGENTX_LOG_LEVEL_NUM
-} AGENTX_LOG_LEVEL_E;
 
 /* AgentX PDU tags */
 typedef enum agentx_pdu_type {
@@ -170,18 +126,6 @@ typedef enum agentx_err_response {
   E_PROCESSING_ERROR,
 } AGENTX_ERR_RESPONSE_E;
 
-/* AgentX request type */
-typedef enum agentx_request {
-  AGENTX_REQ_GET = 0xA0,
-  AGENTX_REQ_GETNEXT,
-  AGENTX_RESP,
-  AGENTX_REQ_SET,
-  AGENTX_REQ_BULKGET,
-  AGENTX_REQ_INF,
-  AGENTX_TRAP,
-  AGENTX_REPO,
-} AGENTX_REQ_E;
-
 struct x_pdu_hdr {
   uint8_t version;
   uint8_t type;
@@ -231,8 +175,6 @@ struct x_var_bind {
 };
 
 struct agentx_datagram {
-  lua_State *lua_state;
-  
   int sock;
   
   void *recv_buf;
@@ -278,7 +220,7 @@ uint32_t agentx_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t
 uint32_t agentx_value_enc_test(uint32_t len, uint8_t type);
 
 void agentx_send_response(struct agentx_datagram *xdg);
-int agentx_recv(uint8_t *buffer, int len, void *arg);
+int agentx_recv(uint8_t *buffer, int len);
 void agentx_send(uint8_t *buf, int len);
 
 struct x_pdu_buf agentx_open_pdu(struct agentx_datagram *xdg, oid_t *oid, uint32_t oid_len, const char *descr, uint32_t descr_len);
@@ -289,4 +231,11 @@ struct x_pdu_buf agentx_unregister_pdu(struct agentx_datagram *xdg, oid_t *oid, 
                                        uint8_t timeout, uint8_t priority, uint8_t range_subid, uint32_t upper_bound);
 struct x_pdu_buf agentx_ping_pdu(struct agentx_datagram *xdg, const char *context, uint32_t context_len);
 struct x_pdu_buf agentx_response_pdu(struct agentx_datagram *xdg);
+
+int agentx_init(lua_State *L);
+int agentx_open(lua_State *L);
+int agentx_run(lua_State *L);
+int agentx_mib_node_reg(lua_State *L);
+int agentx_mib_node_unreg(lua_State *L);
+
 #endif /* _AGENTX_H_ */

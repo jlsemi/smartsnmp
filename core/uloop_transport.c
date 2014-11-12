@@ -44,33 +44,6 @@ struct send_data_entry {
   struct sockaddr_in *client_sin;
 };
 
-/* Send snmp datagram as a UDP packet to the remote */
-void
-transport_send(uint8_t *buf, int len)
-{
-  struct send_data_entry *entry;
-
-  entry = malloc(sizeof(struct send_data_entry));
-  if (entry == NULL) {
-    perror("malloc()");
-    exit(EXIT_FAILURE);
-  }
-
-  entry->buf = buf;
-  entry->len = len;
-  entry->client_sin = client_sin;
-
-  /* Send the data back to the client */
-  if (sendto(server.fd, entry->buf, entry->len, 0, (struct sockaddr *)entry->client_sin, sizeof(struct sockaddr_in)) == -1) {
-    perror("sendto()");
-    uloop_done();
-  }
-
-  free(entry->buf);
-  free(entry->client_sin);
-  free(entry);
-}
-
 static void
 server_cb(struct uloop_fd *fd, unsigned int events)
 {
@@ -102,8 +75,35 @@ server_cb(struct uloop_fd *fd, unsigned int events)
   }
 }
 
+/* Send snmp datagram as a UDP packet to the remote */
 void
-transport_running(void)
+uloop_transport_send(uint8_t *buf, int len)
+{
+  struct send_data_entry *entry;
+
+  entry = malloc(sizeof(struct send_data_entry));
+  if (entry == NULL) {
+    perror("malloc()");
+    exit(EXIT_FAILURE);
+  }
+
+  entry->buf = buf;
+  entry->len = len;
+  entry->client_sin = client_sin;
+
+  /* Send the data back to the client */
+  if (sendto(server.fd, entry->buf, entry->len, 0, (struct sockaddr *)entry->client_sin, sizeof(struct sockaddr_in)) == -1) {
+    perror("sendto()");
+    uloop_done();
+  }
+
+  free(entry->buf);
+  free(entry->client_sin);
+  free(entry);
+}
+
+void
+uloop_transport_running(void)
 {
   uloop_init();
   uloop_fd_add(&server, ULOOP_READ);
@@ -111,7 +111,7 @@ transport_running(void)
 }
 
 void
-transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+uloop_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 {
   struct sockaddr_in sin;
 
@@ -134,3 +134,10 @@ transport_init(int port, TRANSPORT_RECEIVER recv_cb)
     exit(EXIT_FAILURE);
   }
 }
+
+struct smartsnmp_transport_ops uloop_trans_ops = {
+  "uloop",
+  uloop_transport_init,
+  uloop_transport_running,
+  uloop_transport_send,
+};

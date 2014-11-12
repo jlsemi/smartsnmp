@@ -18,147 +18,44 @@
  *
  */
 
-#include <sys/socket.h>
-#include <sys/queue.h>
-#include <netinet/in.h>
-
-#include <assert.h>
-#include <stdio.h>
-#include <getopt.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "transport.h"
-#include "snmp.h"
 #include "mib.h"
+#include "snmp.h"
+#include "agentx.h"
 
-static lua_State *l_state;
-
-/* Receive SNMP request datagram from transport layer */
-void
-snmpd_receive(uint8_t *buf, int len)
-{
-  snmpd_recv(buf, len, l_state);
-}
-
-/* Send SNMP response datagram to transport layer */
-void
-snmpd_send(uint8_t *buf, int len)
-{
-  transport_send(buf, len);
-}
-
-/* Register mib nodes from Lua */
-static int
-snmpd_mib_node_reg(lua_State *L)
-{
-  oid_t *inst_id;
-  int inst_id_len;
-  int i, inst_cb;
-
-  /* Check if the first argument is a table. */
-  luaL_checktype(L, 1, LUA_TTABLE);
-
-  /* Get oid length */
-  inst_id_len = lua_objlen(L, 1);
-  /* Get oid */
-  inst_id = xmalloc(inst_id_len * sizeof(oid_t));
-  for (i = 0; i < inst_id_len; i++) {
-    lua_rawgeti(L, 1, i + 1);
-    inst_id[i] = lua_tointeger(L, -1);
-    lua_pop(L, 1);
-  }
-
-  /* Get lua callback of instance node */
-  if (!lua_isfunction(L, -1)) {
-    lua_pushstring(L, "Handler is not a function!");
-    lua_error(L);
-  }
-
-  inst_cb = luaL_ref(L, LUA_ENVIRONINDEX);
-  /* Register node */
-  i = mib_node_reg(inst_id, inst_id_len, inst_cb);
-  /* Get returned value */
-  lua_pushnumber(L, i);
-
-  free(inst_id);
-
-  return 1;
-}
-
-/* Unregister mib nodes from Lua */
-static int
-snmpd_mib_node_unreg(lua_State *L)
-{
-  oid_t *inst_id;
-  int inst_id_len;
-  int i;
-
-  /* Check if the first argument is a table. */
-  luaL_checktype(L, 1, LUA_TTABLE);
-
-  /* Get oid length */
-  inst_id_len = lua_objlen(L, 1);
-
-  /* Get oid */
-  inst_id = xmalloc(inst_id_len * sizeof(oid_t));
-  for (i = 0; i < inst_id_len; i++) {
-    lua_rawgeti(L, 1, i + 1);
-    inst_id[i] = lua_tointeger(L, -1);
-    lua_pop(L, 1);
-  }
-
-  /* Unregister node */
-  mib_node_unreg(inst_id, inst_id_len);
-
-  free(inst_id);
-
-  return 0;
-}
-
-static int
-snmpd_init(lua_State *L)
-{
-  int port;
-  
-  mib_init();
-
-  port = luaL_checkint(L, 1);
-  transport_init(port, snmpd_receive);
-
-  lua_pushboolean(L, 1);
-
-  return 1;  
-}
-
-static int
-snmpd_run(lua_State *L)
-{
-  transport_running();
-
-  lua_pushboolean(L, 1);
-
-  return 1;  
-}
+lua_State *mib_lua_state;
+struct smartsnmp_transport_ops *smartsnmp_trans_ops;
 
 static const luaL_Reg snmpd_func[] = {
   { "init", snmpd_init },
+  { "open", snmpd_open },
   { "run", snmpd_run },
   { "mib_node_reg", snmpd_mib_node_reg },
   { "mib_node_unreg", snmpd_mib_node_unreg },
   { NULL, NULL }
 };
 
-/* Init snmp agent from lua */
+static const luaL_Reg agentx_func[] = {
+  { "init", agentx_init },
+  { "open", agentx_open },
+  { "run", agentx_run },
+  { "mib_node_reg", agentx_mib_node_reg },
+  { "mib_node_unreg", agentx_mib_node_unreg },
+  { NULL, NULL }
+};
+
+/* Init smartsnmp agent from lua */
 int
 luaopen_smartsnmp_core(lua_State *L)
 {
   /* Store lua environment */
-  l_state = L;
+  mib_lua_state = L;
   lua_newtable(L);
   lua_replace(L, LUA_ENVIRONINDEX);
+
   /* Register snmpd_func into lua */
   luaL_register(L, "snmpd_lib", snmpd_func);
+  //luaL_register(L, "agentx_lib", agentx_func);
 
   return 1;
 }

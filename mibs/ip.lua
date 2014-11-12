@@ -147,7 +147,6 @@ local function ip_NetToMedia_entry_set(sub_oid, v, name)
 end
 
 local ipGroup = {
-    rwcommunity = 'ipprivate',
     [1]  = mib.Int(function () load_config() return ip_scalar_cache[1] end, function (v) ip_scalar_cache[1] = v end),
     [2]  = mib.Int(function () load_config() return ip_scalar_cache[2] end, function (v) ip_scalar_cache[2] = v end),
     [3]  = mib.ConstInt(function () load_config() return ip_scalar_cache[3] end),

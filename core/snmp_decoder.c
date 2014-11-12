@@ -198,4 +198,3 @@ ber_length_dec(const uint8_t *buf, uint32_t *value)
 
   return len;
 }
-

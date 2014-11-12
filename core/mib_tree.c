@@ -24,7 +24,6 @@
 #include <assert.h>
 
 #include "mib.h"
-#include "snmp.h"
 #include "util.h"
 
 /* Dummy root node */
@@ -101,6 +100,150 @@ oid_binary_search(oid_t *arr, int n, oid_t oid)
     return -low - 2;
   else
     return low;  /* low == high - 1 */
+}
+
+/* Unrefer mib search handler */
+void
+mib_handler_unref(int handler)
+{
+  lua_State *L = mib_lua_state;
+  luaL_unref(L, LUA_ENVIRONINDEX, handler);
+}
+
+/* Embedded code is not funny at all... */
+int
+mib_instance_search(struct oid_search_res *ret_oid)
+{
+  int i;
+  Variable *var = &ret_oid->var;
+  lua_State *L = mib_lua_state;
+
+  /* Empty lua stack. */
+  lua_pop(L, -1);
+  /* Get function. */
+  lua_rawgeti(L, LUA_ENVIRONINDEX, ret_oid->callback);
+  /* op */
+  lua_pushinteger(L, ret_oid->request);
+  /* Community authorization */
+  if (ret_oid->request == MIB_REQ_SET) {
+    lua_pushstring(L, "private");
+  } else {
+    lua_pushstring(L, "public");
+  }
+  /* req_sub_oid */
+  lua_newtable(L);
+  for (i = 0; i < ret_oid->inst_id_len; i++) {
+    lua_pushinteger(L, ret_oid->inst_id[i]);
+    lua_rawseti(L, -2, i + 1);
+  }
+
+  if (ret_oid->request == MIB_REQ_SET) {
+    /* req_val */
+    switch (tag(var)) {
+      case ASN1_TAG_INT:
+        lua_pushinteger(L, integer(var));
+        break;
+      case ASN1_TAG_OCTSTR:
+        lua_pushlstring(L, octstr(var), length(var));
+        break;
+      case ASN1_TAG_CNT:
+        lua_pushnumber(L, count(var));
+        break;
+      case ASN1_TAG_IPADDR:
+        lua_pushlstring(L, (char *)ipaddr(var), length(var));
+        break;
+      case ASN1_TAG_OBJID:
+        lua_newtable(L);
+        for (i = 0; i < length(var); i++) {
+          lua_pushnumber(L, oid(var)[i]);
+          lua_rawseti(L, -2, i + 1);
+        }
+        break;
+      case ASN1_TAG_GAU:
+        lua_pushnumber(L, gauge(var));
+        break;
+      case ASN1_TAG_TIMETICKS:
+        lua_pushnumber(L, timeticks(var));
+        break;
+      default:
+        lua_pushnil(L);
+        break;
+    }
+    /* req_val_type */
+    lua_pushinteger(L, tag(var));
+  } else {
+    /* req_val */
+    lua_pushnil(L);
+    /* req_val_type */
+    lua_pushnil(L);
+  }
+
+  if (lua_pcall(L, 5, 4, 0) != 0) {
+    SMARTSNMP_LOG(L_ERROR, "MIB search hander %d fail: %s\n", ret_oid->callback, lua_tostring(L, -1));
+    ret_oid->exist_state = ASN1_TAG_NO_SUCH_OBJ;
+    return 0;
+  }
+
+  ret_oid->exist_state = lua_tointeger(L, -4);
+
+  if (ret_oid->exist_state == 0) {
+    if (ret_oid->request != MIB_REQ_SET) {
+      tag(var) = lua_tonumber(L, -1);
+      switch (tag(var)) {
+        case ASN1_TAG_INT:
+          length(var) = 1;
+          integer(var) = lua_tointeger(L, -2);
+          break;
+        case ASN1_TAG_OCTSTR:
+          length(var) = lua_objlen(L, -2);
+          memcpy(octstr(var), lua_tostring(L, -2), length(var));
+          break;
+        case ASN1_TAG_CNT:
+          length(var) = 1;
+          count(var) = lua_tonumber(L, -2);
+          break;
+        case ASN1_TAG_IPADDR:
+          length(var) = lua_objlen(L, -2);
+          for (i = 0; i < length(var); i++) {
+            lua_rawgeti(L, -2, i + 1);
+            ipaddr(var)[i] = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+          }
+          break;
+        case ASN1_TAG_OBJID:
+          length(var) = lua_objlen(L, -2);
+          for (i = 0; i < length(var); i++) {
+            lua_rawgeti(L, -2, i + 1);
+            oid(var)[i] = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+          }
+          break;
+        case ASN1_TAG_GAU:
+          length(var) = 1;
+          gauge(var) = lua_tonumber(L, -2);
+          break;
+        case ASN1_TAG_TIMETICKS:
+          length(var) = 1;
+          timeticks(var) = lua_tonumber(L, -2);
+          break;
+        default:
+          assert(0);
+          break;
+      }
+    }
+
+    /* For GETNEXT request, return the new oid */
+    if (ret_oid->request == MIB_REQ_GETNEXT) {
+      ret_oid->inst_id_len = lua_objlen(L, -3);
+      for (i = 0; i < ret_oid->inst_id_len; i++) {
+        lua_rawgeti(L, -3, i + 1);
+        ret_oid->inst_id[i] = lua_tointeger(L, -1);
+        lua_pop(L, 1);
+      }
+    }
+  }
+
+  return ret_oid->exist_state;
 }
 
 /* GET request search, depth-first traversal in mib-tree, oid must match */
@@ -728,7 +871,7 @@ __mib_tree_delete(struct node_pair *pair)
   struct mib_instance_node *in;
 
   if (node == (struct mib_node *)&mib_dummy_node) {
-    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "MIB dummy root node cannot be deleted!\n");
+    SMARTSNMP_LOG(L_WARNING, "MIB dummy root node cannot be deleted!\n");
     return;
   }
 
@@ -889,17 +1032,17 @@ mib_node_reg(const oid_t *oid, uint32_t len, int callback)
   }
 
   if (len > MIB_OID_MAX_LEN) {
-    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "The length of oid cannot be longer than %d\n", MIB_OID_MAX_LEN);
+    SMARTSNMP_LOG(L_WARNING, "The length of oid cannot be longer than %d\n", MIB_OID_MAX_LEN);
     return -1;
   }
 
   in = mib_tree_instance_insert(oid, len, callback);
   if (in == NULL) {
-    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "Register oid: ");
+    SMARTSNMP_LOG(L_WARNING, "Register oid: ");
     for (i = 0; i < len; i++) {
-      CREDO_SNMP_LOG(SNMP_LOG_WARNING, "%d ", oid[i]);
+      SMARTSNMP_LOG(L_WARNING, "%d ", oid[i]);
     }
-    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "fail, node already exists or oid overlaps.\n");
+    SMARTSNMP_LOG(L_WARNING, "fail, node already exists or oid overlaps.\n");
     return -1;
   }
 
