@@ -2,6 +2,10 @@
 *.o
 *.os
 
+# libraries
+*.a
+*.so
+
 # log files
 *.log
 
