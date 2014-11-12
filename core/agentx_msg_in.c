@@ -152,8 +152,11 @@ agentx_get(struct agentx_datagram *xdg)
       } else {
         /* Error status */
         vb_out->val_type = 0;
-        xdg->u.response.error = ret_oid.exist_state;
-        xdg->u.response.index = sr_in_cnt;
+        if (!xdg->u.response.error) {
+          /* Report the first object error status in search range */
+          xdg->u.response.error = ret_oid.exist_state;
+          xdg->u.response.index = sr_in_cnt;
+        }
       }
     } else {
       /* Gotcha */
@@ -203,8 +206,11 @@ agentx_getnext(struct agentx_datagram *xdg)
       } else {
         /* Error status */
         vb_out->val_type = 0;
-        xdg->u.response.error = ret_oid.exist_state;
-        xdg->u.response.index = sr_in_cnt;
+        if (!xdg->u.response.error) {
+          /* Report the first object error status in search range */
+          xdg->u.response.error = ret_oid.exist_state;
+          xdg->u.response.index = sr_in_cnt;
+        }
       }
     } else {
       val_len = agentx_value_enc_test(length(&ret_oid.var), tag(&ret_oid.var));
@@ -260,8 +266,11 @@ agentx_set(struct agentx_datagram *xdg)
         /* Error status */
         vb_out->val_type = vb_in->val_type;
         vb_out->val_len = vb_in->val_len;
-        xdg->u.response.error = ret_oid.exist_state;
-        xdg->u.response.index = vb_in_cnt;
+        if (!xdg->u.response.error) {
+          /* Report the first object error status in search range */
+          xdg->u.response.error = ret_oid.exist_state;
+          xdg->u.response.index = vb_in_cnt;
+        }
       }
       /* Add into list. */
       list_add_tail(&vb_out->link, &xdg->vb_out_list);

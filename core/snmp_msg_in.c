@@ -68,19 +68,8 @@ snmp_msg_clear(struct snmp_datagram *sdg)
 static void
 snmp_response(struct snmp_datagram *sdg)
 {
-  if (sdg->pdu_hdr.err_stat) {
-    sdg->pdu_hdr.err_idx = sdg->vb_in_cnt;
-  } else {
-    sdg->pdu_hdr.err_idx = 0;
-  }
-
-  snmp_vb_list_free(&sdg->vb_in_list);
-  sdg->vb_in_cnt = 0;
-
   snmp_send_response(sdg);
-
-  snmp_vb_list_free(&sdg->vb_out_list);
-  sdg->vb_out_cnt = 0;
+  snmp_msg_clear(sdg);
 }
 
 /* GET request function */
@@ -91,29 +80,34 @@ snmp_get(struct snmp_datagram *sdg)
   struct var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
   uint32_t oid_len, len_len, val_len;
+  uint32_t vb_in_cnt = 0;
   const uint32_t tag_len = 1;
 
   ret_oid.request = MIB_REQ_GET;
 
   list_for_each_safe(curr, next, &sdg->vb_in_list) {
     vb_in = list_entry(curr, struct var_bind, link);
+    vb_in_cnt++;
 
     /* Search at the input oid */
     mib_tree_search(vb_in->oid, vb_in->oid_len, &ret_oid);
 
     if (ret_oid.exist_state) {
-      /* Community authorization */
-      if (ret_oid.exist_state == SNMP_ERR_STAT_AUTHORIZATION) {
-        SMARTSNMP_LOG(L_ERROR, "ERR: Community authorization failure\n");
-        snmp_msg_clear(sdg);
-        return;
-      }
-      /* not exist */
+      /* something wrong */
       vb_out = xmalloc(sizeof(*vb_out));
       vb_out->oid = ret_oid.oid;
       vb_out->oid_len = ret_oid.id_len;
-      vb_out->value_type = ret_oid.exist_state;
       vb_out->value_len = 0;
+      if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
+        vb_out->value_type = ret_oid.exist_state;
+      } else {
+        vb_out->value_type = 0;
+        if (!sdg->pdu_hdr.err_stat) {
+          /* Report the first varbind error status */
+          sdg->pdu_hdr.err_stat = ret_oid.exist_state;
+          sdg->pdu_hdr.err_idx = vb_in_cnt;
+        }
+      }
     } else {
       /* Gotcha */
       val_len = ber_value_enc_test(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var));
@@ -153,29 +147,34 @@ snmp_getnext(struct snmp_datagram *sdg)
   struct var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
   uint32_t oid_len, len_len, val_len;
+  uint32_t vb_in_cnt = 0;
   const uint32_t tag_len = 1;
 
   ret_oid.request = MIB_REQ_GETNEXT;
 
   list_for_each_safe(curr, next, &sdg->vb_in_list) {
     vb_in = list_entry(curr, struct var_bind, link);
+    vb_in_cnt++;
 
     /* Search at the input oid */
     mib_tree_search_next(vb_in->oid, vb_in->oid_len, &ret_oid);
 
     if (ret_oid.exist_state) {
-      /* Community authorization */
-      if (ret_oid.exist_state == SNMP_ERR_STAT_AUTHORIZATION) {
-        SMARTSNMP_LOG(L_ERROR, "ERR: Community authorization failure\n");
-        snmp_msg_clear(sdg);
-        return;
-      }
       /* This situation is only for traversal when end-of-mib-tree */
       vb_out = xmalloc(sizeof(*vb_out));
       vb_out->oid = ret_oid.oid;
       vb_out->oid_len = ret_oid.id_len;
-      vb_out->value_type = ret_oid.exist_state;
       vb_out->value_len = 0;
+      if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
+        vb_out->value_type = ret_oid.exist_state;
+      } else {
+        vb_out->value_type = 0;
+        if (!sdg->pdu_hdr.err_stat) {
+          /* Report the first varbind error status */
+          sdg->pdu_hdr.err_stat = ret_oid.exist_state;
+          sdg->pdu_hdr.err_idx = vb_in_cnt;
+        }
+      }
     } else {
       val_len = ber_value_enc_test(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var));
       vb_out = xmalloc(sizeof(*vb_out) + val_len);
@@ -214,12 +213,14 @@ snmp_set(struct snmp_datagram *sdg)
   struct var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
   uint32_t oid_len, len_len;
+  uint32_t vb_in_cnt = 0;
   const uint32_t tag_len = 1;
 
   ret_oid.request = MIB_REQ_SET;
 
   list_for_each_safe(curr, next, &sdg->vb_in_list) {
     vb_in = list_entry(curr, struct var_bind, link);
+    vb_in_cnt++;
 
     /* Decode the setting value ahead */
     tag(&ret_oid.var) = vb_in->value_type;
@@ -228,13 +229,6 @@ snmp_set(struct snmp_datagram *sdg)
     /* Search at the input oid and set it */
     mib_tree_search(vb_in->oid, vb_in->oid_len, &ret_oid);
 
-    /* Community authorization */
-    if (ret_oid.exist_state == SNMP_ERR_STAT_AUTHORIZATION) {
-      SMARTSNMP_LOG(L_ERROR, "ERR: Community authorization failure\n");
-      snmp_msg_clear(sdg);
-      return;
-    }
-
     vb_out = xmalloc(sizeof(*vb_out) + vb_in->value_len);
     vb_out->oid = ret_oid.oid;
     vb_out->oid_len = ret_oid.id_len;
@@ -242,12 +236,17 @@ snmp_set(struct snmp_datagram *sdg)
     vb_out->value_len = vb_in->value_len;
     memcpy(vb_out->value, vb_in->value, vb_out->value_len);
 
-    if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
-      /* Object not found */
-      vb_out->value_type = ret_oid.exist_state;
-    } else {
-      /* 0 means success, while others mean some failure */
-      sdg->pdu_hdr.err_stat = ret_oid.exist_state;
+    if (ret_oid.exist_state) {
+      if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
+        /* Object not found */
+        vb_out->value_type = ret_oid.exist_state;
+      } else {
+        if (!sdg->pdu_hdr.err_stat) {
+          /* Report the first varbind error status */
+          sdg->pdu_hdr.err_stat = ret_oid.exist_state;
+          sdg->pdu_hdr.err_idx = vb_in_cnt;
+        }
+      }
     }
 
     /* Test OID encoding length. */
@@ -279,15 +278,19 @@ snmp_bulkget(struct snmp_datagram *sdg)
   struct var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
   uint32_t oid_len, len_len, val_len, id_len;
+  uint32_t vb_in_cnt = 0;
+  uint32_t repeat;
   const uint32_t tag_len = 1;
   const oid_t *oid;
 
   ret_oid.request = MIB_REQ_GETNEXT;
+  repeat = sdg->pdu_hdr.err_idx;
+  sdg->pdu_hdr.err_idx = 0;
 
-  while (sdg->pdu_hdr.err_idx-- > 0) {
-
+  while (repeat-- > 0) {
     list_for_each_safe(curr, next, &sdg->vb_in_list) {
       vb_in = list_entry(curr, struct var_bind, link);
+      vb_in_cnt++;
 
       oid = vb_in->oid;
       id_len = vb_in->oid_len;
@@ -301,18 +304,21 @@ snmp_bulkget(struct snmp_datagram *sdg)
       vb_in->oid_len = ret_oid.id_len;
 
       if (ret_oid.exist_state) {
-        /* Community authorization */
-        if (ret_oid.exist_state == SNMP_ERR_STAT_AUTHORIZATION) {
-          SMARTSNMP_LOG(L_ERROR, "ERR: Community authorization failure\n");
-          snmp_msg_clear(sdg);
-          return;
-        }
         /* This situation is only for traversal when end-of-mib-tree */
         vb_out = xmalloc(sizeof(*vb_out));
         vb_out->oid = ret_oid.oid;
         vb_out->oid_len = ret_oid.id_len;
-        vb_out->value_type = ret_oid.exist_state;
         vb_out->value_len = 0;
+        if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
+          vb_out->value_type = ret_oid.exist_state;
+        } else {
+          vb_out->value_type = 0;
+          if (!sdg->pdu_hdr.err_stat) {
+            /* Report the first varbind error status */
+            sdg->pdu_hdr.err_stat = ret_oid.exist_state;
+            sdg->pdu_hdr.err_idx = vb_in_cnt;
+          }
+        }
       } else {
         val_len = ber_value_enc_test(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var));
         vb_out = xmalloc(sizeof(*vb_out) + val_len);
