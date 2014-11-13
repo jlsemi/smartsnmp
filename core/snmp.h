@@ -23,9 +23,7 @@
 
 #include "asn1.h"
 #include "list.h"
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
+#include "transport.h"
 
 /* Error status */
 typedef enum snmp_err_stat {
@@ -96,6 +94,8 @@ struct pdu_hdr {
 };
 
 struct snmp_datagram {
+  struct transport_operation *trans_ops;
+
   void *recv_buf;
   void *send_buf;
 
@@ -117,6 +117,8 @@ struct snmp_datagram {
   struct list_head vb_out_list;
 };
 
+extern struct snmp_datagram snmp_datagram;
+
 uint32_t ber_value_enc_test(const void *value, uint32_t len, uint8_t type);
 uint32_t ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf);
 uint32_t ber_length_enc_test(uint32_t value);
@@ -131,10 +133,10 @@ void snmp_send_response(struct snmp_datagram *sdg);
 void snmpd_recv(uint8_t *buffer, int len);
 void snmpd_send(uint8_t *buf, int len);
 
-int snmpd_init(lua_State *L);
-int snmpd_open(lua_State *L);
-int snmpd_run(lua_State *L);
-int snmpd_mib_node_reg(lua_State *L);
-int snmpd_mib_node_unreg(lua_State *L);
+void snmpd_init(int port);
+int snmpd_open(void);
+void snmpd_run(void);
+int snmpd_mib_node_reg(const oid_t *grp_id, int id_len, int grp_cb);
+int snmpd_mib_node_unreg(const oid_t *grp_id, int id_len);
 
 #endif /* _SNMP_H_ */

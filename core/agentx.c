@@ -28,208 +28,148 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "transport.h"
 #include "agentx.h"
 #include "mib.h"
 #include "util.h"
 
-/* Receive agentx request datagram from transport layer */
+struct agentx_datagram agentx_datagram;
+
+/* Receive agentX request datagram from transport layer */
 void
 agentx_receive(uint8_t *buf, int len)
 {
   agentx_recv(buf, len);
 }
 
-/* Send agentx response datagram to transport layer */
+/* Send agentX response datagram to transport layer */
 void
 agentx_send(uint8_t *buf, int len)
 {
-  smartsnmp_trans_ops->send(buf, len);
+  agentx_datagram.trans_ops->send(buf, len);
+}
+
+/* Register mib group node */
+int
+agentx_mib_node_reg(const oid_t *grp_id, int id_len, int grp_cb)
+{
+  struct x_pdu_buf x_pdu;
+
+  /* Check oid prefix */
+  if (id_len < 4 || grp_id[0] != 1 || grp_id[1] != 3 || grp_id[2] != 6 || grp_id[3] != 1) {
+    SMARTSNMP_LOG(L_ERROR, "Oid prefix must be .1.3.6.1!\n");
+    return -1;
+  }
+
+  /* Send agentX register PDU */
+  x_pdu = agentx_register_pdu(&agentx_datagram, grp_id, id_len, NULL, 0, 0, 127, 0, 0);
+  if (send(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0) == -1) {
+    SMARTSNMP_LOG(L_ERROR, "Send agentX register PDU failure!\n");
+    return -1;
+  }
+
+  /* Receive agentX resoponse PDU */
+  x_pdu.len = TRANS_BUF_SIZ;
+  x_pdu.buf = xrealloc(x_pdu.buf, x_pdu.len);
+  x_pdu.len = recv(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0);
+  if (x_pdu.len == -1) {
+    SMARTSNMP_LOG(L_ERROR, "Receive agentX register response PDU failure!\n");
+    return -1;
+  }
+
+  /* Testify register response PDU */
+  if (agentx_recv(x_pdu.buf, x_pdu.len) != AGENTX_ERR_OK) {
+    SMARTSNMP_LOG(L_ERROR, "Parse agentX rigister response PDU error!\n");
+    return -1;
+  }
+
+  /* Register node */
+  return mib_node_reg(grp_id, id_len, grp_cb);
+}
+
+/* Unregister mib group node */
+int
+agentx_mib_node_unreg(const oid_t *grp_id, int id_len)
+{
+  struct x_pdu_buf x_pdu;
+
+  /* Check oid prefix */
+  if (id_len < 4 || grp_id[0] != 1 || grp_id[1] != 3 || grp_id[2] != 6 || grp_id[3] != 1) {
+    SMARTSNMP_LOG(L_ERROR, "Oid prefix must be .1.3.6.1!");
+    return -1;
+  }
+
+  /* Send angentX register PDU */
+  x_pdu = agentx_unregister_pdu(&agentx_datagram, grp_id, id_len, NULL, 0, 0, 127, 0, 0);
+  if (send(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0) == -1) {
+    SMARTSNMP_LOG(L_ERROR, "Send agentX unregister PDU failure!");
+    return -1;
+  }
+
+  /* Receive agentX response PDU */
+  x_pdu.len = TRANS_BUF_SIZ;
+  x_pdu.buf = xrealloc(x_pdu.buf, x_pdu.len);
+  x_pdu.len = recv(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0);
+  if (x_pdu.len == -1) {
+    SMARTSNMP_LOG(L_ERROR, "Receive agentX unregister response PDU failure!\n");
+    return -1;
+  }
+
+  /* Testify register response PDU */
+  if (agentx_recv(x_pdu.buf, x_pdu.len) != AGENTX_ERR_OK) {
+    SMARTSNMP_LOG(L_ERROR, "Unregister response error!");
+    return -1;
+  }
+
+  /* Unregister node */
+  mib_node_unreg(grp_id, id_len);
+  return 0;
+}
+
+void
+agentx_init(int port)
+{
+  mib_init();
+  INIT_LIST_HEAD(&agentx_datagram.vb_in_list);
+  INIT_LIST_HEAD(&agentx_datagram.vb_out_list);
+  INIT_LIST_HEAD(&agentx_datagram.sr_in_list);
+  INIT_LIST_HEAD(&agentx_datagram.sr_out_list);
+  return agentx_datagram.trans_ops->init(port, agentx_receive);
 }
 
 int
-agentx_open(lua_State *L)
+agentx_open(void)
 {
   struct x_pdu_buf x_pdu;
   oid_t open_oid[] = { 1, 3, 6, 1, 4, 1, 8072, 3, 2, 10 };
   const char *descr = "SmartSNMP AgentX sub-agent";
 
+  /* Send agentX open PDU */
   x_pdu = agentx_open_pdu(&agentx_datagram, open_oid, OID_ARRAY_SIZE(open_oid), descr, strlen(descr));
-
-  /* Send open PDU as TCP packet */
   if (send(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0) == -1) {
-    lua_pushstring(L, "Send open PDU failure!");
-    lua_error(L);
+    SMARTSNMP_LOG(L_ERROR, "Send agentX open PDU failure!\n");
+    return -1;
   }
 
+  /* Receive agentX response PDU */
   x_pdu.len = TRANS_BUF_SIZ;
   x_pdu.buf = xrealloc(x_pdu.buf, x_pdu.len);
-
-  /* Receive TCP data */
   x_pdu.len = recv(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0);
   if (x_pdu.len == -1) {
-    lua_pushstring(L, "Receive open PDU response failure!");
-    lua_error(L);
+    SMARTSNMP_LOG(L_ERROR, "Receive agentX open response PDU failure!\n");
+    return -1;
   }
 
-  /* Testify open PDU response */
+  /* Testify open response PDU */
   if (agentx_recv(x_pdu.buf, x_pdu.len) != AGENTX_ERR_OK) {
-    lua_pushstring(L, "Open response error!");
-    lua_error(L);
+    SMARTSNMP_LOG(L_ERROR, "Parse agentX open response PDU error!\n");
+    return -1;
   }
-
-  lua_pushboolean(L, 1);
-
-  return 1;
-}
-
-/* Register mib nodes from Lua */
-int
-agentx_mib_node_reg(lua_State *L)
-{
-  oid_t *inst_id;
-  int inst_id_len;
-  int i, inst_cb;
-  struct x_pdu_buf x_pdu;
-
-  /* Check if the first argument is a table. */
-  luaL_checktype(L, 1, LUA_TTABLE);
-
-  /* Get oid length */
-  inst_id_len = lua_objlen(L, 1);
-  /* Get oid */
-  inst_id = xmalloc(inst_id_len * sizeof(oid_t));
-  for (i = 0; i < inst_id_len; i++) {
-    lua_rawgeti(L, 1, i + 1);
-    inst_id[i] = lua_tointeger(L, -1);
-    lua_pop(L, 1);
-  }
-
-  /* Check oid prefix */
-  if (inst_id_len < 4 || inst_id[0] != 1 || inst_id[1] != 3 || inst_id[2] != 6 || inst_id[3] != 1) {
-    lua_pushstring(L, "Oid prefix must be .1.3.6.1!");
-    lua_error(L);
-  }
-
-  x_pdu = agentx_register_pdu(&agentx_datagram, inst_id, inst_id_len, NULL, 0, 0, 127, 0, 0);
-
-  /* Send register PDU as TCP packet */
-  if (send(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0) == -1) {
-    lua_pushstring(L, "Send register PDU failure!");
-    lua_error(L);
-  }
-
-  x_pdu.len = TRANS_BUF_SIZ;
-  x_pdu.buf = xrealloc(x_pdu.buf, x_pdu.len);
-
-  /* Receive TCP data */
-  x_pdu.len = recv(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0);
-  if (x_pdu.len == -1) {
-    lua_pushstring(L, "Receive register PDU response failure!");
-    lua_error(L);
-  }
-
-  /* Testify register PDU response */
-  if (agentx_recv(x_pdu.buf, x_pdu.len) != AGENTX_ERR_OK) {
-    lua_pushstring(L, "Rigister response error!");
-    lua_error(L);
-  }
-
-  /* Get lua callback of instance node */
-  if (!lua_isfunction(L, -1)) {
-    lua_pushstring(L, "Handler is not a function!");
-    lua_error(L);
-  }
-
-  inst_cb = luaL_ref(L, LUA_ENVIRONINDEX);
-  /* Register node */
-  i = mib_node_reg(inst_id, inst_id_len, inst_cb);
-  /* Get returned value */
-  lua_pushnumber(L, i);
-  /* Free registered oid */
-  free(inst_id);
-
-  return 1;
-}
-
-/* Unregister mib nodes from Lua */
-int
-agentx_mib_node_unreg(lua_State *L)
-{
-  oid_t *inst_id;
-  int i, inst_id_len;
-  struct x_pdu_buf x_pdu;
-
-  /* Check if the first argument is a table. */
-  luaL_checktype(L, 1, LUA_TTABLE);
-
-  /* Get oid length */
-  inst_id_len = lua_objlen(L, 1);
-
-  /* Get oid */
-  inst_id = xmalloc(inst_id_len * sizeof(oid_t));
-  for (i = 0; i < inst_id_len; i++) {
-    lua_rawgeti(L, 1, i + 1);
-    inst_id[i] = lua_tointeger(L, -1);
-    lua_pop(L, 1);
-  }
-
-  /* Check oid prefix */
-  if (inst_id_len < 4 || inst_id[0] != 1 || inst_id[1] != 3 || inst_id[2] != 6 || inst_id[3] != 1) {
-    lua_pushstring(L, "Oid prefix must be .1.3.6.1!");
-    lua_error(L);
-  }
-
-  x_pdu = agentx_unregister_pdu(&agentx_datagram, inst_id, inst_id_len, NULL, 0, 0, 127, 0, 0);
-
-  /* Send register PDU as TCP packet */
-  if (send(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0) == -1) {
-    lua_pushstring(L, "Send unregister PDU failure!");
-    lua_error(L);
-  }
-
-  x_pdu.len = TRANS_BUF_SIZ;
-  x_pdu.buf = xrealloc(x_pdu.buf, x_pdu.len);
-
-  /* Receive TCP data */
-  x_pdu.len = recv(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0);
-  if (x_pdu.len == -1) {
-    lua_pushstring(L, "Receive unregister PDU response failure!");
-    lua_error(L);
-  }
-
-  /* Testify register PDU response */
-  if (agentx_recv(x_pdu.buf, x_pdu.len) != AGENTX_ERR_OK) {
-    lua_pushstring(L, "Unregister response error!");
-    lua_error(L);
-  }
-
-  /* Unregister node */
-  mib_node_unreg(inst_id, inst_id_len);
-  /* Free unregistered oid */
-  free(inst_id);
 
   return 0;
 }
 
-int
-agentx_init(lua_State *L)
+void
+agentx_run(void)
 {
-  int port;
-
-  mib_init();
-  port = luaL_checkint(L, 1);
-  smartsnmp_trans_ops = &tcp_trans_ops;
-  smartsnmp_trans_ops->init(port, agentx_receive);
-  lua_pushboolean(L, 1);
-
-  return 1;  
-}
-
-int
-agentx_run(lua_State *L)
-{
-  smartsnmp_trans_ops->running();
-  lua_pushboolean(L, 1);
-  return 1;
+  return agentx_datagram.trans_ops->running();
 }

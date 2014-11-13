@@ -30,8 +30,6 @@
 #include "agentx.h"
 #include "util.h"
 
-struct agentx_datagram agentx_datagram;
-
 static struct x_var_bind *
 vb_new(uint32_t oid_len, uint32_t val_len)
 {
@@ -89,7 +87,7 @@ sr_list_free(struct list_head *sr_list)
 }
 
 static void
-agentx_msg_clear(struct agentx_datagram *xdg)
+agentx_datagram_clear(struct agentx_datagram *xdg)
 {
   /* free varbind list */
   vb_list_free(&xdg->vb_in_list);
@@ -118,8 +116,6 @@ agentx_response(struct agentx_datagram *xdg)
   }
   /* free response packet */
   free(x_pdu.buf);
-  /* clear datagram */
-  agentx_msg_clear(xdg);
 }
 
 /* GET request function */
@@ -621,7 +617,7 @@ agentx_decode(struct agentx_datagram *xdg)
 DECODE_FINISH:
   /* If fail, do some clear things */
   if (dec_fail) {
-    agentx_msg_clear(xdg);
+    agentx_datagram_clear(xdg);
   }
 
   /* We should free received buf here */
@@ -638,11 +634,9 @@ agentx_recv(uint8_t *buffer, int len)
 
   assert(buffer != NULL && len > 0);
 
+  /* Reset datagram */
+  agentx_datagram_clear(&agentx_datagram);
   agentx_datagram.recv_buf = buffer;
-  INIT_LIST_HEAD(&agentx_datagram.vb_in_list);
-  INIT_LIST_HEAD(&agentx_datagram.vb_out_list);
-  INIT_LIST_HEAD(&agentx_datagram.sr_in_list);
-  INIT_LIST_HEAD(&agentx_datagram.sr_out_list);
 
   /* Decode agentX datagram */
   ret = agentx_decode(&agentx_datagram);

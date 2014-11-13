@@ -110,8 +110,8 @@ udp_read_cb(const int sock, short int which, void *arg)
   }
 }
 
-void
-le_transport_send(uint8_t * buf, int len)
+static void
+snmp_le_transport_send(uint8_t * buf, int len)
 {
   struct send_data_entry * entry;
 
@@ -133,8 +133,8 @@ le_transport_send(uint8_t * buf, int len)
   event_add(snmp_send_event, NULL);
 }
 
-void
-le_transport_running(void)
+static void
+snmp_le_transport_running(void)
 {
   /* Initialize libevent */
   event_base = event_base_new();
@@ -149,8 +149,8 @@ le_transport_running(void)
   close(sock);
 }
 
-void
-le_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+static void
+snmp_le_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 {
   struct sockaddr_in sin;
 
@@ -176,9 +176,9 @@ le_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
   }
 }
 
-struct smartsnmp_transport_ops le_trans_ops = {
-  "libevent",
-  le_transport_init,
-  le_transport_running,
-  le_transport_send,
+struct transport_operation snmp_le_trans_ops = {
+  "snmp_libevent",
+  snmp_le_transport_init,
+  snmp_le_transport_running,
+  snmp_le_transport_send,
 };

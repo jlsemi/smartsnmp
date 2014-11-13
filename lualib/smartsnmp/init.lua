@@ -808,8 +808,8 @@ end
 --
 
 -- initialize snmp agent
-_M.init = function (port)
-    core.init(port)
+_M.init = function (protocol, port)
+    core.init(protocol, port)
 end
 
 -- open snmp agent

@@ -87,24 +87,24 @@ snmp_read_handler(int sock, unsigned char flag, void *ud)
 }
 
 /* Send snmp datagram as a UDP packet to the remote */
-void
-udp_transport_send(uint8_t *buf, int len)
+static void
+snmp_udp_transport_send(uint8_t *buf, int len)
 {
   snmp_entry.buf = buf;
   snmp_entry.len = len;
   snmp_event_add(snmp_entry.sock, SNMP_EV_WRITE, snmp_write_handler, &snmp_entry);
 }
 
-void
-udp_transport_running(void)
+static void
+snmp_udp_transport_running(void)
 {
   snmp_event_init();
   snmp_event_add(snmp_entry.sock, SNMP_EV_READ, snmp_read_handler, NULL);
   snmp_event_run();
 }
 
-void
-udp_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+static void
+snmp_udp_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 {
   struct sockaddr_in sin;
 
@@ -127,9 +127,9 @@ udp_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
   }
 }
 
-struct smartsnmp_transport_ops udp_trans_ops = {
-  "udp",
-  udp_transport_init,
-  udp_transport_running,
-  udp_transport_send,
+struct transport_operation snmp_udp_trans_ops = {
+  "snmp_udp",
+  snmp_udp_transport_init,
+  snmp_udp_transport_running,
+  snmp_udp_transport_send,
 };

@@ -31,8 +31,6 @@
 #include "transport.h"
 #include "libubox/uloop.h"
 
-#define BUF_SIZE     (65536)
-
 static TRANSPORT_RECEIVER u_receiver;
 
 static struct uloop_fd server;
@@ -51,7 +49,7 @@ server_cb(struct uloop_fd *fd, unsigned int events)
   int len;
   uint8_t * buf;
 
-  buf = malloc(BUF_SIZE);
+  buf = malloc(TRANS_BUF_SIZ);
   if (buf == NULL) {
     perror("malloc()");
     exit(EXIT_FAILURE);
@@ -64,7 +62,7 @@ server_cb(struct uloop_fd *fd, unsigned int events)
   }
 
   /* Receive UDP data, store the address of the sender in client_sin */
-  len = recvfrom(server.fd, buf, BUF_SIZE - 1, 0, (struct sockaddr *)client_sin, &server_sz);
+  len = recvfrom(server.fd, buf, TRANS_BUF_SIZ, 0, (struct sockaddr *)client_sin, &server_sz);
   if (len == -1) {
     perror("recvfrom()");
     uloop_done();
@@ -76,8 +74,8 @@ server_cb(struct uloop_fd *fd, unsigned int events)
 }
 
 /* Send snmp datagram as a UDP packet to the remote */
-void
-uloop_transport_send(uint8_t *buf, int len)
+static void
+snmp_uloop_transport_send(uint8_t *buf, int len)
 {
   struct send_data_entry *entry;
 
@@ -102,16 +100,16 @@ uloop_transport_send(uint8_t *buf, int len)
   free(entry);
 }
 
-void
-uloop_transport_running(void)
+static void
+snmp_uloop_transport_running(void)
 {
   uloop_init();
   uloop_fd_add(&server, ULOOP_READ);
   uloop_run();
 }
 
-void
-uloop_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+static void
+snmp_uloop_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 {
   struct sockaddr_in sin;
 
@@ -135,9 +133,9 @@ uloop_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
   }
 }
 
-struct smartsnmp_transport_ops uloop_trans_ops = {
-  "uloop",
-  uloop_transport_init,
-  uloop_transport_running,
-  uloop_transport_send,
+struct transport_operation snmp_uloop_trans_ops = {
+  "snmp_uloop",
+  snmp_uloop_transport_init,
+  snmp_uloop_transport_running,
+  snmp_uloop_transport_send,
 };

@@ -23,9 +23,7 @@
 
 #include "asn1.h"
 #include "list.h"
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
+#include "transport.h"
 
 /* AgentX PDU flags */
 #define INSTANCE_REGISTRATION  0x1
@@ -176,6 +174,7 @@ struct x_var_bind {
 
 struct agentx_datagram {
   int sock;
+  struct transport_operation *trans_ops;
   
   void *recv_buf;
   void *send_buf;
@@ -223,19 +222,19 @@ void agentx_send_response(struct agentx_datagram *xdg);
 int agentx_recv(uint8_t *buffer, int len);
 void agentx_send(uint8_t *buf, int len);
 
-struct x_pdu_buf agentx_open_pdu(struct agentx_datagram *xdg, oid_t *oid, uint32_t oid_len, const char *descr, uint32_t descr_len);
+struct x_pdu_buf agentx_open_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len, const char *descr, uint32_t descr_len);
 struct x_pdu_buf agentx_close_pdu(struct agentx_datagram *xdg, uint32_t reason);
-struct x_pdu_buf agentx_register_pdu(struct agentx_datagram *xdg, oid_t *oid, uint32_t oid_len, const char *community, uint32_t comm_len,
+struct x_pdu_buf agentx_register_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len, const char *community, uint32_t comm_len,
                                      uint8_t timeout, uint8_t priority, uint8_t range_subid, uint32_t upper_bound);
-struct x_pdu_buf agentx_unregister_pdu(struct agentx_datagram *xdg, oid_t *oid, uint32_t oid_len, const char *community, uint32_t comm_len,
+struct x_pdu_buf agentx_unregister_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len, const char *community, uint32_t comm_len,
                                        uint8_t timeout, uint8_t priority, uint8_t range_subid, uint32_t upper_bound);
 struct x_pdu_buf agentx_ping_pdu(struct agentx_datagram *xdg, const char *context, uint32_t context_len);
 struct x_pdu_buf agentx_response_pdu(struct agentx_datagram *xdg);
 
-int agentx_init(lua_State *L);
-int agentx_open(lua_State *L);
-int agentx_run(lua_State *L);
-int agentx_mib_node_reg(lua_State *L);
-int agentx_mib_node_unreg(lua_State *L);
+void agentx_init(int port);
+int agentx_open(void);
+void agentx_run(void);
+int agentx_mib_node_reg(const oid_t *grp_id, int id_len, int grp_cb);
+int agentx_mib_node_unreg(const oid_t *grp_id, int id_len);
 
 #endif /* _AGENTX_H_ */

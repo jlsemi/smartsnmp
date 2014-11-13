@@ -66,7 +66,7 @@ agentx_read_handler(int sock, unsigned char flag, void *ud)
     exit(EXIT_FAILURE);
   }
 
-  /* Receive TCP data */
+  /* Receive agentx PDU */
   len = recv(sock, buf, TRANS_BUF_SIZ - 1, 0);
   if (len == -1) {
     perror("recv()");
@@ -78,25 +78,25 @@ agentx_read_handler(int sock, unsigned char flag, void *ud)
   }
 }
 
-/* Send angentX as TCP packet to the remote */
-void
-tcp_transport_send(uint8_t *buf, int len)
+/* Send angentX PDU to the remote */
+static void
+agentx_tcp_transport_send(uint8_t *buf, int len)
 {
   agentx_entry.buf = buf;
   agentx_entry.len = len;
   snmp_event_add(agentx_entry.sock, SNMP_EV_WRITE, agentx_write_handler, &agentx_entry);
 }
 
-void
-tcp_transport_running(void)
+static void
+agentx_tcp_transport_running(void)
 {
   snmp_event_init();
   snmp_event_add(agentx_entry.sock, SNMP_EV_READ, agentx_read_handler, NULL);
   snmp_event_run();
 }
 
-void
-tcp_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+static void
+agentx_tcp_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 {
   struct sockaddr_in sin;
 
@@ -109,9 +109,9 @@ tcp_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
   memset(&sin, 0, sizeof(sin));
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  sin.sin_port = htons(705);
+  sin.sin_port = htons(port);
 
-  if (connect(agentx_entry.sock, (struct sockaddr *)&sin, sizeof(sin))) {
+  if (connect(agentx_entry.sock, (struct sockaddr *)&sin, sizeof(sin)) == -1) {
     perror("connect()");
     exit(EXIT_FAILURE);
   }
@@ -119,9 +119,9 @@ tcp_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
   agentx_receiver = recv_cb;
 }
 
-struct smartsnmp_transport_ops tcp_trans_ops = {
-  "tcp",
-  tcp_transport_init,
-  tcp_transport_running,
-  tcp_transport_send,
+struct transport_operation agentx_tcp_trans_ops = {
+  "agentx_tcp",
+  agentx_tcp_transport_init,
+  agentx_tcp_transport_running,
+  agentx_tcp_transport_send,
 };

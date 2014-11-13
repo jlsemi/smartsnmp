@@ -56,6 +56,11 @@ if status == false then
 end
 
 -- check configurations
+if type(protocol) ~= 'string' then
+    print("Can't get transport protocol for SNMP agent, please check your configuration file!")
+    os.exit(-1)
+end
+
 if type(port) ~= 'number' then
     print("Can't get listen port number for SNMP agent, please check your configuration file!")
     os.exit(-1)
@@ -122,7 +127,7 @@ end
 snmpd.set_ro_community(ro_community)
 snmpd.set_rw_community(rw_community)
 
-snmpd.init(port)
+snmpd.init(protocol, port)
 
 snmpd.open()
 

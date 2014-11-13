@@ -23,6 +23,9 @@
 
 #include "asn1.h"
 #include "agentx.h"
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
 
 #define MIB_OBJ_UNKNOWN         0
 #define MIB_OBJ_GROUP           1

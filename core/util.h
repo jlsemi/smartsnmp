@@ -21,6 +21,8 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 
 #define alloc_nr(x) (((x) + 2) * 3 / 2)

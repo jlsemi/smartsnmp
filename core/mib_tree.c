@@ -26,6 +26,9 @@
 #include "mib.h"
 #include "util.h"
 
+/* MIB lua state */
+lua_State *mib_lua_state;
+
 /* Dummy root node */
 static struct mib_group_node mib_dummy_node = {
   MIB_OBJ_GROUP,
@@ -1054,7 +1057,6 @@ void
 mib_node_unreg(const oid_t *oid, uint32_t len)
 {
   mib_tree_init_check();
-
   mib_tree_delete(oid, len);
 }
 
@@ -1082,4 +1084,3 @@ mib_init(void)
 {
   mib_dummy_node_init();
 }
-

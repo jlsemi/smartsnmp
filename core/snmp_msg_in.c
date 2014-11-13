@@ -27,8 +27,6 @@
 #include "snmp.h"
 #include "util.h"
 
-static struct snmp_datagram snmp_datagram;
-
 static struct var_bind *
 vb_new(uint32_t oid_len, uint32_t val_len)
 {
@@ -57,19 +55,22 @@ snmp_vb_list_free(struct list_head *vb_list)
 }
 
 static void
-snmp_msg_clear(struct snmp_datagram *sdg)
+snmp_datagram_clear(struct snmp_datagram *sdg)
 {
+  memset(&sdg->pdu_hdr, 0, sizeof(sdg->pdu_hdr));
   snmp_vb_list_free(&sdg->vb_in_list);
   snmp_vb_list_free(&sdg->vb_out_list);
   sdg->vb_in_cnt = 0;
   sdg->vb_out_cnt = 0;
+  sdg->comm_len = 0;
+  sdg->vb_list_len = 0;
+  sdg->data_len = 0;
 }
 
 static void
 snmp_response(struct snmp_datagram *sdg)
 {
   snmp_send_response(sdg);
-  snmp_msg_clear(sdg);
 }
 
 /* GET request function */
@@ -585,7 +586,7 @@ snmp_decode(struct snmp_datagram *sdg)
 DECODE_FINISH:
   /* If fail, do some clear things */
   if (dec_fail) {
-    snmp_msg_clear(sdg);
+    snmp_datagram_clear(sdg);
   }
 
   /* We should free received buffer here */
@@ -609,10 +610,9 @@ snmpd_recv(uint8_t *buffer, int len)
     return;
   }
 
-  memset(&snmp_datagram, 0, sizeof(snmp_datagram));
+  /* Reset datagram */
+  snmp_datagram_clear(&snmp_datagram);
   snmp_datagram.recv_buf = buffer;
-  INIT_LIST_HEAD(&snmp_datagram.vb_in_list);
-  INIT_LIST_HEAD(&snmp_datagram.vb_out_list);
 
   /* Decode snmp datagram */
   snmp_decode(&snmp_datagram);

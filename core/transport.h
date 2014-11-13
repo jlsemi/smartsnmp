@@ -27,17 +27,16 @@
 
 typedef void (*TRANSPORT_RECEIVER)(uint8_t *buf, int len);
 
-struct smartsnmp_transport_ops {
+struct transport_operation {
   const char *name;
   void (*init)(int port, TRANSPORT_RECEIVER recv_cb);
   void (*running)(void);
   void (*send)(uint8_t *buf, int len);
 };
 
-extern struct smartsnmp_transport_ops *smartsnmp_trans_ops;
-extern struct smartsnmp_transport_ops tcp_trans_ops;
-extern struct smartsnmp_transport_ops udp_trans_ops;
-extern struct smartsnmp_transport_ops le_trans_ops;
-extern struct smartsnmp_transport_ops uloop_trans_ops;
+extern struct transport_operation agentx_tcp_trans_ops;
+extern struct transport_operation snmp_udp_trans_ops;
+extern struct transport_operation snmp_le_trans_ops;
+extern struct transport_operation snmp_uloop_trans_ops;
 
 #endif /* _TRANSPORT_H_ */

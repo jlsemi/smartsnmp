@@ -18,29 +18,149 @@
  *
  */
 
-#include "transport.h"
 #include "mib.h"
 #include "snmp.h"
 #include "agentx.h"
+#include "string.h"
+#include "util.h"
 
-lua_State *mib_lua_state;
-struct smartsnmp_transport_ops *smartsnmp_trans_ops;
+static const char *protocol;
 
-static const luaL_Reg snmpd_func[] = {
-  { "init", snmpd_init },
-  { "open", snmpd_open },
-  { "run", snmpd_run },
-  { "mib_node_reg", snmpd_mib_node_reg },
-  { "mib_node_unreg", snmpd_mib_node_unreg },
-  { NULL, NULL }
-};
+int
+smartsnmp_init(lua_State *L)
+{
+  int port;
+  
+  protocol = luaL_checkstring(L, 1);
+  port = luaL_checkint(L, 2);
 
-static const luaL_Reg agentx_func[] = {
-  { "init", agentx_init },
-  { "open", agentx_open },
-  { "run", agentx_run },
-  { "mib_node_reg", agentx_mib_node_reg },
-  { "mib_node_unreg", agentx_mib_node_unreg },
+  if (!strcmp(protocol, "snmp")) {
+    snmp_datagram.trans_ops = &snmp_udp_trans_ops;
+    snmpd_init(port);
+  } else if (!strcmp(protocol, "agentx")) {
+    agentx_datagram.trans_ops = &agentx_tcp_trans_ops;
+    agentx_init(port);
+  }
+
+  lua_pushboolean(L, 1);
+
+  return 1;  
+}
+
+int
+smartsnmp_open(lua_State *L)
+{
+  int ret = -1;
+
+  if (!strcmp(protocol, "snmp")) {
+    ret = snmpd_open();
+  } else if (!strcmp(protocol, "agentx")) {
+    ret = agentx_open();
+  }
+  
+  if (ret < 0) {
+    lua_pushboolean(L, 0);
+  } else {
+    lua_pushboolean(L, 1);
+  }
+
+  return 1;  
+}
+
+int
+smartsnmp_run(lua_State *L)
+{
+  if (!strcmp(protocol, "snmp")) {
+    snmpd_run();
+  } else if (!strcmp(protocol, "agentx")) {
+    agentx_run();
+  }
+
+  lua_pushboolean(L, 1);
+  return 1;  
+}
+
+/* Register mib nodes from Lua */
+int
+smartsnmp_mib_node_reg(lua_State *L)
+{
+  oid_t *grp_id;
+  int i, grp_id_len, grp_cb;
+
+  /* Check if the first argument is a table. */
+  luaL_checktype(L, 1, LUA_TTABLE);
+  /* Get oid length */
+  grp_id_len = lua_objlen(L, 1);
+  /* Get oid */
+  grp_id = xmalloc(grp_id_len * sizeof(oid_t));
+  for (i = 0; i < grp_id_len; i++) {
+    lua_rawgeti(L, 1, i + 1);
+    grp_id[i] = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+  }
+  /* Get lua callback of grpance node */
+  if (!lua_isfunction(L, -1)) {
+    lua_pushstring(L, "Handler is not a function!");
+    lua_error(L);
+  }
+  grp_cb = luaL_ref(L, LUA_ENVIRONINDEX);
+
+  /* Register node */
+  if (!strcmp(protocol, "snmp")) {
+    i = snmpd_mib_node_reg(grp_id, grp_id_len, grp_cb);
+  } else if (!strcmp(protocol, "agentx")) {
+    i = agentx_mib_node_reg(grp_id, grp_id_len, grp_cb);
+  }
+  free(grp_id);
+
+  /* Return value */
+  lua_pushnumber(L, i);
+  return 1;
+}
+
+/* Unregister mib nodes from Lua */
+int
+smartsnmp_mib_node_unreg(lua_State *L)
+{
+  oid_t *grp_id;
+  int i, grp_id_len;
+
+  /* Check if the first argument is a table. */
+  luaL_checktype(L, 1, LUA_TTABLE);
+  /* Get oid length */
+  grp_id_len = lua_objlen(L, 1);
+  /* Get oid */
+  grp_id = xmalloc(grp_id_len * sizeof(oid_t));
+  for (i = 0; i < grp_id_len; i++) {
+    lua_rawgeti(L, 1, i + 1);
+    grp_id[i] = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+  }
+
+  /* Unregister group node */
+  if (!strcmp(protocol, "snmp")) {
+    i = snmpd_mib_node_unreg(grp_id, grp_id_len);
+  } else if (!strcmp(protocol, "agentx")) {
+    i = agentx_mib_node_unreg(grp_id, grp_id_len);
+  }
+  free(grp_id);
+
+  /* Return value */
+  if (i < 0) {
+    lua_pushboolean(L, 0);
+  } else {
+    lua_pushboolean(L, 1);
+  }
+
+  return 1;
+}
+
+static const luaL_Reg smartsnmp_func[] = {
+  { "init", smartsnmp_init },
+  { "open", smartsnmp_open },
+  { "run", smartsnmp_run },
+  { "mib_node_reg", smartsnmp_mib_node_reg },
+  { "mib_node_unreg", smartsnmp_mib_node_unreg },
   { NULL, NULL }
 };
 
@@ -53,9 +173,8 @@ luaopen_smartsnmp_core(lua_State *L)
   lua_newtable(L);
   lua_replace(L, LUA_ENVIRONINDEX);
 
-  /* Register snmpd_func into lua */
-  luaL_register(L, "snmpd_lib", snmpd_func);
-  //luaL_register(L, "agentx_lib", agentx_func);
+  /* Register smartsnmp_func into lua */
+  luaL_register(L, "smartsnmp_lib", smartsnmp_func);
 
   return 1;
 }

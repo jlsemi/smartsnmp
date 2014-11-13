@@ -27,7 +27,7 @@
 #include "util.h"
 
 struct x_pdu_buf
-agentx_open_pdu(struct agentx_datagram *xdg, oid_t *oid, uint32_t oid_len, const char *descr, uint32_t descr_len)
+agentx_open_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len, const char *descr, uint32_t descr_len)
 {
   uint8_t i, *pdu, *buf;
   uint32_t *timeout, len;
@@ -137,7 +137,7 @@ agentx_close_pdu(struct agentx_datagram *xdg, uint32_t reason)
 }
 
 struct x_pdu_buf
-agentx_register_pdu(struct agentx_datagram *xdg, oid_t *oid, uint32_t oid_len, const char *community, uint32_t comm_len,
+agentx_register_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len, const char *community, uint32_t comm_len,
                     uint8_t timeout, uint8_t priority, uint8_t range_subid, uint32_t upper_bound)
 {
   uint8_t i, *pdu, *buf;
@@ -228,7 +228,7 @@ agentx_register_pdu(struct agentx_datagram *xdg, oid_t *oid, uint32_t oid_len, c
 }
 
 struct x_pdu_buf
-agentx_unregister_pdu(struct agentx_datagram *xdg, oid_t *oid, uint32_t oid_len, const char *community, uint32_t comm_len,
+agentx_unregister_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len, const char *community, uint32_t comm_len,
                       uint8_t timeout, uint8_t priority, uint8_t range_subid, uint32_t upper_bound)
 {
   uint8_t i, *pdu, *buf;
@@ -321,7 +321,7 @@ agentx_unregister_pdu(struct agentx_datagram *xdg, oid_t *oid, uint32_t oid_len,
 #if 0
 struct x_pdu_buf
 agentx_notify_pdu(struct agentx_datagram *xdg, const char *context, uint32_t context_len,
-                  uint8_t type, oid_t *oid, uint32_t oid_len,
+                  uint8_t type, const oid_t *oid, uint32_t oid_len,
                   uint8_t *data, uint32_t data_len)
 {
   uint8_t i, *pdu, *buf;
