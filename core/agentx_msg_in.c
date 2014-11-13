@@ -279,7 +279,7 @@ agentx_set(struct agentx_datagram *xdg)
 
 /* Request callback */
 static void
-event_invoke(struct agentx_datagram *xdg)
+request_dispatch(struct agentx_datagram *xdg)
 {
   switch (xdg->pdu_hdr.type) {
     case AGENTX_PDU_GET:
@@ -642,7 +642,7 @@ agentx_recv(uint8_t *buffer, int len)
   ret = agentx_decode(&agentx_datagram);
 
   if (!ret) {
-    event_invoke(&agentx_datagram);
+    request_dispatch(&agentx_datagram);
   }
 
   return ret;

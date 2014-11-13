@@ -353,7 +353,7 @@ snmp_bulkget(struct snmp_datagram *sdg)
 
 /* Request callback */
 static void
-event_invoke(struct snmp_datagram *sdg)
+request_dispatch(struct snmp_datagram *sdg)
 {
   switch (sdg->pdu_hdr.pdu_type) {
     case MIB_REQ_GET:
@@ -618,5 +618,5 @@ snmpd_recv(uint8_t *buffer, int len)
   snmp_decode(&snmp_datagram);
 
   /* Invoke relavant events. */
-  event_invoke(&snmp_datagram);
+  request_dispatch(&snmp_datagram);
 }
