@@ -86,7 +86,7 @@ udp_read_cb(const int sock, short int which, void *arg)
   int len;
   uint8_t * buf;
 
-  buf = malloc(TRANS_BUF_SIZE);
+  buf = malloc(TRANS_BUF_SIZ);
   if (buf == NULL) {
     perror("malloc()");
     exit(EXIT_FAILURE);
@@ -99,7 +99,7 @@ udp_read_cb(const int sock, short int which, void *arg)
   }
 
   /* Receive UDP data, store the address of the sender in client_sin */
-  len = recvfrom(sock, buf, TRANS_BUF_SIZE - 1, 0, (struct sockaddr *)client_sin, &server_sz);
+  len = recvfrom(sock, buf, TRANS_BUF_SIZ, 0, (struct sockaddr *)client_sin, &server_sz);
   if (len == -1) {
     perror("recvfrom()");
     event_loopbreak();
