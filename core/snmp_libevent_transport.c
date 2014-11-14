@@ -50,7 +50,7 @@ struct send_data_entry {
 TAILQ_HEAD(, send_data_entry) send_queue_head;
 
 static void
-udp_write_cb(const int sock, short int which, void *arg)
+snmp_write_cb(const int sock, short int which, void *arg)
 {
   struct send_data_entry * entry;
 
@@ -80,7 +80,7 @@ udp_write_cb(const int sock, short int which, void *arg)
 }
 
 static void
-udp_read_cb(const int sock, short int which, void *arg)
+snmp_read_cb(const int sock, short int which, void *arg)
 {
   socklen_t server_sz = sizeof(struct sockaddr_in);
   int len;
@@ -111,7 +111,7 @@ udp_read_cb(const int sock, short int which, void *arg)
 }
 
 static void
-snmp_le_transport_send(uint8_t * buf, int len)
+transport_send(uint8_t * buf, int len)
 {
   struct send_data_entry * entry;
 
@@ -134,7 +134,7 @@ snmp_le_transport_send(uint8_t * buf, int len)
 }
 
 static void
-snmp_le_transport_running(void)
+transport_running(void)
 {
   /* Initialize libevent */
   event_base = event_base_new();
@@ -150,7 +150,7 @@ snmp_le_transport_running(void)
 }
 
 static void
-snmp_le_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 {
   struct sockaddr_in sin;
 
@@ -176,9 +176,9 @@ snmp_le_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
   }
 }
 
-struct transport_operation snmp_le_trans_ops = {
+struct transport_operation snmp_trans_ops = {
   "snmp_libevent",
-  snmp_le_transport_init,
-  snmp_le_transport_running,
-  snmp_le_transport_send,
+  transport_init,
+  transport_running,
+  transport_send,
 };

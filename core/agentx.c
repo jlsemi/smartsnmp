@@ -29,6 +29,7 @@
 #include <string.h>
 
 #include "agentx.h"
+#include "transport.h"
 #include "mib.h"
 #include "util.h"
 
@@ -45,7 +46,7 @@ agentx_receive(uint8_t *buf, int len)
 void
 agentx_send(uint8_t *buf, int len)
 {
-  agentx_datagram.trans_ops->send(buf, len);
+  agentx_trans_ops.send(buf, len);
 }
 
 /* Register mib group node */
@@ -133,7 +134,7 @@ agentx_init(int port)
   INIT_LIST_HEAD(&agentx_datagram.vb_out_list);
   INIT_LIST_HEAD(&agentx_datagram.sr_in_list);
   INIT_LIST_HEAD(&agentx_datagram.sr_out_list);
-  return agentx_datagram.trans_ops->init(port, agentx_receive);
+  return agentx_trans_ops.init(port, agentx_receive);
 }
 
 int
@@ -171,5 +172,5 @@ agentx_open(void)
 void
 agentx_run(void)
 {
-  return agentx_datagram.trans_ops->running();
+  return agentx_trans_ops.running();
 }

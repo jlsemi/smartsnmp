@@ -29,6 +29,7 @@
 #include <string.h>
 
 #include "snmp.h"
+#include "transport.h"
 #include "mib.h"
 #include "util.h"
 
@@ -45,7 +46,7 @@ snmpd_receive(uint8_t *buf, int len)
 void
 snmpd_send(uint8_t *buf, int len)
 {
-  snmp_datagram.trans_ops->send(buf, len);
+  snmp_trans_ops.send(buf, len);
 }
 
 /* Register mib group node */
@@ -69,7 +70,7 @@ snmpd_init(int port)
   mib_init();
   INIT_LIST_HEAD(&snmp_datagram.vb_in_list);
   INIT_LIST_HEAD(&snmp_datagram.vb_out_list);
-  return snmp_datagram.trans_ops->init(port, snmpd_receive);
+  return snmp_trans_ops.init(port, snmpd_receive);
 }
 
 int
@@ -81,5 +82,5 @@ snmpd_open(void)
 void
 snmpd_run(void)
 {
-  return snmp_datagram.trans_ops->running();
+  return snmp_trans_ops.running();
 }

@@ -23,7 +23,6 @@
 
 #include "asn1.h"
 #include "list.h"
-#include "transport.h"
 
 /* AgentX PDU flags */
 #define INSTANCE_REGISTRATION  0x1
@@ -174,7 +173,6 @@ struct x_var_bind {
 
 struct agentx_datagram {
   int sock;
-  struct transport_operation *trans_ops;
   
   void *recv_buf;
   void *send_buf;

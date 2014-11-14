@@ -34,9 +34,7 @@ struct transport_operation {
   void (*send)(uint8_t *buf, int len);
 };
 
-extern struct transport_operation agentx_tcp_trans_ops;
-extern struct transport_operation snmp_udp_trans_ops;
-extern struct transport_operation snmp_le_trans_ops;
-extern struct transport_operation snmp_uloop_trans_ops;
+extern struct transport_operation snmp_trans_ops;
+extern struct transport_operation agentx_trans_ops;
 
 #endif /* _TRANSPORT_H_ */

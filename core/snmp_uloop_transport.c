@@ -75,7 +75,7 @@ server_cb(struct uloop_fd *fd, unsigned int events)
 
 /* Send snmp datagram as a UDP packet to the remote */
 static void
-snmp_uloop_transport_send(uint8_t *buf, int len)
+transport_send(uint8_t *buf, int len)
 {
   struct send_data_entry *entry;
 
@@ -101,7 +101,7 @@ snmp_uloop_transport_send(uint8_t *buf, int len)
 }
 
 static void
-snmp_uloop_transport_running(void)
+transport_running(void)
 {
   uloop_init();
   uloop_fd_add(&server, ULOOP_READ);
@@ -109,7 +109,7 @@ snmp_uloop_transport_running(void)
 }
 
 static void
-snmp_uloop_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 {
   struct sockaddr_in sin;
 
@@ -133,9 +133,9 @@ snmp_uloop_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
   }
 }
 
-struct transport_operation snmp_uloop_trans_ops = {
+struct transport_operation snmp_trans_ops = {
   "snmp_uloop",
-  snmp_uloop_transport_init,
-  snmp_uloop_transport_running,
-  snmp_uloop_transport_send,
+  transport_init,
+  transport_running,
+  transport_send,
 };

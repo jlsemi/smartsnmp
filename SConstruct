@@ -156,10 +156,10 @@ if GetOption("libubox_dir") != "":
 # transport select
 if GetOption("transport") == 'libevent':
   env.Append(LIBS = ['event'])
-  transport_src = env.Glob("core/snmp_libevent_transport.c")
+  transport_src = env.Glob("core/agentx_tcp_transport.c") + env.Glob("core/snmp_libevent_transport.c") + env.Glob("core/ev_loop.c")
 elif GetOption("transport") == 'uloop':
   env.Append(LIBS = ['ubox'])
-  transport_src = env.Glob("core/snmp_uloop_transport.c")
+  transport_src = env.Glob("core/agentx_tcp_transport.c") + env.Glob("core/snmp_uloop_transport.c") + env.Glob("core/ev_loop.c")
 elif GetOption("transport") == 'built-in' or GetOption("transport") == '':
   transport_src = env.Glob("core/agentx_tcp_transport.c") + env.Glob("core/snmp_udp_transport.c") + env.Glob("core/ev_loop.c")
   # built-in event loop check

@@ -23,7 +23,6 @@
 
 #include "asn1.h"
 #include "list.h"
-#include "transport.h"
 
 /* Error status */
 typedef enum snmp_err_stat {
@@ -94,8 +93,6 @@ struct pdu_hdr {
 };
 
 struct snmp_datagram {
-  struct transport_operation *trans_ops;
-
   void *recv_buf;
   void *send_buf;
 

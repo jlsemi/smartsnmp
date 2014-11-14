@@ -80,7 +80,7 @@ agentx_read_handler(int sock, unsigned char flag, void *ud)
 
 /* Send angentX PDU to the remote */
 static void
-agentx_tcp_transport_send(uint8_t *buf, int len)
+transport_send(uint8_t *buf, int len)
 {
   agentx_entry.buf = buf;
   agentx_entry.len = len;
@@ -88,7 +88,7 @@ agentx_tcp_transport_send(uint8_t *buf, int len)
 }
 
 static void
-agentx_tcp_transport_running(void)
+transport_running(void)
 {
   snmp_event_init();
   snmp_event_add(agentx_entry.sock, SNMP_EV_READ, agentx_read_handler, NULL);
@@ -96,7 +96,7 @@ agentx_tcp_transport_running(void)
 }
 
 static void
-agentx_tcp_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+transport_init(int port, TRANSPORT_RECEIVER recv_cb)
 {
   struct sockaddr_in sin;
 
@@ -119,9 +119,9 @@ agentx_tcp_transport_init(int port, TRANSPORT_RECEIVER recv_cb)
   agentx_receiver = recv_cb;
 }
 
-struct transport_operation agentx_tcp_trans_ops = {
+struct transport_operation agentx_trans_ops = {
   "agentx_tcp",
-  agentx_tcp_transport_init,
-  agentx_tcp_transport_running,
-  agentx_tcp_transport_send,
+  transport_init,
+  transport_running,
+  transport_send,
 };

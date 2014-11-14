@@ -35,10 +35,8 @@ smartsnmp_init(lua_State *L)
   port = luaL_checkint(L, 2);
 
   if (!strcmp(protocol, "snmp")) {
-    snmp_datagram.trans_ops = &snmp_udp_trans_ops;
     snmpd_init(port);
   } else if (!strcmp(protocol, "agentx")) {
-    agentx_datagram.trans_ops = &agentx_tcp_trans_ops;
     agentx_init(port);
   }
 
