@@ -32,3 +32,6 @@ snmpset -v2c -cprivate localhost .1.3.6.1.3.1.1.9.1.1 i 1
 snmpset -v2c -cprivate localhost .1.3.6.1.3.1.4.1.0 s "This agent is really smart!"
 # OK test
 snmpset -v2c -cprivate localhost .1.3.6.1.3.1.4.1.0 i 8888
+
+snmpwalk -v2c -cpublic localhost .1.3.6.1.3
+snmpwalk -v2c -cpublic localhost .1.3.6.1
