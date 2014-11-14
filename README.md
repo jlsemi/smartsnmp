@@ -5,7 +5,7 @@ SmartSNMP - A Smart SNMP Agent
 
 **SmartSNMP** is a minimal easy-config agent for network management supporting
 SNMPv2c and AgentX. It is written in C99 and Lua5.1. It can run both on PC platforms
-like Linux and FreeBSD and embedded systems such as OpenWRT.
+like Linux and embedded systems such as OpenWRT.
 
 License
 -------
@@ -24,7 +24,7 @@ Operation
 
 **SmartSNMP** can run in two modes: the SNMP mode and the AgentX mode. In SNMP
 mode the agent will run as an independent SNMP agent and process SNMP datagram
-form the client, while in AgentX mode the agent will run as an sub-agent against
+from the client, while in AgentX mode the agent will run as an sub-agent against
 Net-SNMP as the master agent and process AgentX datagram from master.
 
 Revelant test samples are shown respectively as `tests/snmpd_test.sh` and `tests/agentx_test.sh`
@@ -92,7 +92,7 @@ You will get:
 
 You can specify options above you need to build the project.
 
-_Installing scripts will coming soon._
+_Installation scripts is coming soon._
 
 Test script
 -----------

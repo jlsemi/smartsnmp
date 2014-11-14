@@ -1,6 +1,7 @@
 # TODO
 
-- Installing script.
-- Run as a deamon.
+- Access control.
+- SNMPv3.
+- Trap and notification.
 - Better configuration.
-- Run as a sub-agent of Net-SNMP Agent through Agent-X protocol.
+- Installation script.
