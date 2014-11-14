@@ -112,7 +112,7 @@ Test SNMP agent at another terminal:
 
 To run **SmartSNMP** in AgentX mode:
 
-    sudo cat /etc/config/snmpd.conf
+    sudo cat /etc/snmp/snmpd.conf
     master  agent
     agentXSocket  tcp:localhost:705
     sudo /etc/init.d/snmpd restart
