@@ -3,11 +3,9 @@ SmartSNMP - A Smart SNMP Agent
 
 [![Build Status](https://travis-ci.org/credosemi/smartsnmp.svg?branch=master)](https://travis-ci.org/credosemi/smartsnmp)
 
-**SmartSNMP** is a minimal easy-config agent for network management based on SNMPv2c
-and written in C99 and Lua5.1. It can run on both PC system like Linux and 
-FreeBSD and embedded system such as OpenWRT and also on both platform of 32-bit 
-and 64-bit. It can be compiled to a file with size of 20K in terms of option 
-'-Os'.
+**SmartSNMP** is a minimal easy-config agent for network management supporting
+SNMPv2c and AgentX. It is written in C99 and Lua5.1. It can run both on PC platforms
+like Linux and FreeBSD and embedded systems such as OpenWRT.
 
 License
 -------
@@ -18,15 +16,18 @@ Configure and Interfaces
 ------------------------
 
 One of the biggest bonuses (aka smartest features) of this agent is that you can
-write your own private mib and loaded by it only if you learn to write a lua 
-file as shown at files in the `mibs` directory.
+write your own private mibs and loaded by it only if you learn to write lua
+files as shown in `mibs` directory.
 
 Operation
 ---------
 
-SmartSNMP is based on SNMPv2c so it can response 5 kinds of request operations 
-from client: snmpget, snmpgetnext, snmpset, snmpbulkget and snmpwalk. Revelant 
-test samples are shown at tests/test.sh.
+**SmartSNMP** can run in two modes: the SNMP mode and the AgentX mode. In SNMP
+mode the agent will run as an independent SNMP agent and process SNMP datagram
+form the client, while in AgentX mode the agent will run as an sub-agent against
+Net-SNMP as the master agent and process AgentX datagram from master.
+
+Revelant test samples are shown respectively as `tests/snmpd_test.sh` and `tests/agentx_test.sh`
 
 Dependencies
 ------------
@@ -43,11 +44,13 @@ Dependencies
 Build
 -----
 
-Different transport modules need respective libraries. In libevent transport you
-need to install libevent and in uloop you need to install libubox. Especially, 
-on Ubuntu you should install liblua5.1 while on others liblua is needed.
+Different event-driven mechanisms and transport options need respective libraries.
+For expample, in libevent transport you need to install libevent, in uloop
+transport you need to install libubox. Especially, on Ubuntu you should install
+liblua5.1 while liblua is needed on other platforms.
 
-Assume you are using Ubuntu and the transport is libevent
+Assume **SmartSNMP** is running on Ubuntu in libevent transport, you shall install
+libraries such as:
 
     # lua5.1
     sudo apt-get install -y lua5.1 liblua5.1-0-dev
@@ -60,7 +63,7 @@ Assume you are using Ubuntu and the transport is libevent
 
     # clone with git
     git clone https://github.com/credosemi/smartsnmp.git
-    
+
     # build
     cd smartsnmp
     scons
@@ -87,24 +90,37 @@ You will get:
       --with-libevent=DIR         use libevent in DIR (only for transport is
                                     libevent)
 
-You can specify any options you need to build the project.
+You can specify options above you need to build the project.
 
 _Installing scripts will coming soon._
 
 Test script
 -----------
 
-Net-SNMP utils need be installed before you run test scripts (on Ubuntu).
+Net-SNMP utils should be installed before you run all test scripts (on Ubuntu).
 
     sudo apt-get install -y snmp
 
-To run SNMP agent:
+To run **SmartSNMP** in SNMP mode:
 
+    sudo /etc/init.d/snmpd stop
     sudo ./tests/run_snmpd.sh
 
-Test agent in another terminal:
+Test SNMP agent at another terminal:
 
-    ./tests/test.sh
+    ./tests/snmpd_test.sh
+
+To run **SmartSNMP** in AgentX mode:
+
+    sudo cat /etc/config/snmpd.conf
+    master  agent
+    agentXSocket  tcp:localhost:705
+    sudo /etc/init.d/snmpd restart
+    ./tests/run_agentx.sh
+
+Test sub-agent at another terminal:
+
+    ./tests/agentx_test.sh
 
 TODO
 ----
