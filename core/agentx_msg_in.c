@@ -109,12 +109,11 @@ agentx_datagram_clear(struct agentx_datagram *xdg)
 static void
 agentx_response(struct agentx_datagram *xdg)
 {
-  /* send response PDU as TCP packet */
+  /* Send response PDU */
   struct x_pdu_buf x_pdu = agentx_response_pdu(xdg);
   if (send(xdg->sock, x_pdu.buf, x_pdu.len, 0) == -1) {
     SMARTSNMP_LOG(L_ERROR, "ERR: Send response PDU failure!\n");
   }
-  /* free response packet */
   free(x_pdu.buf);
 }
 

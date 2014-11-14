@@ -28,6 +28,7 @@
 
 #include "agentx.h"
 #include "transport.h"
+#include "protocol.h"
 #include "ev_loop.h"
 
 struct agentx_data_entry {
@@ -37,7 +38,6 @@ struct agentx_data_entry {
 };
 
 static struct agentx_data_entry agentx_entry;
-static TRANSPORT_RECEIVER agentx_receiver;
 
 static void
 agentx_write_handler(int sock, unsigned char flag, void *ud)
@@ -73,9 +73,8 @@ agentx_read_handler(int sock, unsigned char flag, void *ud)
     snmp_event_done();
   }
 
-  if (agentx_receiver != NULL) {
-    agentx_receiver(buf, len);
-  }
+  /* Parse agentX PDU in decoder */
+  agentx_prot_ops.receive(buf, len);
 }
 
 /* Send angentX PDU to the remote */
@@ -96,7 +95,7 @@ transport_running(void)
 }
 
 static void
-transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+transport_init(int port)
 {
   struct sockaddr_in sin;
 
@@ -115,8 +114,6 @@ transport_init(int port, TRANSPORT_RECEIVER recv_cb)
     perror("connect()");
     exit(EXIT_FAILURE);
   }
-
-  agentx_receiver = recv_cb;
 }
 
 struct transport_operation agentx_trans_ops = {

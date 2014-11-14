@@ -30,27 +30,28 @@
 
 #include "agentx.h"
 #include "transport.h"
+#include "protocol.h"
 #include "mib.h"
 #include "util.h"
 
 struct agentx_datagram agentx_datagram;
 
 /* Receive agentX request datagram from transport layer */
-void
+static void
 agentx_receive(uint8_t *buf, int len)
 {
   agentx_recv(buf, len);
 }
 
 /* Send agentX response datagram to transport layer */
-void
+static void
 agentx_send(uint8_t *buf, int len)
 {
   agentx_trans_ops.send(buf, len);
 }
 
 /* Register mib group node */
-int
+static int
 agentx_mib_node_reg(const oid_t *grp_id, int id_len, int grp_cb)
 {
   struct x_pdu_buf x_pdu;
@@ -88,7 +89,7 @@ agentx_mib_node_reg(const oid_t *grp_id, int id_len, int grp_cb)
 }
 
 /* Unregister mib group node */
-int
+static int
 agentx_mib_node_unreg(const oid_t *grp_id, int id_len)
 {
   struct x_pdu_buf x_pdu;
@@ -126,18 +127,17 @@ agentx_mib_node_unreg(const oid_t *grp_id, int id_len)
   return 0;
 }
 
-void
+static void
 agentx_init(int port)
 {
-  mib_init();
   INIT_LIST_HEAD(&agentx_datagram.vb_in_list);
   INIT_LIST_HEAD(&agentx_datagram.vb_out_list);
   INIT_LIST_HEAD(&agentx_datagram.sr_in_list);
   INIT_LIST_HEAD(&agentx_datagram.sr_out_list);
-  return agentx_trans_ops.init(port, agentx_receive);
+  return agentx_trans_ops.init(port);
 }
 
-int
+static int
 agentx_open(void)
 {
   struct x_pdu_buf x_pdu;
@@ -169,8 +169,19 @@ agentx_open(void)
   return 0;
 }
 
-void
+static void
 agentx_run(void)
 {
   return agentx_trans_ops.running();
 }
+
+struct protocol_operation agentx_prot_ops = {
+  "agentx",
+  agentx_init,
+  agentx_open,
+  agentx_run,
+  agentx_mib_node_reg,
+  agentx_mib_node_unreg,
+  agentx_receive,
+  agentx_send,
+};

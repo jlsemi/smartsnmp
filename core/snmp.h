@@ -126,14 +126,7 @@ uint32_t ber_value_dec(const uint8_t *buf, uint32_t len, uint8_t type, void *val
 uint32_t ber_length_dec_test(const uint8_t *buf);
 uint32_t ber_length_dec(const uint8_t *buf, uint32_t *value);
 
-void snmp_send_response(struct snmp_datagram *sdg);
-void snmpd_recv(uint8_t *buffer, int len);
-void snmpd_send(uint8_t *buf, int len);
-
-void snmpd_init(int port);
-int snmpd_open(void);
-void snmpd_run(void);
-int snmpd_mib_node_reg(const oid_t *grp_id, int id_len, int grp_cb);
-int snmpd_mib_node_unreg(const oid_t *grp_id, int id_len);
+void snmpd_send_response(struct snmp_datagram *sdg);
+void snmpd_recv(uint8_t *buf, int len);
 
 #endif /* _SNMP_H_ */

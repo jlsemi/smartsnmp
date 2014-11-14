@@ -30,57 +30,68 @@
 
 #include "snmp.h"
 #include "transport.h"
+#include "protocol.h"
 #include "mib.h"
 #include "util.h"
 
 struct snmp_datagram snmp_datagram;
 
 /* Receive SNMP request datagram from transport layer */
-void
+static void
 snmpd_receive(uint8_t *buf, int len)
 {
   snmpd_recv(buf, len);
 }
 
 /* Send SNMP response datagram to transport layer */
-void
+static void
 snmpd_send(uint8_t *buf, int len)
 {
   snmp_trans_ops.send(buf, len);
 }
 
 /* Register mib group node */
-int
+static int
 snmpd_mib_node_reg(const oid_t *grp_id, int id_len, int grp_cb)
 {
   return mib_node_reg(grp_id, id_len, grp_cb);
 }
 
 /* Unregister mib group nodes */
-int
+static int
 snmpd_mib_node_unreg(const oid_t *grp_id, int id_len)
 {
   mib_node_unreg(grp_id, id_len);
   return 0;
 }
 
-void
+static void
 snmpd_init(int port)
 {
-  mib_init();
   INIT_LIST_HEAD(&snmp_datagram.vb_in_list);
   INIT_LIST_HEAD(&snmp_datagram.vb_out_list);
-  return snmp_trans_ops.init(port, snmpd_receive);
+  return snmp_trans_ops.init(port);
 }
 
-int
+static int
 snmpd_open(void)
 {
   return 0;
 }
 
-void
+static void
 snmpd_run(void)
 {
   return snmp_trans_ops.running();
 }
+
+struct protocol_operation snmp_prot_ops = {
+  "snmp",
+  snmpd_init,
+  snmpd_open,
+  snmpd_run,
+  snmpd_mib_node_reg,
+  snmpd_mib_node_unreg,
+  snmpd_receive,
+  snmpd_send,
+};

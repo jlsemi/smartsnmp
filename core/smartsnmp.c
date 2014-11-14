@@ -21,24 +21,27 @@
 #include "mib.h"
 #include "snmp.h"
 #include "agentx.h"
+#include "protocol.h"
 #include "string.h"
 #include "util.h"
 
-static const char *protocol;
+static struct protocol_operation *prot_ops;
 
 int
 smartsnmp_init(lua_State *L)
 {
-  int port;
-  
-  protocol = luaL_checkstring(L, 1);
-  port = luaL_checkint(L, 2);
+  const char *protocol = luaL_checkstring(L, 1);
+  int port = luaL_checkint(L, 2);
+
+  mib_init();
 
   if (!strcmp(protocol, "snmp")) {
-    snmpd_init(port);
+    prot_ops = &snmp_prot_ops;
   } else if (!strcmp(protocol, "agentx")) {
-    agentx_init(port);
+    prot_ops = &agentx_prot_ops;
   }
+
+  prot_ops->init(port);
 
   lua_pushboolean(L, 1);
 
@@ -48,14 +51,7 @@ smartsnmp_init(lua_State *L)
 int
 smartsnmp_open(lua_State *L)
 {
-  int ret = -1;
-
-  if (!strcmp(protocol, "snmp")) {
-    ret = snmpd_open();
-  } else if (!strcmp(protocol, "agentx")) {
-    ret = agentx_open();
-  }
-  
+  int ret = prot_ops->open();
   if (ret < 0) {
     lua_pushboolean(L, 0);
   } else {
@@ -68,12 +64,7 @@ smartsnmp_open(lua_State *L)
 int
 smartsnmp_run(lua_State *L)
 {
-  if (!strcmp(protocol, "snmp")) {
-    snmpd_run();
-  } else if (!strcmp(protocol, "agentx")) {
-    agentx_run();
-  }
-
+  prot_ops->run();
   lua_pushboolean(L, 1);
   return 1;  
 }
@@ -104,11 +95,7 @@ smartsnmp_mib_node_reg(lua_State *L)
   grp_cb = luaL_ref(L, LUA_ENVIRONINDEX);
 
   /* Register node */
-  if (!strcmp(protocol, "snmp")) {
-    i = snmpd_mib_node_reg(grp_id, grp_id_len, grp_cb);
-  } else if (!strcmp(protocol, "agentx")) {
-    i = agentx_mib_node_reg(grp_id, grp_id_len, grp_cb);
-  }
+  i = prot_ops->reg(grp_id, grp_id_len, grp_cb);
   free(grp_id);
 
   /* Return value */
@@ -136,11 +123,7 @@ smartsnmp_mib_node_unreg(lua_State *L)
   }
 
   /* Unregister group node */
-  if (!strcmp(protocol, "snmp")) {
-    i = snmpd_mib_node_unreg(grp_id, grp_id_len);
-  } else if (!strcmp(protocol, "agentx")) {
-    i = agentx_mib_node_unreg(grp_id, grp_id_len);
-  }
+  i = prot_ops->unreg(grp_id, grp_id_len);
   free(grp_id);
 
   /* Return value */

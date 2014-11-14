@@ -216,9 +216,7 @@ uint32_t agentx_value_dec_test(const uint8_t *buf, uint8_t flag, uint8_t type);
 uint32_t agentx_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf);
 uint32_t agentx_value_enc_test(uint32_t len, uint8_t type);
 
-void agentx_send_response(struct agentx_datagram *xdg);
-int agentx_recv(uint8_t *buffer, int len);
-void agentx_send(uint8_t *buf, int len);
+int agentx_recv(uint8_t *buf, int len);
 
 struct x_pdu_buf agentx_open_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len, const char *descr, uint32_t descr_len);
 struct x_pdu_buf agentx_close_pdu(struct agentx_datagram *xdg, uint32_t reason);
@@ -228,11 +226,5 @@ struct x_pdu_buf agentx_unregister_pdu(struct agentx_datagram *xdg, const oid_t 
                                        uint8_t timeout, uint8_t priority, uint8_t range_subid, uint32_t upper_bound);
 struct x_pdu_buf agentx_ping_pdu(struct agentx_datagram *xdg, const char *context, uint32_t context_len);
 struct x_pdu_buf agentx_response_pdu(struct agentx_datagram *xdg);
-
-void agentx_init(int port);
-int agentx_open(void);
-void agentx_run(void);
-int agentx_mib_node_reg(const oid_t *grp_id, int id_len, int grp_cb);
-int agentx_mib_node_unreg(const oid_t *grp_id, int id_len);
 
 #endif /* _AGENTX_H_ */

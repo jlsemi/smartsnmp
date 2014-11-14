@@ -70,7 +70,7 @@ snmp_datagram_clear(struct snmp_datagram *sdg)
 static void
 snmp_response(struct snmp_datagram *sdg)
 {
-  snmp_send_response(sdg);
+  snmpd_send_response(sdg);
 }
 
 /* GET request function */

@@ -19,35 +19,48 @@
  */
 
 #include <sys/socket.h>
-#include <sys/queue.h>
 #include <netinet/in.h>
 
 #include <assert.h>
 #include <stdio.h>
-#include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "transport.h"
-#include "libubox/uloop.h"
+#include "protocol.h"
+#include "ev_loop.h"
 
-static TRANSPORT_RECEIVER u_receiver;
-
-static struct uloop_fd server;
-static struct sockaddr_in *client_sin;
-
-struct send_data_entry {
-  int len;
+struct snmp_data_entry {
+  int sock;
   uint8_t *buf;
+  int len;
   struct sockaddr_in *client_sin;
 };
 
+static struct snmp_data_entry snmp_entry;
+
 static void
-server_cb(struct uloop_fd *fd, unsigned int events)
+snmp_write_handler(int sock, unsigned char flag, void *ud)
+{
+  struct snmp_data_entry *entry = ud;
+
+  if (sendto(sock, entry->buf, entry->len, 0, (struct sockaddr *)entry->client_sin, sizeof(struct sockaddr_in)) == -1) {
+    perror("sendto()");
+    snmp_event_done();
+  }
+
+  free(entry->buf);
+  free(entry->client_sin);
+
+  snmp_event_remove(sock, flag);
+}
+
+static void
+snmp_read_handler(int sock, unsigned char flag, void *ud)
 {
   socklen_t server_sz = sizeof(struct sockaddr_in);
   int len;
-  uint8_t * buf;
+  uint8_t *buf;
 
   buf = malloc(TRANS_BUF_SIZ);
   if (buf == NULL) {
@@ -55,69 +68,47 @@ server_cb(struct uloop_fd *fd, unsigned int events)
     exit(EXIT_FAILURE);
   }
 
-  client_sin = malloc(server_sz);
-  if (client_sin == NULL) {
+  snmp_entry.client_sin = malloc(server_sz);
+  if (snmp_entry.client_sin == NULL) {
     perror("malloc()");
     exit(EXIT_FAILURE);
   }
 
   /* Receive UDP data, store the address of the sender in client_sin */
-  len = recvfrom(server.fd, buf, TRANS_BUF_SIZ, 0, (struct sockaddr *)client_sin, &server_sz);
+  len = recvfrom(sock, buf, TRANS_BUF_SIZ, 0, (struct sockaddr *)snmp_entry.client_sin, &server_sz);
   if (len == -1) {
     perror("recvfrom()");
-    uloop_done();
+    snmp_event_done();
   }
 
-  if (u_receiver != NULL) {
-    u_receiver(buf, len);
-  }
+  /* Parse SNMP PDU in decoder */
+  snmp_prot_ops.receive(buf, len);
 }
 
 /* Send snmp datagram as a UDP packet to the remote */
 static void
 transport_send(uint8_t *buf, int len)
 {
-  struct send_data_entry *entry;
-
-  entry = malloc(sizeof(struct send_data_entry));
-  if (entry == NULL) {
-    perror("malloc()");
-    exit(EXIT_FAILURE);
-  }
-
-  entry->buf = buf;
-  entry->len = len;
-  entry->client_sin = client_sin;
-
-  /* Send the data back to the client */
-  if (sendto(server.fd, entry->buf, entry->len, 0, (struct sockaddr *)entry->client_sin, sizeof(struct sockaddr_in)) == -1) {
-    perror("sendto()");
-    uloop_done();
-  }
-
-  free(entry->buf);
-  free(entry->client_sin);
-  free(entry);
+  snmp_entry.buf = buf;
+  snmp_entry.len = len;
+  snmp_event_add(snmp_entry.sock, SNMP_EV_WRITE, snmp_write_handler, &snmp_entry);
 }
 
 static void
 transport_running(void)
 {
-  uloop_init();
-  uloop_fd_add(&server, ULOOP_READ);
-  uloop_run();
+  snmp_event_init();
+  snmp_event_add(snmp_entry.sock, SNMP_EV_READ, snmp_read_handler, NULL);
+  snmp_event_run();
 }
 
 static void
-transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+transport_init(int port)
 {
   struct sockaddr_in sin;
 
-  u_receiver = recv_cb;
-
-  server.cb = server_cb;
-  server.fd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (server.fd < 0) {
+  snmp_entry.sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (snmp_entry.sock < 0) {
     perror("usock");
     exit(EXIT_FAILURE);
   }
@@ -127,14 +118,14 @@ transport_init(int port, TRANSPORT_RECEIVER recv_cb)
   sin.sin_addr.s_addr = INADDR_ANY;
   sin.sin_port = htons(port);
 
-  if (bind(server.fd, (struct sockaddr *)&sin, sizeof(sin))) {
+  if (bind(snmp_entry.sock, (struct sockaddr *)&sin, sizeof(sin))) {
     perror("bind()");
     exit(EXIT_FAILURE);
   }
 }
 
 struct transport_operation snmp_trans_ops = {
-  "snmp_uloop",
+  "snmp_udp",
   transport_init,
   transport_running,
   transport_send,

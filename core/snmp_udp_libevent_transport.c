@@ -31,8 +31,7 @@
 #include <event.h>
 
 #include "transport.h"
-
-static TRANSPORT_RECEIVER le_receiver;
+#include "protocol.h"
 
 static struct event_base *event_base;
 static struct event *snmp_recv_event;
@@ -105,9 +104,8 @@ snmp_read_cb(const int sock, short int which, void *arg)
     event_loopbreak();
   }
 
-  if (le_receiver != NULL) {
-    le_receiver(buf, len);
-  }
+  /* Parse SNMP PDU in decoder */
+  snmp_prot_ops.receive(buf, len);
 }
 
 static void
@@ -150,11 +148,9 @@ transport_running(void)
 }
 
 static void
-transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+transport_init(int port)
 {
   struct sockaddr_in sin;
-
-  le_receiver = recv_cb;
 
   sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {

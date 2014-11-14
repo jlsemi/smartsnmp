@@ -24,6 +24,7 @@
 
 #include "mib.h"
 #include "snmp.h"
+#include "protocol.h"
 #include "util.h"
 
 static uint8_t *
@@ -102,7 +103,7 @@ asn1_encode(struct snmp_datagram *sdg)
 }
 
 void
-snmp_send_response(struct snmp_datagram *sdg)
+snmpd_send_response(struct snmp_datagram *sdg)
 {
   struct var_bind *vb_out;
   struct list_head *curr, *next;
@@ -136,6 +137,5 @@ snmp_send_response(struct snmp_datagram *sdg)
 
   len_len = ber_length_enc_test(sdg->data_len);
   /* This callback will free send_buf */
-  snmpd_send(sdg->send_buf, tag_len + len_len + sdg->data_len);
+  snmp_prot_ops.send(sdg->send_buf, tag_len + len_len + sdg->data_len);
 }
-
