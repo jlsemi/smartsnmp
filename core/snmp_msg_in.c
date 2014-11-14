@@ -351,7 +351,7 @@ snmp_bulkget(struct snmp_datagram *sdg)
   snmp_response(sdg);
 }
 
-/* Request callback */
+/* Request dispatch */
 static void
 request_dispatch(struct snmp_datagram *sdg)
 {
@@ -617,6 +617,6 @@ snmpd_recv(uint8_t *buffer, int len)
   /* Decode snmp datagram */
   snmp_decode(&snmp_datagram);
 
-  /* Invoke relavant events. */
+  /* Dispatch request */
   request_dispatch(&snmp_datagram);
 }

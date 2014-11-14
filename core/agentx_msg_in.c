@@ -188,8 +188,27 @@ agentx_getnext(struct agentx_datagram *xdg)
     sr_in = list_entry(curr, struct x_search_range, link);
     sr_in_cnt++;
 
-    /* Search at the input oid */
-    x_mib_tree_search_next(sr_in, &ret_oid);
+    /* Search the included start oid */
+    if (sr_in->start_include) {
+      mib_tree_search(sr_in->start, sr_in->start_len, &ret_oid);
+    }
+    
+    /* If start oid not included or not exist, search the next one */
+    if (!sr_in->start_include || ret_oid.exist_state) {
+      mib_tree_search_next(sr_in->start, sr_in->start_len, &ret_oid);
+      if (ret_oid.exist_state == 0) {
+        /* Compare with end oid */
+        if ((sr_in->end_include && oid_cmp(ret_oid.oid, ret_oid.id_len, sr_in->end, sr_in->end_len) > 0) ||
+            (!sr_in->end_include && oid_cmp(ret_oid.oid, ret_oid.id_len, sr_in->end, sr_in->end_len) >= 0)) {
+          /* end_of_mib_view */
+          oid_cpy(ret_oid.oid, sr_in->start, sr_in->start_len);
+          ret_oid.id_len = sr_in->start_len;
+          ret_oid.inst_id = NULL;
+          ret_oid.inst_id_len = 0;
+          ret_oid.exist_state = ASN1_TAG_END_OF_MIB_VIEW;
+        }
+      }
+    }
 
     if (ret_oid.exist_state) {
       /* Something wrong */
@@ -277,7 +296,7 @@ agentx_set(struct agentx_datagram *xdg)
   agentx_response(xdg);
 }
 
-/* Request callback */
+/* Request dispatch */
 static void
 request_dispatch(struct agentx_datagram *xdg)
 {
@@ -642,6 +661,7 @@ agentx_recv(uint8_t *buffer, int len)
   ret = agentx_decode(&agentx_datagram);
 
   if (!ret) {
+    /* Dispatch request */
     request_dispatch(&agentx_datagram);
   }
 

@@ -22,7 +22,6 @@
 #define _MIB_H_
 
 #include "asn1.h"
-#include "agentx.h"
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
@@ -89,7 +88,6 @@ void mib_handler_unref(int handler);
 int mib_instance_search(struct oid_search_res *ret_oid);
 struct mib_node *mib_tree_search(const oid_t *oid, uint32_t id_len, struct oid_search_res *ret_oid);
 struct mib_node *mib_tree_search_next(const oid_t *oid, uint32_t id_len, struct oid_search_res *ret_oid);
-struct mib_node *x_mib_tree_search_next(struct x_search_range *sr, struct oid_search_res *ret_oid);
 
 int mib_node_reg(const oid_t *oid, uint32_t id_len, int callback);
 void mib_node_unreg(const oid_t *oid, uint32_t id_len);
