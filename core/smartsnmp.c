@@ -39,12 +39,14 @@ smartsnmp_init(lua_State *L)
     prot_ops = &snmp_prot_ops;
   } else if (!strcmp(protocol, "agentx")) {
     prot_ops = &agentx_prot_ops;
+  } else {
+    lua_pushboolean(L, 0);
+    return 1;  
   }
 
   prot_ops->init(port);
 
   lua_pushboolean(L, 1);
-
   return 1;  
 }
 

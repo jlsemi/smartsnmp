@@ -72,7 +72,7 @@ snmp_write_cb(const int sock, short int which, void *arg)
 
     /* if there is other data to be sent, register another EV_WRITE event */
     if (!TAILQ_EMPTY(&send_queue_head)) {
-      snmp_send_event = event_new(event_base, sock, EV_WRITE, udp_write_cb, NULL);
+      snmp_send_event = event_new(event_base, sock, EV_WRITE, snmp_write_cb, NULL);
       event_add(snmp_send_event, NULL);
     }
   }
@@ -127,7 +127,7 @@ transport_send(uint8_t * buf, int len)
   TAILQ_INSERT_TAIL(&send_queue_head, entry, entries);
 
   /* Send event comes with UPD packet */
-  snmp_send_event = event_new(event_base, sock, EV_WRITE, udp_write_cb, NULL);
+  snmp_send_event = event_new(event_base, sock, EV_WRITE, snmp_write_cb, NULL);
   event_add(snmp_send_event, NULL);
 }
 
@@ -138,7 +138,7 @@ transport_running(void)
   event_base = event_base_new();
 
   /* Receive event can be added only once. */
-  snmp_recv_event = event_new(event_base, sock, EV_READ | EV_PERSIST, udp_read_cb, NULL);
+  snmp_recv_event = event_new(event_base, sock, EV_READ | EV_PERSIST, snmp_read_cb, NULL);
   event_add(snmp_recv_event, NULL);
 
   /* Enter the event loop; does not return. */
