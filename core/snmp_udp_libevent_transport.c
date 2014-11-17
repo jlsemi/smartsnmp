@@ -31,10 +31,7 @@
 #include <event.h>
 
 #include "transport.h"
-
-#define BUF_SIZE        (65536)
-
-static TRANSPORT_RECEIVER le_receiver;
+#include "protocol.h"
 
 static struct event_base *event_base;
 static struct event *snmp_recv_event;
@@ -52,7 +49,7 @@ struct send_data_entry {
 TAILQ_HEAD(, send_data_entry) send_queue_head;
 
 static void
-udp_write_cb(const int sock, short int which, void *arg)
+snmp_write_cb(const int sock, short int which, void *arg)
 {
   struct send_data_entry * entry;
 
@@ -75,20 +72,20 @@ udp_write_cb(const int sock, short int which, void *arg)
 
     /* if there is other data to be sent, register another EV_WRITE event */
     if (!TAILQ_EMPTY(&send_queue_head)) {
-      snmp_send_event = event_new(event_base, sock, EV_WRITE, udp_write_cb, NULL);
+      snmp_send_event = event_new(event_base, sock, EV_WRITE, snmp_write_cb, NULL);
       event_add(snmp_send_event, NULL);
     }
   }
 }
 
 static void
-udp_read_cb(const int sock, short int which, void *arg)
+snmp_read_cb(const int sock, short int which, void *arg)
 {
   socklen_t server_sz = sizeof(struct sockaddr_in);
   int len;
   uint8_t * buf;
 
-  buf = malloc(BUF_SIZE);
+  buf = malloc(TRANS_BUF_SIZ);
   if (buf == NULL) {
     perror("malloc()");
     exit(EXIT_FAILURE);
@@ -101,18 +98,17 @@ udp_read_cb(const int sock, short int which, void *arg)
   }
 
   /* Receive UDP data, store the address of the sender in client_sin */
-  len = recvfrom(sock, buf, BUF_SIZE - 1, 0, (struct sockaddr *)client_sin, &server_sz);
+  len = recvfrom(sock, buf, TRANS_BUF_SIZ, 0, (struct sockaddr *)client_sin, &server_sz);
   if (len == -1) {
     perror("recvfrom()");
     event_loopbreak();
   }
 
-  if (le_receiver != NULL) {
-    le_receiver(buf, len);
-  }
+  /* Parse SNMP PDU in decoder */
+  snmp_prot_ops.receive(buf, len);
 }
 
-void
+static void
 transport_send(uint8_t * buf, int len)
 {
   struct send_data_entry * entry;
@@ -131,18 +127,18 @@ transport_send(uint8_t * buf, int len)
   TAILQ_INSERT_TAIL(&send_queue_head, entry, entries);
 
   /* Send event comes with UPD packet */
-  snmp_send_event = event_new(event_base, sock, EV_WRITE, udp_write_cb, NULL);
+  snmp_send_event = event_new(event_base, sock, EV_WRITE, snmp_write_cb, NULL);
   event_add(snmp_send_event, NULL);
 }
 
-void
+static void
 transport_running(void)
 {
   /* Initialize libevent */
   event_base = event_base_new();
 
   /* Receive event can be added only once. */
-  snmp_recv_event = event_new(event_base, sock, EV_READ | EV_PERSIST, udp_read_cb, NULL);
+  snmp_recv_event = event_new(event_base, sock, EV_READ | EV_PERSIST, snmp_read_cb, NULL);
   event_add(snmp_recv_event, NULL);
 
   /* Enter the event loop; does not return. */
@@ -151,12 +147,10 @@ transport_running(void)
   close(sock);
 }
 
-void
-transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+static void
+transport_init(int port)
 {
   struct sockaddr_in sin;
-
-  le_receiver = recv_cb;
 
   sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {
@@ -177,3 +171,10 @@ transport_init(int port, TRANSPORT_RECEIVER recv_cb)
     exit(EXIT_FAILURE);
   }
 }
+
+struct transport_operation snmp_trans_ops = {
+  "snmp_libevent",
+  transport_init,
+  transport_running,
+  transport_send,
+};

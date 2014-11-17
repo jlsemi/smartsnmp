@@ -22,7 +22,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "mib.h"
 #include "snmp.h"
+#include "protocol.h"
+#include "util.h"
 
 static uint8_t *
 asn1_encode(struct snmp_datagram *sdg)
@@ -60,47 +63,47 @@ asn1_encode(struct snmp_datagram *sdg)
   buf = sdg->send_buf;
 
   /* Datagram type and length */
-  *buf++ = BER_TAG_SEQ;
+  *buf++ = ASN1_TAG_SEQ;
   buf += ber_length_enc(sdg->data_len, buf);
 
   /* Version */
-  *buf++ = BER_TAG_INT;
+  *buf++ = ASN1_TAG_INT;
   buf += ber_length_enc(sdg->ver_len, buf);
-  buf += ber_value_enc(&sdg->version, 1, BER_TAG_INT, buf);
+  buf += ber_value_enc(&sdg->version, 1, ASN1_TAG_INT, buf);
 
   /* Community */
-  *buf++ = BER_TAG_OCTSTR;
+  *buf++ = ASN1_TAG_OCTSTR;
   buf += ber_length_enc(sdg->comm_len, buf);
-  buf += ber_value_enc(sdg->community, sdg->comm_len, BER_TAG_OCTSTR, buf);
+  buf += ber_value_enc(sdg->community, sdg->comm_len, ASN1_TAG_OCTSTR, buf);
 
   /* PDU header */
-  *buf++ = SNMP_RESP;
+  *buf++ = MIB_RESP;
   buf += ber_length_enc(ph->pdu_len, buf);
 
   /* Request ID */
-  *buf++ = BER_TAG_INT;
+  *buf++ = ASN1_TAG_INT;
   buf += ber_length_enc(ph->req_id_len, buf);
-  buf += ber_value_enc(&ph->req_id, 1, BER_TAG_INT, buf);
+  buf += ber_value_enc(&ph->req_id, 1, ASN1_TAG_INT, buf);
 
   /* Error status */
-  *buf++ = BER_TAG_INT;
+  *buf++ = ASN1_TAG_INT;
   buf += ber_length_enc(ph->err_stat_len, buf);
-  buf += ber_value_enc(&ph->err_stat, 1, BER_TAG_INT, buf);
+  buf += ber_value_enc(&ph->err_stat, 1, ASN1_TAG_INT, buf);
 
   /* Error index */
-  *buf++ = BER_TAG_INT;
+  *buf++ = ASN1_TAG_INT;
   buf += ber_length_enc(ph->err_idx_len, buf);
-  buf += ber_value_enc(&ph->err_idx, 1, BER_TAG_INT, buf);
+  buf += ber_value_enc(&ph->err_idx, 1, ASN1_TAG_INT, buf);
 
   /* var bind list */
-  *buf++ = BER_TAG_SEQ;
+  *buf++ = ASN1_TAG_SEQ;
   buf += ber_length_enc(sdg->vb_list_len, buf);
 
   return buf;
 }
 
 void
-snmp_send_response(struct snmp_datagram *sdg)
+snmpd_send_response(struct snmp_datagram *sdg)
 {
   struct var_bind *vb_out;
   struct list_head *curr, *next;
@@ -116,14 +119,14 @@ snmp_send_response(struct snmp_datagram *sdg)
 
     vb_out = list_entry(curr, struct var_bind, link);
 
-    *buf++ = BER_TAG_SEQ;
+    *buf++ = ASN1_TAG_SEQ;
     buf += ber_length_enc(vb_out->vb_len, buf);
 
     /* oid */
-    *buf++ = BER_TAG_OBJID;
-    oid_len = ber_value_enc_test(vb_out->oid, vb_out->oid_len, BER_TAG_OBJID);
+    *buf++ = ASN1_TAG_OBJID;
+    oid_len = ber_value_enc_test(vb_out->oid, vb_out->oid_len, ASN1_TAG_OBJID);
     buf += ber_length_enc(oid_len, buf);
-    buf += ber_value_enc(vb_out->oid, vb_out->oid_len, BER_TAG_OBJID, buf);
+    buf += ber_value_enc(vb_out->oid, vb_out->oid_len, ASN1_TAG_OBJID, buf);
 
     /* value */
     *buf++ = vb_out->value_type;
@@ -134,6 +137,5 @@ snmp_send_response(struct snmp_datagram *sdg)
 
   len_len = ber_length_enc_test(sdg->data_len);
   /* This callback will free send_buf */
-  snmpd_send(sdg->send_buf, tag_len + len_len + sdg->data_len);
+  snmp_prot_ops.send(sdg->send_buf, tag_len + len_len + sdg->data_len);
 }
-

@@ -1,4 +1,5 @@
 select_test = """
+#include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -9,7 +10,7 @@ int main(void)
 {
   fd_set rfds, wfds;
   struct timeval tv;
-  int maxfd, pfd[2];
+  int i, maxfd, pfd[2];
   const char *str = "Hello world";
   char buf[100];
 
@@ -21,9 +22,10 @@ int main(void)
   FD_SET(pfd[0], &rfds);
   FD_SET(pfd[1], &wfds);
 
-  int i;
-  write(pfd[1], str, strlen(str)); 
-  read(pfd[0], buf, sizeof(buf));
+  i = write(pfd[1], str, strlen(str)); 
+  assert(i == strlen(str));
+  i = read(pfd[0], buf, sizeof(buf));
+  assert(i == strlen(str));
 
   tv.tv_sec = 0;
   tv.tv_usec = 0;

@@ -29,11 +29,8 @@
 #include <string.h>
 
 #include "transport.h"
+#include "protocol.h"
 #include "libubox/uloop.h"
-
-#define BUF_SIZE     (65536)
-
-static TRANSPORT_RECEIVER u_receiver;
 
 static struct uloop_fd server;
 static struct sockaddr_in *client_sin;
@@ -44,8 +41,38 @@ struct send_data_entry {
   struct sockaddr_in *client_sin;
 };
 
+static void
+server_cb(struct uloop_fd *fd, unsigned int events)
+{
+  socklen_t server_sz = sizeof(struct sockaddr_in);
+  int len;
+  uint8_t * buf;
+
+  buf = malloc(TRANS_BUF_SIZ);
+  if (buf == NULL) {
+    perror("malloc()");
+    exit(EXIT_FAILURE);
+  }
+
+  client_sin = malloc(server_sz);
+  if (client_sin == NULL) {
+    perror("malloc()");
+    exit(EXIT_FAILURE);
+  }
+
+  /* Receive UDP data, store the address of the sender in client_sin */
+  len = recvfrom(server.fd, buf, TRANS_BUF_SIZ, 0, (struct sockaddr *)client_sin, &server_sz);
+  if (len == -1) {
+    perror("recvfrom()");
+    uloop_done();
+  }
+
+  /* Parse SNMP PDU in decoder */
+  snmp_prot_ops.receive(buf, len);
+}
+
 /* Send snmp datagram as a UDP packet to the remote */
-void
+static void
 transport_send(uint8_t *buf, int len)
 {
   struct send_data_entry *entry;
@@ -72,37 +99,6 @@ transport_send(uint8_t *buf, int len)
 }
 
 static void
-server_cb(struct uloop_fd *fd, unsigned int events)
-{
-  socklen_t server_sz = sizeof(struct sockaddr_in);
-  int len;
-  uint8_t * buf;
-
-  buf = malloc(BUF_SIZE);
-  if (buf == NULL) {
-    perror("malloc()");
-    exit(EXIT_FAILURE);
-  }
-
-  client_sin = malloc(server_sz);
-  if (client_sin == NULL) {
-    perror("malloc()");
-    exit(EXIT_FAILURE);
-  }
-
-  /* Receive UDP data, store the address of the sender in client_sin */
-  len = recvfrom(server.fd, buf, BUF_SIZE - 1, 0, (struct sockaddr *)client_sin, &server_sz);
-  if (len == -1) {
-    perror("recvfrom()");
-    uloop_done();
-  }
-
-  if (u_receiver != NULL) {
-    u_receiver(buf, len);
-  }
-}
-
-void
 transport_running(void)
 {
   uloop_init();
@@ -110,12 +106,10 @@ transport_running(void)
   uloop_run();
 }
 
-void
-transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+static void
+transport_init(int port)
 {
   struct sockaddr_in sin;
-
-  u_receiver = recv_cb;
 
   server.cb = server_cb;
   server.fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -134,3 +128,10 @@ transport_init(int port, TRANSPORT_RECEIVER recv_cb)
     exit(EXIT_FAILURE);
   }
 }
+
+struct transport_operation snmp_trans_ops = {
+  "snmp_uloop",
+  transport_init,
+  transport_running,
+  transport_send,
+};

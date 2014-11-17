@@ -18,21 +18,24 @@
  *
  */
 
-#ifndef _TRANSPORT_H_
-#define _TRANSPORT_H_
+#ifndef _PROTOCOL_H_
+#define _PROTOCOL_H_
 
 #include <stdint.h>
+#include "asn1.h" 
 
-#define TRANS_BUF_SIZ  (65536)
-
-struct transport_operation {
+struct protocol_operation {
   const char *name;
   void (*init)(int port);
-  void (*running)(void);
+  int (*open)(void);
+  void (*run)(void);
+  int (*reg)(const oid_t *grp_id, int id_len, int grp_cb);
+  int (*unreg)(const oid_t *grp_id, int id_len);
+  void (*receive)(uint8_t *buf, int len);
   void (*send)(uint8_t *buf, int len);
 };
 
-extern struct transport_operation snmp_trans_ops;
-extern struct transport_operation agentx_trans_ops;
+extern struct protocol_operation snmp_prot_ops;
+extern struct protocol_operation agentx_prot_ops;
 
-#endif /* _TRANSPORT_H_ */
+#endif /* _PROTOCOL_H_ */

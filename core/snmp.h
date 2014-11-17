@@ -23,65 +23,6 @@
 
 #include "asn1.h"
 #include "list.h"
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-
-//#define LOGOFF
-
-#ifdef SYSLOG
-  #ifdef LOGOFF
-    #define CREDO_SNMP_LOG(level, fmt...)
-  #else
-    #define CREDO_SNMP_LOG(level, fmt...) \
-      do { \
-        switch (level) { \
-          case SNMP_LOG_DEBUG: \
-          case SNMP_LOG_INFO: \
-          case SNMP_LOG_WARNING: error(fmt); break;\
-          case SNMP_LOG_ERROR: die(fmt);     break; \
-          default:                           break; \
-        } \
-      } while (0)
-  #endif
-#else
-  #ifdef LOGOFF
-    #define CREDO_SNMP_LOG(level, fmt...)
-  #else
-    #define CREDO_SNMP_LOG(level, fmt...) \
-      do { \
-        switch (level) { \
-          case SNMP_LOG_DEBUG: \
-          case SNMP_LOG_INFO: \
-          case SNMP_LOG_WARNING: fprintf(stdout, fmt); break; \
-          case SNMP_LOG_ERROR: fprintf(stderr, fmt);   break; \
-          default:                                     break; \
-        } \
-      } while (0)
-  #endif
-#endif
-
-/* SNMP request type */
-#define SNMP_REQ_GET        0xA0
-#define SNMP_REQ_GETNEXT    0xA1
-#define SNMP_RESP           0xA2
-#define SNMP_REQ_SET        0xA3
-#define SNMP_REQ_BULKGET    0xA5
-#define SNMP_REQ_INF        0xA6
-#define SNMP_TRAP           0xA7
-#define SNMP_REPO           0xA8
-
-/* vocal information */
-typedef enum snmp_log_level {
-  SNMP_LOG_ALL,
-  SNMP_LOG_DEBUG = 1,
-  SNMP_LOG_INFO,
-  SNMP_LOG_WARNING,
-  SNMP_LOG_ERROR,
-  SNMP_LOG_OFF,
-
-  SNMP_LOG_LEVEL_NUM
-} SNMP_LOG_LEVEL_E;
 
 /* Error status */
 typedef enum snmp_err_stat {
@@ -120,10 +61,9 @@ typedef enum snmp_err_code {
   SNMP_ERR_PDU_ERRIDX   = -104,
 
   SNMP_ERR_VB_TYPE      = -200,
-  SNMP_ERR_VB_LEN       = -201,
-  SNMP_ERR_VB_VAR       = -202,
-  SNMP_ERR_VB_VALUE_LEN = -203,
-  SNMP_ERR_VB_OID_LEN   = -204,
+  SNMP_ERR_VB_VAR       = -201,
+  SNMP_ERR_VB_VALUE_LEN = -202,
+  SNMP_ERR_VB_OID_LEN   = -203,
 } SNMP_ERR_CODE_E;
 
 struct var_bind {
@@ -153,8 +93,6 @@ struct pdu_hdr {
 };
 
 struct snmp_datagram {
-  lua_State *lua_state;
-
   void *recv_buf;
   void *send_buf;
 
@@ -176,74 +114,19 @@ struct snmp_datagram {
   struct list_head vb_out_list;
 };
 
-void snmp_send_response(struct snmp_datagram *sdg);
-void snmp_recv(uint8_t *buffer, int len, void *arg);
-void snmpd_send(uint8_t *buf, int len);
+extern struct snmp_datagram snmp_datagram;
 
-#include <stdarg.h>
+uint32_t ber_value_enc_test(const void *value, uint32_t len, uint8_t type);
+uint32_t ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf);
+uint32_t ber_length_enc_test(uint32_t value);
+uint32_t ber_length_enc(uint32_t value, uint8_t *buf);
 
-static inline void
-report(const char *prefix, const char *err, va_list params)
-{
-  fputs(prefix, stderr);
-  vfprintf(stderr, err, params);
-  fputs("\n", stderr);
-}
+uint32_t ber_value_dec_test(const uint8_t *buf, uint32_t len, uint8_t type);
+uint32_t ber_value_dec(const uint8_t *buf, uint32_t len, uint8_t type, void *value);
+uint32_t ber_length_dec_test(const uint8_t *buf);
+uint32_t ber_length_dec(const uint8_t *buf, uint32_t *value);
 
-static inline void
-usage(const char *err)
-{
-  fprintf(stderr, "usage: %s\n", err);
-  exit(1);
-}
-
-static inline void
-die(const char *err, ...)
-{
-  va_list params;
-
-  va_start(params, err);
-  report("fatal: ", err, params);
-  va_end(params);
-  exit(1);
-}
-
-static inline int
-error(const char *err, ...)
-{
-  va_list params;
-
-  va_start(params, err);
-  report("error: ", err, params);
-  va_end(params);
-  return -1;
-}
-
-static inline void *
-xmalloc(int size)
-{
-  void *ret = malloc(size);
-  if (!ret)
-    die("Out of memory, malloc failed");
-  return ret;
-}
-
-static inline void *
-xrealloc(void *ptr, int size)
-{
-  void *ret = realloc(ptr, size);
-  if (!ret)
-    die("Out of memory, realloc failed");
-  return ret;
-}
-
-static inline void *
-xcalloc(int nr, int size)
-{
-  void *ret = calloc(nr, size);
-  if (!ret)
-    die("Out of memory, calloc failed");
-  return ret;
-}
+void snmpd_send_response(struct snmp_datagram *sdg);
+void snmpd_recv(uint8_t *buf, int len);
 
 #endif /* _SNMP_H_ */

@@ -1,0 +1,16 @@
+# object files
+*.o
+*.os
+
+# libraries
+*.a
+*.so
+
+# log files
+*.log
+
+# scons files
+*.scon*
+
+# python files
+*.pyc

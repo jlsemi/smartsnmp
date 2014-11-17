@@ -90,24 +90,24 @@ ber_value_enc_test(const void *value, uint32_t len, uint8_t type)
   const int *inter;
 
   switch (type) {
-    case BER_TAG_INT:
-    case BER_TAG_CNT:
-    case BER_TAG_GAU:
-    case BER_TAG_TIMETICKS:
+    case ASN1_TAG_INT:
+    case ASN1_TAG_CNT:
+    case ASN1_TAG_GAU:
+    case ASN1_TAG_TIMETICKS:
       inter = (const int *)value;
       ret = ber_int_enc_test(*inter);
       break;
-    case BER_TAG_OBJID:
+    case ASN1_TAG_OBJID:
       oid = (const oid_t *)value;
       ret = ber_oid_enc_test(oid, len);
       break;
-    case BER_TAG_OCTSTR:
-    case BER_TAG_IPADDR:
-    case BER_TAG_OPAQ:
+    case ASN1_TAG_OCTSTR:
+    case ASN1_TAG_IPADDR:
+    case ASN1_TAG_OPAQ:
       ret = len;
       break;
-    case BER_TAG_SEQ:
-    case BER_TAG_NUL:
+    case ASN1_TAG_SEQ:
+    case ASN1_TAG_NUL:
     default:
       ret = 0;
       break;
@@ -194,26 +194,26 @@ ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf)
   const int *inter;
 
   switch (type) {
-    case BER_TAG_INT:
-    case BER_TAG_CNT:
-    case BER_TAG_GAU:
-    case BER_TAG_TIMETICKS:
+    case ASN1_TAG_INT:
+    case ASN1_TAG_CNT:
+    case ASN1_TAG_GAU:
+    case ASN1_TAG_TIMETICKS:
       inter = (const int *)value;
       ret = ber_int_enc(*inter, buf);
       break;
-    case BER_TAG_OBJID:
+    case ASN1_TAG_OBJID:
       oid = (const oid_t *)value;
       ret = ber_oid_enc(oid, len, buf);
       break;
-    case BER_TAG_OCTSTR:
-    case BER_TAG_IPADDR:
-    case BER_TAG_OPAQ:
+    case ASN1_TAG_OCTSTR:
+    case ASN1_TAG_IPADDR:
+    case ASN1_TAG_OPAQ:
       str = (const uint8_t *)value;
       memcpy(buf, str, len);
       ret = len;
       break;
-    case BER_TAG_SEQ:
-    case BER_TAG_NUL:
+    case ASN1_TAG_SEQ:
+    case ASN1_TAG_NUL:
     default:
       ret = 0;
       break;
@@ -281,4 +281,3 @@ ber_length_enc(uint32_t value, uint8_t *buf)
 
   return len;
 }
-

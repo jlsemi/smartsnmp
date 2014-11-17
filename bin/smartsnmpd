@@ -56,6 +56,11 @@ if status == false then
 end
 
 -- check configurations
+if type(protocol) ~= 'string' then
+    print("Can't get transport protocol for SNMP agent, please check your configuration file!")
+    os.exit(-1)
+end
+
 if type(port) ~= 'number' then
     print("Can't get listen port number for SNMP agent, please check your configuration file!")
     os.exit(-1)
@@ -84,11 +89,6 @@ end
 -------------------------------------------------------------------------------
 -- setup snmp agent, load mib modules and run it.
 -------------------------------------------------------------------------------
-
-snmpd.init(port)
-
-snmpd.set_ro_community(ro_community)
-snmpd.set_rw_community(rw_community)
 
 -- load mib module with error handling
 local register_mib_module = function(oid_str, mib_module_name)
@@ -123,6 +123,13 @@ for oid_str, mib_module_name in pairs(mib_modules) do
         table.insert(mib_mod_refs, row)
     end
 end
+
+snmpd.set_ro_community(ro_community)
+snmpd.set_rw_community(rw_community)
+
+snmpd.init(protocol, port)
+
+snmpd.open()
 
 for i, v in ipairs(mib_mod_refs) do
     status, err = register_mib_module(v['oid'], v['name'])

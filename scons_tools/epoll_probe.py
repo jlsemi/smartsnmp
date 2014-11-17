@@ -1,4 +1,5 @@
 epoll_test = """
+#include <assert.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -7,7 +8,7 @@ epoll_test = """
 
 int main(void)
 {
-  int epfd, pfd[2];
+  int i, epfd, pfd[2];
   struct epoll_event ee[2], ee2[2];
   const char *str = "Hello world";
   char buf[100];
@@ -29,9 +30,10 @@ int main(void)
   if (epoll_ctl(epfd, EPOLL_CTL_ADD, pfd[1], &ee[1]) < 0)
     exit(-1);
 
-  int i;
-  write(pfd[1], str, strlen(str)); 
-  read(pfd[0], buf, sizeof(buf));
+  i = write(pfd[1], str, strlen(str)); 
+  assert(i == strlen(str));
+  i = read(pfd[0], buf, sizeof(buf));
+  assert(i == strlen(str));
 
   int nfds = epoll_wait(epfd, ee2, 2, 0);
   if (nfds <= 0)

@@ -24,7 +24,10 @@
 #include <assert.h>
 
 #include "mib.h"
-#include "snmp.h"
+#include "util.h"
+
+/* MIB lua state */
+lua_State *mib_lua_state;
 
 /* Dummy root node */
 static struct mib_group_node mib_dummy_node = {
@@ -54,13 +57,16 @@ oid_dup(const oid_t *oid, uint32_t len)
 int
 oid_cmp(const oid_t *src, uint32_t src_len, const oid_t *target, uint32_t tar_len)
 {
-  int ret;
+  int ret = 0;
 
-  while (tar_len-- && src_len-- && !(ret = (int)(*src++ - *target++)))
+  while (src_len && tar_len && !(ret = (int)(*src++ - *target++))) {
+    src_len--;
+    tar_len--;
     continue;
+  }
 
   if (!ret)
-    return src_len;
+    return src_len - tar_len;
   else
     return ret;
 }
@@ -99,6 +105,150 @@ oid_binary_search(oid_t *arr, int n, oid_t oid)
     return low;  /* low == high - 1 */
 }
 
+/* Unrefer mib search handler */
+void
+mib_handler_unref(int handler)
+{
+  lua_State *L = mib_lua_state;
+  luaL_unref(L, LUA_ENVIRONINDEX, handler);
+}
+
+/* Embedded code is not funny at all... */
+int
+mib_instance_search(struct oid_search_res *ret_oid)
+{
+  int i;
+  Variable *var = &ret_oid->var;
+  lua_State *L = mib_lua_state;
+
+  /* Empty lua stack. */
+  lua_pop(L, -1);
+  /* Get function. */
+  lua_rawgeti(L, LUA_ENVIRONINDEX, ret_oid->callback);
+  /* op */
+  lua_pushinteger(L, ret_oid->request);
+  /* Community authorization */
+  if (ret_oid->request == MIB_REQ_SET) {
+    lua_pushstring(L, "private");
+  } else {
+    lua_pushstring(L, "public");
+  }
+  /* req_sub_oid */
+  lua_newtable(L);
+  for (i = 0; i < ret_oid->inst_id_len; i++) {
+    lua_pushinteger(L, ret_oid->inst_id[i]);
+    lua_rawseti(L, -2, i + 1);
+  }
+
+  if (ret_oid->request == MIB_REQ_SET) {
+    /* req_val */
+    switch (tag(var)) {
+      case ASN1_TAG_INT:
+        lua_pushinteger(L, integer(var));
+        break;
+      case ASN1_TAG_OCTSTR:
+        lua_pushlstring(L, octstr(var), length(var));
+        break;
+      case ASN1_TAG_CNT:
+        lua_pushnumber(L, count(var));
+        break;
+      case ASN1_TAG_IPADDR:
+        lua_pushlstring(L, (char *)ipaddr(var), length(var));
+        break;
+      case ASN1_TAG_OBJID:
+        lua_newtable(L);
+        for (i = 0; i < length(var); i++) {
+          lua_pushnumber(L, oid(var)[i]);
+          lua_rawseti(L, -2, i + 1);
+        }
+        break;
+      case ASN1_TAG_GAU:
+        lua_pushnumber(L, gauge(var));
+        break;
+      case ASN1_TAG_TIMETICKS:
+        lua_pushnumber(L, timeticks(var));
+        break;
+      default:
+        lua_pushnil(L);
+        break;
+    }
+    /* req_val_type */
+    lua_pushinteger(L, tag(var));
+  } else {
+    /* req_val */
+    lua_pushnil(L);
+    /* req_val_type */
+    lua_pushnil(L);
+  }
+
+  if (lua_pcall(L, 5, 4, 0) != 0) {
+    SMARTSNMP_LOG(L_ERROR, "MIB search hander %d fail: %s\n", ret_oid->callback, lua_tostring(L, -1));
+    ret_oid->exist_state = ASN1_TAG_NO_SUCH_OBJ;
+    return 0;
+  }
+
+  ret_oid->exist_state = lua_tointeger(L, -4);
+
+  if (ret_oid->exist_state == 0) {
+    if (ret_oid->request != MIB_REQ_SET) {
+      tag(var) = lua_tonumber(L, -1);
+      switch (tag(var)) {
+        case ASN1_TAG_INT:
+          length(var) = 1;
+          integer(var) = lua_tointeger(L, -2);
+          break;
+        case ASN1_TAG_OCTSTR:
+          length(var) = lua_objlen(L, -2);
+          memcpy(octstr(var), lua_tostring(L, -2), length(var));
+          break;
+        case ASN1_TAG_CNT:
+          length(var) = 1;
+          count(var) = lua_tonumber(L, -2);
+          break;
+        case ASN1_TAG_IPADDR:
+          length(var) = lua_objlen(L, -2);
+          for (i = 0; i < length(var); i++) {
+            lua_rawgeti(L, -2, i + 1);
+            ipaddr(var)[i] = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+          }
+          break;
+        case ASN1_TAG_OBJID:
+          length(var) = lua_objlen(L, -2);
+          for (i = 0; i < length(var); i++) {
+            lua_rawgeti(L, -2, i + 1);
+            oid(var)[i] = lua_tointeger(L, -1);
+            lua_pop(L, 1);
+          }
+          break;
+        case ASN1_TAG_GAU:
+          length(var) = 1;
+          gauge(var) = lua_tonumber(L, -2);
+          break;
+        case ASN1_TAG_TIMETICKS:
+          length(var) = 1;
+          timeticks(var) = lua_tonumber(L, -2);
+          break;
+        default:
+          assert(0);
+          break;
+      }
+    }
+
+    /* For GETNEXT request, return the new oid */
+    if (ret_oid->request == MIB_REQ_GETNEXT) {
+      ret_oid->inst_id_len = lua_objlen(L, -3);
+      for (i = 0; i < ret_oid->inst_id_len; i++) {
+        lua_rawgeti(L, -3, i + 1);
+        ret_oid->inst_id[i] = lua_tointeger(L, -1);
+        lua_pop(L, 1);
+      }
+    }
+  }
+
+  return ret_oid->exist_state;
+}
+
 /* GET request search, depth-first traversal in mib-tree, oid must match */
 struct mib_node *
 mib_tree_search(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_res *ret_oid)
@@ -135,7 +285,7 @@ mib_tree_search(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_r
           /* Sub-id not found */
           ret_oid->inst_id = oid;
           ret_oid->inst_id_len = id_len;
-          ret_oid->exist_state = BER_TAG_NO_SUCH_OBJ;
+          ret_oid->exist_state = ASN1_TAG_NO_SUCH_OBJ;
           return node;
         }
 
@@ -146,7 +296,11 @@ mib_tree_search(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_r
         ret_oid->inst_id_len = id_len;
         ret_oid->callback = in->callback;
         ret_oid->exist_state = mib_instance_search(ret_oid);
-        return node;
+        if (ret_oid->exist_state == 0) {
+          return node;
+        } else {
+          return NULL;
+        }
 
       default:
         assert(0);
@@ -157,9 +311,9 @@ mib_tree_search(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_r
   ret_oid->inst_id = oid;
   ret_oid->inst_id_len = id_len;
   if (node && node->type == MIB_OBJ_INSTANCE) {
-    ret_oid->exist_state = BER_TAG_NO_SUCH_INST;
+    ret_oid->exist_state = ASN1_TAG_NO_SUCH_INST;
   } else {
-    ret_oid->exist_state = BER_TAG_NO_SUCH_OBJ;
+    ret_oid->exist_state = ASN1_TAG_NO_SUCH_OBJ;
   }
   return node;
 }
@@ -243,11 +397,9 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
 
       case MIB_OBJ_GROUP:
         gn = (struct mib_group_node *)node;
-
         if (immediate) {
           /* Fetch the immediate instance node. */
           int i;
-
           if (p_nbl != NULL) {
             /* Fetch the sub-id next to the pop-up backlogged one. */
             i = p_nbl->n_idx;
@@ -273,11 +425,9 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
           /* Search the match sub-id */
           int index = oid_binary_search(gn->sub_id, gn->sub_id_cnt, *oid);
           int i = index;
-
           if (index < 0) {
             /* Not found, switch to the immediate search mode */
             immediate = 1;
-
             /* Reverse the sign to locate the right position. */
             i = -i - 1;
             if (i == gn->sub_id_cnt) {
@@ -320,7 +470,6 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
 
       case MIB_OBJ_INSTANCE:
         in = (struct mib_instance_node *)node;
-
         if (immediate || id_len == 0) {
           /* Fetch the first instance variable */
           ret_oid->inst_id_len = 0;
@@ -328,7 +477,6 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
           /* Search the closest instance whose oid is greater than the target */
           ret_oid->inst_id_len = id_len;
         }
-
         /* Find instance variable through lua handler function */
         ret_oid->inst_id = oid;
         ret_oid->callback = in->callback;
@@ -338,7 +486,6 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
           assert(ret_oid->id_len <= MIB_OID_MAX_LEN);
           return node;
         }
-
         break;  /* Instance not found */
 
       default:
@@ -347,7 +494,7 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
 
     /* Backtracking condition:
      * 1. No greater sub-id in group node;
-     * 2. Seek the immediate closest instance node.
+     * 2. Seek the immediate closest instance node;
      * 3. Node not exists(node == NULL).
      */
     p_nbl = nbl_pop(&stk_top, &stk_buttom);
@@ -357,7 +504,7 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
       ret_oid->id_len = orig_id_len;
       ret_oid->inst_id = NULL;
       ret_oid->inst_id_len = 0;
-      ret_oid->exist_state = BER_TAG_END_OF_MIB_VIEW;
+      ret_oid->exist_state = ASN1_TAG_END_OF_MIB_VIEW;
       return (struct mib_node *)&mib_dummy_node;
     }
     oid--;  /* OID length is ignored once backtracking. */
@@ -386,7 +533,6 @@ is_raw_group(struct mib_group_node *gn)
 }
 
 /* Resize group node's sub-id array */
-#define alloc_nr(x) (((x)+2)*3/2)
 static void
 group_node_expand(struct mib_group_node *gn, int index)
 {
@@ -565,7 +711,7 @@ __mib_tree_delete(struct node_pair *pair)
   struct mib_instance_node *in;
 
   if (node == (struct mib_node *)&mib_dummy_node) {
-    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "MIB dummy root node cannot be deleted!\n");
+    SMARTSNMP_LOG(L_WARNING, "MIB dummy root node cannot be deleted!\n");
     return;
   }
 
@@ -726,17 +872,17 @@ mib_node_reg(const oid_t *oid, uint32_t len, int callback)
   }
 
   if (len > MIB_OID_MAX_LEN) {
-    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "The length of oid cannot be longer than %d\n", MIB_OID_MAX_LEN);
+    SMARTSNMP_LOG(L_WARNING, "The length of oid cannot be longer than %d\n", MIB_OID_MAX_LEN);
     return -1;
   }
 
   in = mib_tree_instance_insert(oid, len, callback);
   if (in == NULL) {
-    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "Register oid: ");
+    SMARTSNMP_LOG(L_WARNING, "Register oid: ");
     for (i = 0; i < len; i++) {
-      CREDO_SNMP_LOG(SNMP_LOG_WARNING, "%d ", oid[i]);
+      SMARTSNMP_LOG(L_WARNING, "%d ", oid[i]);
     }
-    CREDO_SNMP_LOG(SNMP_LOG_WARNING, "fail, node already exists or oid overlaps.\n");
+    SMARTSNMP_LOG(L_WARNING, "fail, node already exists or oid overlaps.\n");
     return -1;
   }
 
@@ -748,7 +894,6 @@ void
 mib_node_unreg(const oid_t *oid, uint32_t len)
 {
   mib_tree_init_check();
-
   mib_tree_delete(oid, len);
 }
 
@@ -776,4 +921,3 @@ mib_init(void)
 {
   mib_dummy_node_init();
 }
-

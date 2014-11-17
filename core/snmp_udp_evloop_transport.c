@@ -19,19 +19,16 @@
  */
 
 #include <sys/socket.h>
-#include <sys/queue.h>
 #include <netinet/in.h>
 
 #include <assert.h>
 #include <stdio.h>
-#include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "transport.h"
+#include "protocol.h"
 #include "ev_loop.h"
-
-#define BUF_SIZE     (65536)
 
 struct snmp_data_entry {
   int sock;
@@ -41,7 +38,6 @@ struct snmp_data_entry {
 };
 
 static struct snmp_data_entry snmp_entry;
-static TRANSPORT_RECEIVER snmp_receiver;
 
 static void
 snmp_write_handler(int sock, unsigned char flag, void *ud)
@@ -59,16 +55,6 @@ snmp_write_handler(int sock, unsigned char flag, void *ud)
   snmp_event_remove(sock, flag);
 }
 
-
-/* Send snmp datagram as a UDP packet to the remote */
-  void
-transport_send(uint8_t *buf, int len)
-{
-  snmp_entry.buf = buf;
-  snmp_entry.len = len;
-  snmp_event_add(snmp_entry.sock, SNMP_EV_WRITE, snmp_write_handler, &snmp_entry);
-}
-
 static void
 snmp_read_handler(int sock, unsigned char flag, void *ud)
 {
@@ -76,7 +62,7 @@ snmp_read_handler(int sock, unsigned char flag, void *ud)
   int len;
   uint8_t *buf;
 
-  buf = malloc(BUF_SIZE);
+  buf = malloc(TRANS_BUF_SIZ);
   if (buf == NULL) {
     perror("malloc()");
     exit(EXIT_FAILURE);
@@ -89,18 +75,26 @@ snmp_read_handler(int sock, unsigned char flag, void *ud)
   }
 
   /* Receive UDP data, store the address of the sender in client_sin */
-  len = recvfrom(sock, buf, BUF_SIZE - 1, 0, (struct sockaddr *)snmp_entry.client_sin, &server_sz);
+  len = recvfrom(sock, buf, TRANS_BUF_SIZ, 0, (struct sockaddr *)snmp_entry.client_sin, &server_sz);
   if (len == -1) {
     perror("recvfrom()");
     snmp_event_done();
   }
 
-  if (snmp_receiver != NULL) {
-    snmp_receiver(buf, len);
-  }
+  /* Parse SNMP PDU in decoder */
+  snmp_prot_ops.receive(buf, len);
 }
 
-void
+/* Send snmp datagram as a UDP packet to the remote */
+static void
+transport_send(uint8_t *buf, int len)
+{
+  snmp_entry.buf = buf;
+  snmp_entry.len = len;
+  snmp_event_add(snmp_entry.sock, SNMP_EV_WRITE, snmp_write_handler, &snmp_entry);
+}
+
+static void
 transport_running(void)
 {
   snmp_event_init();
@@ -108,12 +102,10 @@ transport_running(void)
   snmp_event_run();
 }
 
-void
-transport_init(int port, TRANSPORT_RECEIVER recv_cb)
+static void
+transport_init(int port)
 {
   struct sockaddr_in sin;
-
-  snmp_receiver = recv_cb;
 
   snmp_entry.sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (snmp_entry.sock < 0) {
@@ -131,3 +123,10 @@ transport_init(int port, TRANSPORT_RECEIVER recv_cb)
     exit(EXIT_FAILURE);
   }
 }
+
+struct transport_operation snmp_trans_ops = {
+  "snmp_udp",
+  transport_init,
+  transport_running,
+  transport_send,
+};
