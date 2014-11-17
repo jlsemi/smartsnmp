@@ -159,9 +159,9 @@ if GetOption("transport") == 'libevent':
   transport_src = [env.File("core/agentx_tcp_evloop_transport.c"), env.File("core/snmp_udp_libevent_transport.c"), env.File("core/ev_loop.c")]
 elif GetOption("transport") == 'uloop':
   env.Append(LIBS = ['ubox'])
-  transport_src = [env.File("core/agentx_tcp_evloop_transport.c"), env.File("core/snmp_udp_uloop_transport.c"), ("core/ev_loop.c")]
+  transport_src = [env.File("core/agentx_tcp_evloop_transport.c"), env.File("core/snmp_udp_uloop_transport.c"), env.File("core/ev_loop.c")]
 elif GetOption("transport") == 'built-in' or GetOption("transport") == '':
-  transport_src = [env.File("core/agentx_tcp_evloop_transport.c"), env.File("core/snmp_udp_evloop_transport.c"), ("core/ev_loop.c")]
+  transport_src = [env.File("core/agentx_tcp_evloop_transport.c"), env.File("core/snmp_udp_evloop_transport.c"), env.File("core/ev_loop.c")]
   # built-in event loop check
   if GetOption("evloop") == 'epoll':
     env.Append(CFLAGS = ["-DUSE_EPOLL"])
