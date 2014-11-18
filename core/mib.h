@@ -51,6 +51,8 @@ struct oid_search_res {
   /* Instance oid of return */
   oid_t *inst_id;
   uint32_t inst_id_len;
+  /* Context */
+  const char *context;
   /* Instance search callback in Lua */
   int callback;
   /* Request id */

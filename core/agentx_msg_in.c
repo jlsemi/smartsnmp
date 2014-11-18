@@ -99,10 +99,12 @@ agentx_datagram_clear(struct agentx_datagram *xdg)
   sr_list_free(&xdg->sr_out_list);
   xdg->sr_in_cnt = 0;
   xdg->sr_out_cnt = 0;
-  /* clear response context */
+  /* clear some fields */
   xdg->u.response.sys_up_time = 0;
   xdg->u.response.error = 0;
   xdg->u.response.index = 0;
+  memset(xdg->context, 0, sizeof(xdg->context));
+  xdg->ctx_len = 0;
 }
 
 /* Make response packet */
@@ -128,6 +130,7 @@ agentx_get(struct agentx_datagram *xdg)
   struct oid_search_res ret_oid;
 
   ret_oid.request = MIB_REQ_GET; 
+  ret_oid.context = xdg->context; 
 
   list_for_each_safe(curr, next, &xdg->sr_in_list) {
     sr_in = list_entry(curr, struct x_search_range, link);
@@ -146,7 +149,7 @@ agentx_get(struct agentx_datagram *xdg)
         vb_out->val_type = ret_oid.exist_state;
       } else {
         /* Error status */
-        vb_out->val_type = 0;
+        vb_out->val_type = ASN1_TAG_NO_SUCH_OBJ;
         if (!xdg->u.response.error) {
           /* Report the first object error status in search range */
           xdg->u.response.error = ret_oid.exist_state;
@@ -182,6 +185,7 @@ agentx_getnext(struct agentx_datagram *xdg)
   struct oid_search_res ret_oid;
 
   ret_oid.request = MIB_REQ_GETNEXT; 
+  ret_oid.context = xdg->context; 
 
   list_for_each_safe(curr, next, &xdg->sr_in_list) {
     sr_in = list_entry(curr, struct x_search_range, link);
@@ -219,7 +223,7 @@ agentx_getnext(struct agentx_datagram *xdg)
         vb_out->val_type = ret_oid.exist_state;
       } else {
         /* Error status */
-        vb_out->val_type = 0;
+        vb_out->val_type = ASN1_TAG_NO_SUCH_OBJ;
         if (!xdg->u.response.error) {
           /* Report the first object error status in search range */
           xdg->u.response.error = ret_oid.exist_state;
@@ -253,6 +257,7 @@ agentx_set(struct agentx_datagram *xdg)
   struct oid_search_res ret_oid;
 
   ret_oid.request = MIB_REQ_SET;
+  ret_oid.context = xdg->context; 
 
   list_for_each_safe(curr, next, &xdg->vb_in_list) {
     vb_in = list_entry(curr, struct x_var_bind, link);

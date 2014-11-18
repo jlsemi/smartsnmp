@@ -127,12 +127,8 @@ mib_instance_search(struct oid_search_res *ret_oid)
   lua_rawgeti(L, LUA_ENVIRONINDEX, ret_oid->callback);
   /* op */
   lua_pushinteger(L, ret_oid->request);
-  /* Community authorization */
-  if (ret_oid->request == MIB_REQ_SET) {
-    lua_pushstring(L, "private");
-  } else {
-    lua_pushstring(L, "public");
-  }
+  /* Context authorization */
+  lua_pushstring(L, ret_oid->context);
   /* req_sub_oid */
   lua_newtable(L);
   for (i = 0; i < ret_oid->inst_id_len; i++) {
@@ -481,12 +477,14 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
         ret_oid->inst_id = oid;
         ret_oid->callback = in->callback;
         ret_oid->exist_state = mib_instance_search(ret_oid);
-        if (ret_oid->exist_state == 0) {
+        if (ret_oid->exist_state == 0 || ret_oid->exist_state < ASN1_TAG_NO_SUCH_OBJ) {
           ret_oid->id_len = oid - ret_oid->oid + ret_oid->inst_id_len;
           assert(ret_oid->id_len <= MIB_OID_MAX_LEN);
           return node;
+        } else {
+          /* Instance not found */
+          break;
         }
-        break;  /* Instance not found */
 
       default:
         assert(0);

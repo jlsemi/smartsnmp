@@ -563,7 +563,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         rsp_val_type = req_val_type
 
         -- Priority for local group community string
-        if group.rwcommunity ~= community then
+        if #community ~= 0 and group.rwcommunity ~= community then
             -- Global community
             if _M.rwcommunity ~= nil and _M.rwcommunity ~= '' and _M.rwcommunity ~= community then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
@@ -638,7 +638,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         rsp_sub_oid = req_sub_oid
 
         -- priority for local group community string
-        if group.rocommunity ~= community then
+        if #community ~= 0 and group.rocommunity ~= community then
             -- Global community
             if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
@@ -717,7 +717,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         rsp_sub_oid = req_sub_oid
 
         -- Priority for local group community string
-        if group.rocommunity ~= community then
+        if #community ~= 0 and group.rocommunity ~= community then
             -- Global community
             if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
                 return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
