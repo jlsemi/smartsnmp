@@ -76,12 +76,14 @@ snmpd_init(int port)
 static int
 snmpd_open(void)
 {
+  /* dummy */
   return 0;
 }
 
 static int
 snmpd_close(void)
 {
+  /* dummy */
   return 0;
 }
 

@@ -27,6 +27,7 @@
 
 #define alloc_nr(x) (((x) + 2) * 3 / 2)
 #define uint_sizeof(n) ((n + sizeof(uint32_t) - 1) & ~(sizeof(uint32_t) - 1))
+#define elem_num(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #define HTON16(x) NTOH16(x)
 #define HTON32(x) NTOH32(x)

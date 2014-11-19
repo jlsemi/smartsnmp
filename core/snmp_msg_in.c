@@ -753,7 +753,7 @@ snmp_decode(struct snmp_datagram *sdg)
 
   /* Version */
   if (*buf++ != ASN1_TAG_INT) {
-    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_VERSION, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), SNMP_ERR_VERSION));
+    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_VERSION, error_message(snmp_err_msg, elem_num(snmp_err_msg), SNMP_ERR_VERSION));
     dec_fail = 1;
     goto DECODE_FINISH;
   }
@@ -765,7 +765,7 @@ snmp_decode(struct snmp_datagram *sdg)
   if (sdg->version >= 3) {
     /* Global data length */
     if (*buf++ != ASN1_TAG_SEQ) {
-      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_GLOBAL_DATA_LEN, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), SNMP_ERR_GLOBAL_DATA_LEN));
+      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_GLOBAL_DATA_LEN, error_message(snmp_err_msg, elem_num(snmp_err_msg), SNMP_ERR_GLOBAL_DATA_LEN));
       dec_fail = 1;
       goto DECODE_FINISH;
     }
@@ -774,7 +774,7 @@ snmp_decode(struct snmp_datagram *sdg)
     /* Global data */
     err = global_data_decode(sdg, &buf);
     if (err) { 
-      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), err));
+      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(snmp_err_msg, elem_num(snmp_err_msg), err));
       dec_fail = 1;
       goto DECODE_FINISH;
     }
@@ -782,14 +782,14 @@ snmp_decode(struct snmp_datagram *sdg)
     /* Security parameter */
     err = security_parameter_decode(sdg, &buf);
     if (err) { 
-      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), err));
+      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(snmp_err_msg, elem_num(snmp_err_msg), err));
       dec_fail = 1;
       goto DECODE_FINISH;
     }
 
     /* Scope PDU length */
     if (*buf++ != ASN1_TAG_SEQ) {
-      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_SCOPE_PDU_SEQ, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), SNMP_ERR_SCOPE_PDU_SEQ));
+      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_SCOPE_PDU_SEQ, error_message(snmp_err_msg, elem_num(snmp_err_msg), SNMP_ERR_SCOPE_PDU_SEQ));
       dec_fail = 1;
       goto DECODE_FINISH;
     }
@@ -797,13 +797,13 @@ snmp_decode(struct snmp_datagram *sdg)
 
     /* Context ID */
     if (*buf++ != ASN1_TAG_OCTSTR) {
-      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_CONTEXT_ID, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), SNMP_ERR_CONTEXT_ID));
+      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_CONTEXT_ID, error_message(snmp_err_msg, elem_num(snmp_err_msg), SNMP_ERR_CONTEXT_ID));
       dec_fail = 1;
       goto DECODE_FINISH;
     }
     buf += ber_length_dec(buf, &sdg->context_id_len);
     if (sdg->context_id_len + 1 > sizeof(sdg->context_id)) {
-      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_CONTEXT_ID_LEN, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), SNMP_ERR_CONTEXT_ID_LEN));
+      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_CONTEXT_ID_LEN, error_message(snmp_err_msg, elem_num(snmp_err_msg), SNMP_ERR_CONTEXT_ID_LEN));
       dec_fail = 1;
       goto DECODE_FINISH;
     }
@@ -813,13 +813,13 @@ snmp_decode(struct snmp_datagram *sdg)
 
   /* Context name */
   if (*buf++ != ASN1_TAG_OCTSTR) {
-    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_CONTEXT_NAME, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), SNMP_ERR_CONTEXT_NAME));
+    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_CONTEXT_NAME, error_message(snmp_err_msg, elem_num(snmp_err_msg), SNMP_ERR_CONTEXT_NAME));
     dec_fail = 1;
     goto DECODE_FINISH;
   }
   buf += ber_length_dec(buf, &sdg->context_name_len);
   if (sdg->context_name_len + 1 > sizeof(sdg->context_name)) {
-    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_CONTEXT_NAME_LEN, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), SNMP_ERR_CONTEXT_NAME_LEN));
+    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_CONTEXT_NAME_LEN, error_message(snmp_err_msg, elem_num(snmp_err_msg), SNMP_ERR_CONTEXT_NAME_LEN));
     dec_fail = 1;
     goto DECODE_FINISH;
   }
@@ -829,7 +829,7 @@ snmp_decode(struct snmp_datagram *sdg)
   /* PDU header */
   err = pdu_hdr_parse(sdg, &buf);
   if (err) {
-    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), err));
+    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(snmp_err_msg, elem_num(snmp_err_msg), err));
     dec_fail = 1;
     goto DECODE_FINISH;
   }
@@ -837,7 +837,7 @@ snmp_decode(struct snmp_datagram *sdg)
   /* var bind */
   err = var_bind_parse(sdg, &buf);
   if (err) {
-    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), err));
+    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(snmp_err_msg, elem_num(snmp_err_msg), err));
     dec_fail = 1;
     goto DECODE_FINISH;
   }
@@ -863,7 +863,7 @@ snmpd_recv(uint8_t *buffer, int len)
 
   /* Check PDU tag */
   if (buffer[0] != ASN1_TAG_SEQ) {
-    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_PDU_TYPE, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), SNMP_ERR_PDU_TYPE));
+    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_PDU_TYPE, error_message(snmp_err_msg, elem_num(snmp_err_msg), SNMP_ERR_PDU_TYPE));
     free(buffer);
     return;
   }
@@ -871,7 +871,7 @@ snmpd_recv(uint8_t *buffer, int len)
   /* Check PDU length */
   len_len = ber_length_dec(buffer + tag_len, &snmp_datagram.data_len);
   if (tag_len + len_len + snmp_datagram.data_len != len) {
-    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_PDU_LEN, error_message(snmp_err_msg, sizeof(snmp_err_msg) / sizeof(snmp_err_msg[0]), SNMP_ERR_PDU_LEN));
+    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", SNMP_ERR_PDU_LEN, error_message(snmp_err_msg, elem_num(snmp_err_msg), SNMP_ERR_PDU_LEN));
     free(buffer);
     return;
   }
