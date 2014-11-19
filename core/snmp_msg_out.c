@@ -31,8 +31,9 @@ static uint8_t *
 asn1_encode(struct snmp_datagram *sdg)
 {
   struct pdu_hdr *ph;
-  uint8_t *buf, len_len;
-  const uint8_t tag_len = 1;
+  uint8_t *buf;
+  uint32_t len_len;
+  const uint32_t tag_len = 1;
 
   ph = &sdg->pdu_hdr;
 
@@ -77,7 +78,7 @@ asn1_encode(struct snmp_datagram *sdg)
   buf += ber_value_enc(sdg->community, sdg->comm_len, ASN1_TAG_OCTSTR, buf);
 
   /* PDU header */
-  *buf++ = MIB_RESP;
+  *buf++ = ph->pdu_type;
   buf += ber_length_enc(ph->pdu_len, buf);
 
   /* Request ID */
@@ -107,16 +108,13 @@ snmpd_send_response(struct snmp_datagram *sdg)
 {
   struct var_bind *vb_out;
   struct list_head *curr, *next;
-  uint8_t *buf, oid_len;
-  uint32_t len_len;
-  const uint8_t tag_len = 1;
+  uint8_t *buf;
+  uint32_t len_len, oid_len;
+  const uint32_t tag_len = 1;
 
   buf = asn1_encode(sdg);
-  if (buf == NULL)
-    return;
 
   list_for_each_safe(curr, next, &sdg->vb_out_list) {
-
     vb_out = list_entry(curr, struct var_bind, link);
 
     *buf++ = ASN1_TAG_SEQ;

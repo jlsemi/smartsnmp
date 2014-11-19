@@ -57,14 +57,11 @@ snmp_vb_list_free(struct list_head *vb_list)
 static void
 snmp_datagram_clear(struct snmp_datagram *sdg)
 {
-  memset(&sdg->pdu_hdr, 0, sizeof(sdg->pdu_hdr));
   snmp_vb_list_free(&sdg->vb_in_list);
   snmp_vb_list_free(&sdg->vb_out_list);
-  sdg->vb_in_cnt = 0;
-  sdg->vb_out_cnt = 0;
-  sdg->comm_len = 0;
-  sdg->vb_list_len = 0;
-  sdg->data_len = 0;
+  memset(sdg, 0, sizeof(*sdg));
+  INIT_LIST_HEAD(&sdg->vb_in_list);
+  INIT_LIST_HEAD(&sdg->vb_out_list);
 }
 
 static void
@@ -85,6 +82,7 @@ snmp_get(struct snmp_datagram *sdg)
   const uint32_t tag_len = 1;
 
   ret_oid.request = MIB_REQ_GET;
+  ret_oid.context = sdg->community;
 
   list_for_each_safe(curr, next, &sdg->vb_in_list) {
     vb_in = list_entry(curr, struct var_bind, link);
@@ -102,7 +100,7 @@ snmp_get(struct snmp_datagram *sdg)
       if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
         vb_out->value_type = ret_oid.exist_state;
       } else {
-        vb_out->value_type = 0;
+        vb_out->value_type = vb_in->value_type;
         if (!sdg->pdu_hdr.err_stat) {
           /* Report the first varbind error status */
           sdg->pdu_hdr.err_stat = ret_oid.exist_state;
@@ -152,6 +150,7 @@ snmp_getnext(struct snmp_datagram *sdg)
   const uint32_t tag_len = 1;
 
   ret_oid.request = MIB_REQ_GETNEXT;
+  ret_oid.context = sdg->community;
 
   list_for_each_safe(curr, next, &sdg->vb_in_list) {
     vb_in = list_entry(curr, struct var_bind, link);
@@ -169,7 +168,7 @@ snmp_getnext(struct snmp_datagram *sdg)
       if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
         vb_out->value_type = ret_oid.exist_state;
       } else {
-        vb_out->value_type = 0;
+        vb_out->value_type = vb_in->value_type;
         if (!sdg->pdu_hdr.err_stat) {
           /* Report the first varbind error status */
           sdg->pdu_hdr.err_stat = ret_oid.exist_state;
@@ -218,6 +217,7 @@ snmp_set(struct snmp_datagram *sdg)
   const uint32_t tag_len = 1;
 
   ret_oid.request = MIB_REQ_SET;
+  ret_oid.context = sdg->community;
 
   list_for_each_safe(curr, next, &sdg->vb_in_list) {
     vb_in = list_entry(curr, struct var_bind, link);
@@ -285,6 +285,7 @@ snmp_bulkget(struct snmp_datagram *sdg)
   const oid_t *oid;
 
   ret_oid.request = MIB_REQ_GETNEXT;
+  ret_oid.context = sdg->community;
   repeat = sdg->pdu_hdr.err_idx;
   sdg->pdu_hdr.err_idx = 0;
 
@@ -313,7 +314,7 @@ snmp_bulkget(struct snmp_datagram *sdg)
         if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
           vb_out->value_type = ret_oid.exist_state;
         } else {
-          vb_out->value_type = 0;
+          vb_out->value_type = vb_in->value_type;
           if (!sdg->pdu_hdr.err_stat) {
             /* Report the first varbind error status */
             sdg->pdu_hdr.err_stat = ret_oid.exist_state;
@@ -357,17 +358,21 @@ request_dispatch(struct snmp_datagram *sdg)
 {
   switch (sdg->pdu_hdr.pdu_type) {
     case MIB_REQ_GET:
+      sdg->pdu_hdr.pdu_type = MIB_RESP;
       snmp_get(sdg);
       break;
     case MIB_REQ_GETNEXT:
+      sdg->pdu_hdr.pdu_type = MIB_RESP;
       snmp_getnext(sdg);
       break;
     case MIB_RESP:
       break;
     case MIB_REQ_SET:
+      sdg->pdu_hdr.pdu_type = MIB_RESP;
       snmp_set(sdg);
       break;
     case MIB_REQ_BULKGET:
+      sdg->pdu_hdr.pdu_type = MIB_RESP;
       snmp_bulkget(sdg);
       break;
     case MIB_REQ_INF:
@@ -584,13 +589,13 @@ snmp_decode(struct snmp_datagram *sdg)
   }
 
 DECODE_FINISH:
+  /* We should free received buffer here */
+  free(sdg->recv_buf);
+
   /* If fail, do some clear things */
   if (dec_fail) {
     snmp_datagram_clear(sdg);
   }
-
-  /* We should free received buffer here */
-  free(sdg->recv_buf);
 }
 
 /* Receive snmp datagram from transport module */

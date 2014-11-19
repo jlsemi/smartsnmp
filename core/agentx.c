@@ -141,11 +141,10 @@ static int
 agentx_open(void)
 {
   struct x_pdu_buf x_pdu;
-  oid_t open_oid[] = { 1, 3, 6, 1, 4, 1, 8072, 3, 2, 10 };
   const char *descr = "SmartSNMP AgentX sub-agent";
 
   /* Send agentX open PDU */
-  x_pdu = agentx_open_pdu(&agentx_datagram, open_oid, OID_ARRAY_SIZE(open_oid), descr, strlen(descr));
+  x_pdu = agentx_open_pdu(&agentx_datagram, NULL, 0, descr, strlen(descr));
   if (send(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0) == -1) {
     SMARTSNMP_LOG(L_ERROR, "Send agentX open PDU failure!\n");
     return -1;
