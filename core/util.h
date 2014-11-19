@@ -96,6 +96,11 @@ typedef enum smartsnmp_log_level {
   L_LEVEL_NUM
 } SMARTSNMP_LOG_LEVEL_E;
 
+struct err_msg_map {
+  int error; 
+  const char *message;
+};
+
 static inline void
 report(const char *prefix, const char *err, va_list params)
 {
@@ -134,7 +139,7 @@ error(const char *err, ...)
 }
 
 static inline void *
-xmalloc(int size)
+xmalloc(size_t size)
 {
   void *ret = malloc(size);
   if (!ret)
@@ -143,7 +148,7 @@ xmalloc(int size)
 }
 
 static inline void *
-xrealloc(void *ptr, int size)
+xrealloc(void *ptr, size_t size)
 {
   void *ret = realloc(ptr, size);
   if (!ret)
@@ -152,12 +157,26 @@ xrealloc(void *ptr, int size)
 }
 
 static inline void *
-xcalloc(int nr, int size)
+xcalloc(int nr, size_t size)
 {
   void *ret = calloc(nr, size);
   if (!ret)
     die("Out of memory, calloc failed");
   return ret;
+}
+
+static inline const char *
+error_message(struct err_msg_map *msg_blk, size_t size, int err)
+{
+  int i;
+  
+  for (i = 0; i < size; i++) {
+    if (msg_blk[i].error == err) {
+      return msg_blk[i].message;
+    }
+  }
+
+  return NULL;
 }
 
 #endif /* _UTIL_H_ */

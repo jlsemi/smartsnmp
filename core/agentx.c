@@ -78,7 +78,7 @@ agentx_mib_node_reg(const oid_t *grp_id, int id_len, int grp_cb)
     return -1;
   }
 
-  /* Testify register response PDU */
+  /* Verify register response PDU */
   if (agentx_recv(x_pdu.buf, x_pdu.len) != AGENTX_ERR_OK) {
     SMARTSNMP_LOG(L_ERROR, "Parse agentX rigister response PDU error!\n");
     return -1;
@@ -116,7 +116,7 @@ agentx_mib_node_unreg(const oid_t *grp_id, int id_len)
     return -1;
   }
 
-  /* Testify register response PDU */
+  /* Verify register response PDU */
   if (agentx_recv(x_pdu.buf, x_pdu.len) != AGENTX_ERR_OK) {
     SMARTSNMP_LOG(L_ERROR, "Unregister response error!");
     return -1;
@@ -141,17 +141,16 @@ static int
 agentx_open(void)
 {
   struct x_pdu_buf x_pdu;
-  oid_t open_oid[] = { 1, 3, 6, 1, 4, 1, 8072, 3, 2, 10 };
   const char *descr = "SmartSNMP AgentX sub-agent";
 
   /* Send agentX open PDU */
-  x_pdu = agentx_open_pdu(&agentx_datagram, open_oid, OID_ARRAY_SIZE(open_oid), descr, strlen(descr));
+  x_pdu = agentx_open_pdu(&agentx_datagram, NULL, 0, descr, strlen(descr));
   if (send(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0) == -1) {
     SMARTSNMP_LOG(L_ERROR, "Send agentX open PDU failure!\n");
     return -1;
   }
 
-  /* Receive agentX response PDU */
+  /* Receive agentX open response PDU */
   x_pdu.len = TRANS_BUF_SIZ;
   x_pdu.buf = xrealloc(x_pdu.buf, x_pdu.len);
   x_pdu.len = recv(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0);
@@ -160,12 +159,42 @@ agentx_open(void)
     return -1;
   }
 
-  /* Testify open response PDU */
+  /* Verify open response PDU */
   if (agentx_recv(x_pdu.buf, x_pdu.len) != AGENTX_ERR_OK) {
     SMARTSNMP_LOG(L_ERROR, "Parse agentX open response PDU error!\n");
     return -1;
   }
 
+  return 0;
+}
+
+static int
+agentx_close(void)
+{
+  struct x_pdu_buf x_pdu;
+
+  /* Send agentX close PDU */
+  x_pdu = agentx_close_pdu(&agentx_datagram, R_SHUTDOWN);
+  if (send(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0) == -1) {
+    SMARTSNMP_LOG(L_ERROR, "Send agentX close PDU failure!\n");
+    return -1;
+  }
+
+  /* Receive agentX close response PDU */
+  x_pdu.len = TRANS_BUF_SIZ;
+  x_pdu.buf = xrealloc(x_pdu.buf, x_pdu.len);
+  x_pdu.len = recv(agentx_datagram.sock, x_pdu.buf, x_pdu.len, 0);
+  if (x_pdu.len == -1) {
+    SMARTSNMP_LOG(L_ERROR, "Receive agentX close response PDU failure!\n");
+    return -1;
+  }
+
+  /* Verify close response PDU */
+  if (agentx_recv(x_pdu.buf, x_pdu.len) != AGENTX_ERR_OK) {
+    SMARTSNMP_LOG(L_ERROR, "Parse agentX close response PDU error!\n");
+    return -1;
+  }
+  
   return 0;
 }
 
@@ -179,6 +208,7 @@ struct protocol_operation agentx_prot_ops = {
   "agentx",
   agentx_init,
   agentx_open,
+  agentx_close,
   agentx_run,
   agentx_mib_node_reg,
   agentx_mib_node_unreg,

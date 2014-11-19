@@ -36,11 +36,13 @@ agentx_open_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len,
   struct x_objid_t *objid;
   struct x_octstr_t *octstr;
 
-  assert(oid_len > 4 && oid_len + 5 <= MIB_OID_MAX_LEN && descr_len <= MIB_VALUE_MAX_LEN);
+  assert(oid_len == 0 || (oid_len > 4 && oid_len + 5 <= MIB_OID_MAX_LEN && descr_len <= MIB_VALUE_MAX_LEN));
   descr_len = uint_sizeof(descr_len);
 
   /* PDU length */
-  len = sizeof(*ph) + sizeof(*timeout) + 4 + (oid_len - 5) * sizeof(uint32_t) + 4 + descr_len;
+  len = sizeof(*ph) + sizeof(*timeout) + 4;
+  len += oid_len == 0 ? 0: (oid_len - 5) * sizeof(uint32_t);
+  len += 4 + descr_len;
   pdu = buf = xmalloc(len);
   memset(buf, 0, len);
 
@@ -66,8 +68,8 @@ agentx_open_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len,
 
   /* sub-oid */
   objid = (struct x_objid_t *)buf;
-  objid->n_subid = oid_len - 5;
-  objid->prefix = oid[4];
+  objid->n_subid = oid_len == 0 ? 0 : oid_len - 5;
+  objid->prefix = oid_len == 0 ? 0 : oid[4];
   objid->include = 0;
   for (i = 5; i < oid_len; i++) {
     if (ph->flags & NETWORD_BYTE_ORDER) {
@@ -76,7 +78,8 @@ agentx_open_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len,
       objid->sub_id[i - 5] = oid[i];
     }
   }
-  buf += 4 + (oid_len - 5) * sizeof(uint32_t);
+  buf += 4;
+  buf += oid_len == 0 ? 0 : (oid_len - 5) * sizeof(uint32_t);
 
   /* octet string */
   octstr = (struct x_octstr_t *)buf;
