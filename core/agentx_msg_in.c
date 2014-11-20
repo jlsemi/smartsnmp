@@ -464,7 +464,7 @@ var_bind_parse(struct agentx_datagram *xdg, uint8_t **buffer)
     /* Alloc a new var_bind and add into var_bind list. */
     struct x_var_bind *vb = var_bind_alloc(&buf, xdg->pdu_hdr.flags, &err);
     if (vb == NULL) {
-      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, sizeof(agentx_err_msg) / sizeof(agentx_err_msg[0]), err));
+      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, elem_num(agentx_err_msg), err));
       *buffer = buf;
       break;
     }
@@ -491,7 +491,7 @@ search_range_parse(struct agentx_datagram *xdg, uint8_t **buffer)
     /* Alloc a new search range and add into search range list. */
     struct x_search_range *sr = search_range_alloc(&buf, xdg->pdu_hdr.flags, &err);
     if (sr == NULL) {
-      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, sizeof(agentx_err_msg) / sizeof(agentx_err_msg[0]), err));
+      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, elem_num(agentx_err_msg), err));
       *buffer = buf;
       break;
     }
@@ -620,7 +620,7 @@ agentx_decode(struct agentx_datagram *xdg)
   /* PDU header */
   err = pdu_hdr_parse(xdg, &buf);
   if (err) {
-    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, sizeof(agentx_err_msg) / sizeof(agentx_err_msg[0]), err));
+    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, elem_num(agentx_err_msg), err));
     dec_fail = 1;
     goto DECODE_FINISH;
   }
@@ -633,7 +633,7 @@ agentx_decode(struct agentx_datagram *xdg)
       /* search range */
       err = search_range_parse(xdg, &buf);
       if (err) {
-        SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, sizeof(agentx_err_msg) / sizeof(agentx_err_msg[0]), err));
+        SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, elem_num(agentx_err_msg), err));
         dec_fail = 1;
       }
       break;
@@ -642,7 +642,7 @@ agentx_decode(struct agentx_datagram *xdg)
       /* var bind */
       err = var_bind_parse(xdg, &buf);
       if (err) {
-        SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, sizeof(agentx_err_msg) / sizeof(agentx_err_msg[0]), err));
+        SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, elem_num(agentx_err_msg), err));
         dec_fail = 1;
       }
       break;
