@@ -22,10 +22,10 @@ files as shown in `mibs` directory.
 Operation
 ---------
 
-**SmartSNMP** can run in two modes: the SNMP mode and the AgentX mode. In SNMP
+**SmartSNMP** can run in two modes: the **SNMP mode** and the **AgentX mode**. In SNMP
 mode the agent will run as an independent SNMP agent and process SNMP datagram
 from the client, while in AgentX mode the agent will run as an sub-agent against
-Net-SNMP as the master agent and process AgentX datagram from master.
+Net-SNMP as the master agent and process AgentX datagram from the master.
 
 Revelant test samples are shown respectively as `tests/snmpd_test.sh` and `tests/agentx_test.sh`
 
@@ -99,26 +99,27 @@ Test script
 
 Net-SNMP utils should be installed before you run all test scripts (on Ubuntu).
 
-    sudo apt-get install -y snmp
+    sudo apt-get install -y snmp snmpd
 
-To run **SmartSNMP** in SNMP mode:
+To run in **SNMP mode**:
 
     sudo /etc/init.d/snmpd stop
-    sudo ./tests/run_snmpd.sh
+    cd smartsnmp
+    sudo ./tests/snmp_daemon.sh
 
-Test SNMP agent at another terminal:
+Test samples at another terminal:
 
     ./tests/snmpd_test.sh
 
-To run **SmartSNMP** in AgentX mode:
+To run in **AgentX mode**:
 
-    sudo cat /etc/snmp/snmpd.conf
-    master  agent
-    agentXSocket  tcp:localhost:705
+    sudo mv /etc/snmp/snmpd.conf /etc/snmp/snmpd.conf.save
+    cd smartsnmp
+    sudo cp config/snmpd.conf /etc/snmp/snmpd.conf
     sudo /etc/init.d/snmpd restart
-    ./tests/run_agentx.sh
+    ./tests/agentx_deamon.sh
 
-Test sub-agent at another terminal:
+Test samples at another terminal:
 
     ./tests/agentx_test.sh
 
