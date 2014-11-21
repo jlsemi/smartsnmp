@@ -23,7 +23,7 @@ local snmpd = require "smartsnmp"
 local utils = require "smartsnmp.utils"
 
 -- default configuration file
-local config_file = 'config/smartsnmp.conf'
+local config_file = 'config/snmp.conf'
 
 -------------------------------------------------------------------------------
 -- parse arguments

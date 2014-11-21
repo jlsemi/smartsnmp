@@ -97,29 +97,33 @@ _Installation scripts is coming soon._
 Test script
 -----------
 
-Net-SNMP utils should be installed before you run all test scripts (on Ubuntu).
-
-    sudo apt-get install -y snmp snmpd
-
-To run in **SNMP mode**:
+Any SNMP daemon installed in you system should be stopped before test scripts run.
 
     sudo /etc/init.d/snmpd stop
+
+To make Net-SNMP as the master agent in our AgentX test, we will download
+**Net-SNMP-5.7.2.1** source code and build the image in `tests` directory.
+
     cd smartsnmp
+    ./tests/netsnmp_build.sh
+
+In **SNMP** mode, we run the snmp daemon:
+
     sudo ./tests/snmp_daemon.sh
 
-Test samples at another terminal:
+Then run test cases at another terminal:
 
-    ./tests/snmpd_test.sh
+    ./tests/testcase.sh
 
-To run in **AgentX mode**:
+In **AgentX** mode, we run Net-SNMP master agent at first:
 
-    sudo mv /etc/snmp/snmpd.conf /etc/snmp/snmpd.conf.save
-    cd smartsnmp
-    sudo cp config/snmpd.conf /etc/snmp/snmpd.conf
-    sudo /etc/init.d/snmpd restart
+    sudo ./tests/net-snmp-release/sbin/snmpd -f -Lo -m "" -C -c tests/snmpd.conf
+
+Then run the sub-agent at another terminal:
+
     ./tests/agentx_deamon.sh
 
-Test samples at another terminal:
+Then run test cases at the third terminal:
 
     ./tests/agentx_test.sh
 
