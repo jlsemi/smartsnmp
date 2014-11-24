@@ -26,8 +26,6 @@
 #define MIB_OID_MAX_LEN       64
 #define MIB_VALUE_MAX_LEN     (1024)
 
-#define OID_ARRAY_SIZE(arr)     (sizeof(arr) / sizeof(arr[0]))
-
 /* ASN1 variable type */
 enum asn1_variable_type {
   ASN1_TAG_BOOL            = 0x01,

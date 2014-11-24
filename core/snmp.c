@@ -76,6 +76,14 @@ snmpd_init(int port)
 static int
 snmpd_open(void)
 {
+  /* dummy */
+  return 0;
+}
+
+static int
+snmpd_close(void)
+{
+  /* dummy */
   return 0;
 }
 
@@ -89,6 +97,7 @@ struct protocol_operation snmp_prot_ops = {
   "snmp",
   snmpd_init,
   snmpd_open,
+  snmpd_close,
   snmpd_run,
   snmpd_mib_node_reg,
   snmpd_mib_node_unreg,

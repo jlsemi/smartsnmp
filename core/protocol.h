@@ -28,6 +28,7 @@ struct protocol_operation {
   const char *name;
   void (*init)(int port);
   int (*open)(void);
+  int (*close)(void);
   void (*run)(void);
   int (*reg)(const oid_t *grp_id, int id_len, int grp_cb);
   int (*unreg)(const oid_t *grp_id, int id_len);

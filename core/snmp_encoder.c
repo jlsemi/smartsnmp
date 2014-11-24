@@ -30,7 +30,7 @@
  * Return: byte length.
  */
 static uint32_t
-ber_int_enc_test(int value)
+ber_int_enc_try(int value)
 {
   uint32_t i = sizeof(int);
   union anonymous {
@@ -54,7 +54,7 @@ ber_int_enc_test(int value)
  * Return: byte length.
  */
 static uint32_t
-ber_oid_enc_test(const oid_t *oid, uint32_t len)
+ber_oid_enc_try(const oid_t *oid, uint32_t len)
 {
   uint8_t i, j, tmp[10];
 
@@ -83,7 +83,7 @@ ber_oid_enc_test(const oid_t *oid, uint32_t len)
  * Return: byte length.
  */
 uint32_t
-ber_value_enc_test(const void *value, uint32_t len, uint8_t type)
+ber_value_enc_try(const void *value, uint32_t len, uint8_t type)
 {
   uint32_t ret;
   const oid_t *oid;
@@ -95,11 +95,11 @@ ber_value_enc_test(const void *value, uint32_t len, uint8_t type)
     case ASN1_TAG_GAU:
     case ASN1_TAG_TIMETICKS:
       inter = (const int *)value;
-      ret = ber_int_enc_test(*inter);
+      ret = ber_int_enc_try(*inter);
       break;
     case ASN1_TAG_OBJID:
       oid = (const oid_t *)value;
-      ret = ber_oid_enc_test(oid, len);
+      ret = ber_oid_enc_try(oid, len);
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
@@ -227,7 +227,7 @@ ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf)
  * Return: byte length.
  */
 uint32_t
-ber_length_enc_test(uint32_t value)
+ber_length_enc_try(uint32_t value)
 {
   uint32_t i = 0, len = 0;
   union anonymous {

@@ -30,7 +30,7 @@
  * Return: number of elements
  */
 static uint32_t
-ber_oid_dec_test(const uint8_t *buf, uint32_t len)
+ber_oid_dec_try(const uint8_t *buf, uint32_t len)
 {
   uint32_t i, j;
 
@@ -48,7 +48,7 @@ ber_oid_dec_test(const uint8_t *buf, uint32_t len)
  * Return: number of elements
  */
 uint32_t
-ber_value_dec_test(const uint8_t *buf, uint32_t len, uint8_t type)
+ber_value_dec_try(const uint8_t *buf, uint32_t len, uint8_t type)
 {
   uint32_t ret;
 
@@ -63,7 +63,7 @@ ber_value_dec_test(const uint8_t *buf, uint32_t len, uint8_t type)
       ret = 1;
       break;
     case ASN1_TAG_OBJID:
-      ret = ber_oid_dec_test(buf, len);
+      ret = ber_oid_dec_try(buf, len);
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
@@ -167,7 +167,7 @@ ber_value_dec(const uint8_t *buf, uint32_t len, uint8_t type, void *value)
  * Return: length value
  */
 uint32_t
-ber_length_dec_test(const uint8_t *buf)
+ber_length_dec_try(const uint8_t *buf)
 {
   uint32_t len = 1;
 
