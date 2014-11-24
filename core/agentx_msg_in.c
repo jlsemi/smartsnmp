@@ -207,6 +207,10 @@ agentx_getnext(struct agentx_datagram *xdg)
     /* Search the included start oid */
     if (sr_in->start_include) {
       mib_tree_search(sr_in->start, sr_in->start_len, &ret_oid);
+      if (ret_oid.exist_state) {
+        /* Ineffective query */
+        free(ret_oid.oid);
+      }
     }
     
     /* If start oid not included or not exist, search the next one */
