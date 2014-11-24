@@ -202,10 +202,12 @@ asn1_encode(struct snmp_datagram *sdg)
 
     len_len = ber_length_enc_try(sdg->secur_str_len);
     sdg->data_len += tag_len + len_len + sdg->secur_str_len;
+
+    len_len = ber_length_enc_try(sdg->scope_len);
+    sdg->data_len += tag_len + len_len;
   }
 
-  len_len = ber_length_enc_try(sdg->scope_len);
-  sdg->data_len += tag_len + len_len + sdg->scope_len;
+  sdg->data_len += sdg->scope_len;
 
   len_len = ber_length_enc_try(sdg->ver_len);
   sdg->data_len += tag_len + len_len + sdg->ver_len;
