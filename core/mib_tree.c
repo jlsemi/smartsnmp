@@ -364,6 +364,7 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
       node = NULL;
     } else {
       node = mib_tree_search(root_oid, root_oid_len, &tmp_res);
+      free(tmp_res.oid);
     }
   } else {
     immediate = 1;  /* 1 is to get the immediate closest instance */
@@ -374,6 +375,7 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
       node = NULL;
     } else {
       node = mib_tree_search(root_oid, root_oid_len, &tmp_res);
+      free(tmp_res.oid);
     }
   }
 
