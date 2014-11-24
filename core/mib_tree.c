@@ -364,6 +364,7 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
       node = NULL;
     } else {
       node = mib_tree_search(root_oid, root_oid_len, &tmp_res);
+      free(tmp_res.oid);
     }
   } else {
     immediate = 1;  /* 1 is to get the immediate closest instance */
@@ -374,6 +375,7 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
       node = NULL;
     } else {
       node = mib_tree_search(root_oid, root_oid_len, &tmp_res);
+      free(tmp_res.oid);
     }
   }
 
@@ -901,9 +903,9 @@ mib_dummy_node_init(void)
 {
   const oid_t dummy_oid[] = { 1, 3, 6, 1 };
 
-  root_oid = xmalloc(OID_ARRAY_SIZE(dummy_oid) * sizeof(oid_t));
-  oid_cpy(root_oid, dummy_oid, OID_ARRAY_SIZE(dummy_oid));
-  root_oid_len = OID_ARRAY_SIZE(dummy_oid);
+  root_oid = xmalloc(elem_num(dummy_oid) * sizeof(oid_t));
+  oid_cpy(root_oid, dummy_oid, elem_num(dummy_oid));
+  root_oid_len = elem_num(dummy_oid);
 
   mib_dummy_node.type = MIB_OBJ_GROUP;
   mib_dummy_node.sub_id_cap = 1;

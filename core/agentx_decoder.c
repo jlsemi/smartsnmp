@@ -30,7 +30,7 @@
  * Return: value bytes
  */
 uint32_t
-agentx_value_dec_test(const uint8_t *buf, uint8_t flag, uint8_t type)
+agentx_value_dec_try(const uint8_t *buf, uint8_t flag, uint8_t type)
 {
   uint32_t ret;
 

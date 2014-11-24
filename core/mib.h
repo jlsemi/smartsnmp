@@ -30,8 +30,6 @@
 #define MIB_OBJ_GROUP           1
 #define MIB_OBJ_INSTANCE        2
 
-#define OID_ARRAY_SIZE(arr)     (sizeof(arr) / sizeof(arr[0]))
-
 /* MIB request type */
 typedef enum mib_request {
   MIB_REQ_GET     = 0xA0,

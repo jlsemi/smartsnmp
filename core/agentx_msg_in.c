@@ -30,6 +30,19 @@
 #include "agentx.h"
 #include "util.h"
 
+static struct err_msg_map agentx_err_msg[] = {
+  { AGENTX_ERR_OK, "Every thing is OK!" },
+
+  { AGENTX_ERR_PDU_CTX_LEN, "AgentX PDU context length exceeds!" },
+
+  { AGENTX_ERR_VB_VAR, "AgentX varbind allocation fail!" },
+  { AGENTX_ERR_VB_VALUE_LEN, "AgentX varbind value length exceeds!" },
+  { AGENTX_ERR_VB_OID_LEN, "AgentX varbind oid length exceeds!" },
+
+  { AGENTX_ERR_SR_VAR, "AgentX search range allocation fail!" },
+  { AGENTX_ERR_SR_OID_LEN, "AgentX search range oid length exceeds!" },
+};
+
 static struct x_var_bind *
 vb_new(uint32_t oid_len, uint32_t val_len)
 {
@@ -158,7 +171,7 @@ agentx_get(struct agentx_datagram *xdg)
       }
     } else {
       /* Gotcha */
-      val_len = agentx_value_enc_test(length(&ret_oid.var), tag(&ret_oid.var));
+      val_len = agentx_value_enc_try(length(&ret_oid.var), tag(&ret_oid.var));
       vb_out = xmalloc(sizeof(*vb_out) + val_len);
       vb_out->oid = ret_oid.oid;
       vb_out->oid_len = ret_oid.id_len;
@@ -194,6 +207,10 @@ agentx_getnext(struct agentx_datagram *xdg)
     /* Search the included start oid */
     if (sr_in->start_include) {
       mib_tree_search(sr_in->start, sr_in->start_len, &ret_oid);
+      if (ret_oid.exist_state) {
+        /* Ineffective query */
+        free(ret_oid.oid);
+      }
     }
     
     /* If start oid not included or not exist, search the next one */
@@ -231,7 +248,7 @@ agentx_getnext(struct agentx_datagram *xdg)
         }
       }
     } else {
-      val_len = agentx_value_enc_test(length(&ret_oid.var), tag(&ret_oid.var));
+      val_len = agentx_value_enc_try(length(&ret_oid.var), tag(&ret_oid.var));
       vb_out = xmalloc(sizeof(*vb_out) + val_len);
       vb_out->oid = ret_oid.oid;
       vb_out->oid_len = ret_oid.id_len;
@@ -266,7 +283,7 @@ agentx_set(struct agentx_datagram *xdg)
     /* Decode the setting value ahead */
     tag(&ret_oid.var) = vb_in->val_type;
     length(&ret_oid.var) = vb_in->val_len;
-    val_len = agentx_value_enc_test(length(&ret_oid.var), tag(&ret_oid.var));
+    val_len = agentx_value_enc_try(length(&ret_oid.var), tag(&ret_oid.var));
     memcpy(value(&ret_oid.var), vb_in->value, val_len);
 
     /* Search at the input oid and set it */
@@ -351,7 +368,7 @@ var_bind_alloc(uint8_t **buffer, uint8_t flag, enum agentx_err_code *err)
 
   /* oid length */
   buf1 = buf;
-  oid_len = agentx_value_dec_test(buf1, flag, ASN1_TAG_OBJID);
+  oid_len = agentx_value_dec_try(buf1, flag, ASN1_TAG_OBJID);
   if (oid_len / sizeof(uint32_t) > MIB_OID_MAX_LEN) {
     *err = AGENTX_ERR_VB_OID_LEN;
     return NULL;
@@ -363,7 +380,7 @@ var_bind_alloc(uint8_t **buffer, uint8_t flag, enum agentx_err_code *err)
   }
 
   /* value length */
-  val_len = agentx_value_dec_test(buf, flag, type);
+  val_len = agentx_value_dec_try(buf, flag, type);
   if (val_len > MIB_VALUE_MAX_LEN) {
     *err = AGENTX_ERR_VB_VALUE_LEN;
     return NULL;
@@ -400,7 +417,7 @@ search_range_alloc(uint8_t **buffer, uint8_t flag, enum agentx_err_code *err)
   buf1 = buf = *buffer;
 
   /* start oid length */
-  start_len = agentx_value_dec_test(buf, flag, ASN1_TAG_OBJID);
+  start_len = agentx_value_dec_try(buf, flag, ASN1_TAG_OBJID);
   if (start_len / sizeof(uint32_t) > MIB_OID_MAX_LEN) {
     *err = AGENTX_ERR_SR_OID_LEN;
     return NULL;
@@ -413,7 +430,7 @@ search_range_alloc(uint8_t **buffer, uint8_t flag, enum agentx_err_code *err)
   }
 
   /* end oid length */
-  end_len = agentx_value_dec_test(buf, flag, ASN1_TAG_OBJID);
+  end_len = agentx_value_dec_try(buf, flag, ASN1_TAG_OBJID);
   if (end_len / sizeof(uint32_t) > MIB_OID_MAX_LEN) {
     *err = AGENTX_ERR_SR_OID_LEN;
     return NULL;
@@ -451,7 +468,7 @@ var_bind_parse(struct agentx_datagram *xdg, uint8_t **buffer)
     /* Alloc a new var_bind and add into var_bind list. */
     struct x_var_bind *vb = var_bind_alloc(&buf, xdg->pdu_hdr.flags, &err);
     if (vb == NULL) {
-      SMARTSNMP_LOG(L_ERROR, "ERR: %d\n", err);
+      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, elem_num(agentx_err_msg), err));
       *buffer = buf;
       break;
     }
@@ -478,7 +495,7 @@ search_range_parse(struct agentx_datagram *xdg, uint8_t **buffer)
     /* Alloc a new search range and add into search range list. */
     struct x_search_range *sr = search_range_alloc(&buf, xdg->pdu_hdr.flags, &err);
     if (sr == NULL) {
-      SMARTSNMP_LOG(L_ERROR, "ERR: %d\n", err);
+      SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, elem_num(agentx_err_msg), err));
       *buffer = buf;
       break;
     }
@@ -533,7 +550,7 @@ pdu_hdr_parse(struct agentx_datagram *xdg, uint8_t **buffer)
     } else {
       xdg->ctx_len = *(uint32_t *)buf;
     }
-    if (xdg->ctx_len + 1 >= sizeof(xdg->context)) {
+    if (xdg->ctx_len + 1 > sizeof(xdg->context)) {
       err = AGENTX_ERR_PDU_CTX_LEN;
       *buffer = buf;
       return err;
@@ -607,7 +624,7 @@ agentx_decode(struct agentx_datagram *xdg)
   /* PDU header */
   err = pdu_hdr_parse(xdg, &buf);
   if (err) {
-    SMARTSNMP_LOG(L_ERROR, "ERR: %d\n", err);
+    SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, elem_num(agentx_err_msg), err));
     dec_fail = 1;
     goto DECODE_FINISH;
   }
@@ -620,7 +637,7 @@ agentx_decode(struct agentx_datagram *xdg)
       /* search range */
       err = search_range_parse(xdg, &buf);
       if (err) {
-        SMARTSNMP_LOG(L_ERROR, "ERR: %d\n", err);
+        SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, elem_num(agentx_err_msg), err));
         dec_fail = 1;
       }
       break;
@@ -629,7 +646,7 @@ agentx_decode(struct agentx_datagram *xdg)
       /* var bind */
       err = var_bind_parse(xdg, &buf);
       if (err) {
-        SMARTSNMP_LOG(L_ERROR, "ERR: %d\n", err);
+        SMARTSNMP_LOG(L_ERROR, "ERR(%d): %s\n", err, error_message(agentx_err_msg, elem_num(agentx_err_msg), err));
         dec_fail = 1;
       }
       break;
