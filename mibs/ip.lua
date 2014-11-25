@@ -84,15 +84,17 @@ mib.module_methods.or_table_reg("1.3.6.1.2.1.4", "The MIB module for managing IP
 local function ip_AdEnt_entry_get(sub_oid, name)
     assert(type(name) == 'string')
     local value
-    local key = table.concat(sub_oid, ".")
-    if ip_AdEnt_cache[key] then
-        if name == "" then
-            value = {}
-            for i = 1, 4 do
-                table.insert(value, sub_oid[i])
+    if type(sub_oid) == 'table' then
+        local key = table.concat(sub_oid, ".")
+        if ip_AdEnt_cache[key] then
+            if name == "" then
+                value = {}
+                for i = 1, 4 do
+                    table.insert(value, sub_oid[i])
+                end
+            else
+                value = ip_AdEnt_cache[key][name]
             end
-        else
-            value = ip_AdEnt_cache[key][name]
         end
     end
     return value
@@ -101,15 +103,17 @@ end
 local function ip_RouteIf_entry_get(sub_oid, name)
     assert(type(name) == 'string')
     local value
-    local key = table.concat(sub_oid, ".")
-    if ip_RouteIf_cache[key] then
-        if name == "" then
-            value = {}
-            for i = 1, 4 do
-                table.insert(value, sub_oid[i])
+    if type(sub_oid) == 'table' then
+        local key = table.concat(sub_oid, ".")
+        if ip_RouteIf_cache[key] then
+            if name == "" then
+                value = {}
+                for i = 1, 4 do
+                    table.insert(value, sub_oid[i])
+                end
+            else
+                value = ip_RouteIf_cache[key][name]
             end
-        else
-            value = ip_RouteIf_cache[key][name]
         end
     end
     return value
@@ -117,13 +121,15 @@ end
 
 local function ip_RouteIf_entry_set(sub_oid, v, name)
     assert(type(name) == 'string')
-    local key = table.concat(sub_oid, ".")
-    if ip_RouteIf_cache[key] then
-        if name == '' then
-            ip_RouteIf_cache[table.concat(v, ".")] = ip_RouteIf_cache[key]
-            ip_RouteIf_cache[key] = nil
-        else
-            ip_RouteIf_cache[key][name] = v
+    if type(sub_oid) == 'table' then
+        local key = table.concat(sub_oid, ".")
+        if ip_RouteIf_cache[key] then
+            if name == '' then
+                ip_RouteIf_cache[table.concat(v, ".")] = ip_RouteIf_cache[key]
+                ip_RouteIf_cache[key] = nil
+            else
+                ip_RouteIf_cache[key][name] = v
+            end
         end
     end
 end
@@ -131,18 +137,22 @@ end
 local function ip_NetToMedia_entry_get(sub_oid, name)
     assert(type(name) == 'string')
     local value
-    local key = table.concat(sub_oid, ".")
-    if ip_NetToMedia_cache[key] then
-        value = ip_NetToMedia_cache[key][name]
+    if type(sub_oid) == 'table' then
+        local key = table.concat(sub_oid, ".")
+        if ip_NetToMedia_cache[key] then
+            value = ip_NetToMedia_cache[key][name]
+        end
     end
     return value
 end
 
 local function ip_NetToMedia_entry_set(sub_oid, v, name)
     assert(type(name) == 'string')
-    local key = table.concat(sub_oid, ".")
-    if ip_NetToMedia_cache[key] then
-        ip_NetToMedia_cache[key][name] = v
+    if type(sub_oid) == 'table' then
+        local key = table.concat(sub_oid, ".")
+        if ip_NetToMedia_cache[key] then
+            ip_NetToMedia_cache[key][name] = v
+        end
     end
 end
 
@@ -191,18 +201,22 @@ local ipGroup = {
             [1] = mib.Int(function (sub_oid)
                               load_config()
                               local index
-                              if ip_NetToMedia_cache[table.concat(sub_oid, ".")] then
-                                  index = sub_oid[1]
+                              if type(sub_oid) == 'table' then
+                                  if ip_NetToMedia_cache[table.concat(sub_oid, ".")] then
+                                      index = sub_oid[1]
+                                  end
                               end
                               return index
                           end,
                           function (sub_oid, value)
                               load_config()
-                              local old = ip_NetToMedia_cache[table.concat(sub_oid, ".")]
-                              if old then
-                                  sub_oid[1] = value
-                                  ip_NetToMedia_cache[table.concat(sub_oid, ".")] = old
-                                  old = nil
+                              if type(sub_oid) == 'table' then
+                                  local old = ip_NetToMedia_cache[table.concat(sub_oid, ".")]
+                                  if old then
+                                      sub_oid[1] = value
+                                      ip_NetToMedia_cache[table.concat(sub_oid, ".")] = old
+                                      old = nil
+                                  end
                               end
                           end),
             [2] = mib.OctString(function (sub_oid) load_config() return ip_NetToMedia_entry_get(sub_oid, 'phyaddr') end,
@@ -210,23 +224,27 @@ local ipGroup = {
             [3] = mib.Ipaddr(function (sub_oid)
                                  load_config()
                                  local ipaddr
-                                 if ip_NetToMedia_cache[table.concat(sub_oid, ".")] then
-                                     ipaddr = {}
-                                     for i = 2, 5 do
-                                         table.insert(ipaddr, sub_oid[i])
+                                 if type(sub_oid) == 'table' then
+                                     if ip_NetToMedia_cache[table.concat(sub_oid, ".")] then
+                                         ipaddr = {}
+                                         for i = 2, 5 do
+                                             table.insert(ipaddr, sub_oid[i])
+                                         end
                                      end
                                  end
                                  return ipaddr
                              end,
                              function (sub_oid, value)
                                  load_config()
-                                 local old = ip_NetToMedia_cache[table.concat(sub_oid, ".")]
-                                 if old then
-                                     for i = 1, 4 do
-                                         sub_oid[i + 1] = value[i]
+                                 if type(sub_oid) == 'table' then
+                                     local old = ip_NetToMedia_cache[table.concat(sub_oid, ".")]
+                                     if old then
+                                         for i = 1, 4 do
+                                             sub_oid[i + 1] = value[i]
+                                         end
+                                         ip_NetToMedia_cache[table.concat(sub_oid, ".")] = old
+                                         old = nil
                                      end
-                                     ip_NetToMedia_cache[table.concat(sub_oid, ".")] = old
-                                     old = nil
                                  end
                              end),
             [4] = mib.Int(function (sub_oid) load_config() return ip_NetToMedia_entry_get(sub_oid, 'type') end,
