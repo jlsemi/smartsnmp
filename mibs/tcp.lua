@@ -144,18 +144,22 @@ mib.module_methods.or_table_reg("1.3.6.1.2.1.6", "The MIB module for managing TC
 local function tcp_conn_entry_get(sub_oid, name)
     assert(type(name) == 'string')
     local value
-    local key = table.concat(sub_oid, ".")
-    if tcp_conn_entry_cache[key] then
-        value = tcp_conn_entry_cache[key][name]
+    if type(sub_oid) == 'table' then
+        local key = table.concat(sub_oid, ".")
+        if tcp_conn_entry_cache[key] then
+            value = tcp_conn_entry_cache[key][name]
+        end
     end
     return value
 end
 
 local function tcp_conn_entry_set(sub_oid, value, name)
     assert(type(name) == 'string')
-    local key = table.concat(sub_oid, ".")
-    if tcp_conn_entry_cache[key] then
-         tcp_conn_entry_cache[key][name] = value
+    if type(sub_oid) == 'table' then
+        local key = table.concat(sub_oid, ".")
+        if tcp_conn_entry_cache[key] then
+             tcp_conn_entry_cache[key][name] = value
+        end
     end
 end
 
@@ -175,12 +179,12 @@ local tcpGroup = {
     [13] = {                                  
         [1] = {                               
             indexes = tcp_conn_entry_cache,
-            [1] = mib.Int(function (sub_oid) load_config()  return tcp_conn_entry_get(sub_oid, 'conn_stat') end,
-                          function (sub_oid, value) load_config()  return tcp_conn_entry_set(sub_oid, value, 'conn_stat') end),
+            [1] = mib.Int(function (sub_oid) load_config() return tcp_conn_entry_get(sub_oid, 'conn_stat') end,
+                          function (sub_oid, value) load_config() return tcp_conn_entry_set(sub_oid, value, 'conn_stat') end),
             [2] = mib.ConstIpaddr(function (sub_oid)
                                       load_config() 
                                       local ipaddr
-                                      if tcp_conn_entry_cache[table.concat(sub_oid, ".")] then
+                                      if type(sub_oid) == 'table' and tcp_conn_entry_cache[table.concat(sub_oid, ".")] then
                                           ipaddr = {}
                                           for i = 1, 4 do
                                               table.insert(ipaddr, sub_oid[i])
@@ -190,7 +194,7 @@ local tcpGroup = {
                                   end),
             [3] = mib.ConstInt(function (sub_oid)
                                   load_config() 
-                                  if tcp_conn_entry_cache[table.concat(sub_oid, ".")] then
+                                  if type(sub_oid) == 'table' and tcp_conn_entry_cache[table.concat(sub_oid, ".")] then
                                       return sub_oid[5]
                                   else
                                       return nil
@@ -199,7 +203,7 @@ local tcpGroup = {
             [4] = mib.ConstIpaddr(function (sub_oid)
                                       load_config() 
                                       local ipaddr
-                                      if tcp_conn_entry_cache[table.concat(sub_oid, ".")] then
+                                      if type(sub_oid) == 'table' and tcp_conn_entry_cache[table.concat(sub_oid, ".")] then
                                           ipaddr = {}
                                           for i = 6, 9 do
                                               table.insert(ipaddr, sub_oid[i])
@@ -209,7 +213,7 @@ local tcpGroup = {
                                   end),
             [5] = mib.ConstInt(function (sub_oid)
                                   load_config() 
-                                  if tcp_conn_entry_cache[table.concat(sub_oid, ".")] then
+                                  if type(sub_oid) == 'table' and tcp_conn_entry_cache[table.concat(sub_oid, ".")] then
                                       return sub_oid[10]
                                   else
                                       return nil
