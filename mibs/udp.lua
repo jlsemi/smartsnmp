@@ -136,7 +136,7 @@ local udpGroup = {
             [1] = mib.ConstIpaddr(function (sub_oid)
                                      load_config()
                                      local ipaddr
-                                     if udp_entry_cache[table.concat(sub_oid, ".")] ~= nil then
+                                     if type(sub_oid) == 'table' and udp_entry_cache[table.concat(sub_oid, ".")] ~= nil then
                                          ipaddr = {}
                                          for i = 1, 4 do
                                              table.insert(ipaddr, sub_oid[i])
@@ -147,7 +147,7 @@ local udpGroup = {
             [2] = mib.ConstInt(function (sub_oid)
                                    load_config()
                                    local port
-                                   if udp_entry_cache[table.concat(sub_oid, ".")] ~= nil then
+                                   if type(sub_oid) == 'table' and udp_entry_cache[table.concat(sub_oid, ".")] ~= nil then
                                        port = sub_oid[5]
                                    end
                                    return port
