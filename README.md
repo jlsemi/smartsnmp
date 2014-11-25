@@ -12,12 +12,12 @@ License
 
 **SmartSNMP** is licensed under GPLv2 with "PRIVATE MIB" EXCEPTION, see `LICENSE` file for more details.
 
-Configure and Interfaces
-------------------------
+Configuration and Interfaces
+----------------------------
 
 One of the biggest bonuses (aka smartest features) of this agent is that you can
 write your own private mibs and loaded by it only if you learn to write lua
-files as shown in `mibs` directory.
+files as shown in `config` and `mibs` directory.
 
 Operation
 ---------
@@ -25,7 +25,7 @@ Operation
 **SmartSNMP** can run in two modes: the **SNMP mode** and the **AgentX mode**. In SNMP
 mode the agent will run as an independent SNMP agent and process SNMP datagram
 from the client, while in AgentX mode the agent will run as an sub-agent against
-Net-SNMP as the master agent and process AgentX datagram from the master.
+NET-SNMP as the master agent and process AgentX datagram from the master.
 
 Revelant test samples are shown respectively as `tests/snmpd_test.sh` and `tests/agentx_test.sh`
 
@@ -97,34 +97,38 @@ _Installation scripts is coming soon._
 Test script
 -----------
 
-Any SNMP daemon installed in you system should be stopped before test scripts run.
+Any SNMP daemon installed in you system should be closed before test.
 
     sudo /etc/init.d/snmpd stop
 
-To make Net-SNMP as the master agent in our AgentX test, we will download
-**Net-SNMP-5.7.2.1** source code and build the image in `tests` directory.
-
-    cd smartsnmp
-    ./tests/netsnmp_build.sh
-
 In **SNMP** mode, we run the snmp daemon:
 
+    cd smartsnmp
     sudo ./tests/snmp_daemon.sh
 
 Then run test cases at another terminal:
 
+    cd smartsnmp
     ./tests/testcase.sh
 
-In **AgentX** mode, we run Net-SNMP master agent at first:
+In **AgentX** mode, NET-SNMP will be tested as the master agent, so will download
+**NET-SNMP-5.7.2.1** source and build out the image in `tests` directory first:
+
+    cd smartsnmp
+    ./tests/netsnmp_build.sh
+
+Then run NET-SNMP master agent:
 
     sudo ./tests/net-snmp-release/sbin/snmpd -f -Lo -m "" -C -c tests/snmpd.conf
 
 Then run the sub-agent at another terminal:
 
+    cd smartsnmp
     ./tests/agentx_deamon.sh
 
 Then run test cases at the third terminal:
 
+    cd smartsnmp
     ./tests/agentx_test.sh
 
 TODO
