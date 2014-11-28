@@ -126,7 +126,10 @@ class SNMPTestBase(unittest.TestCase):
 	def snmpset(self, oids, setting, **kwargs):
 		return self.snmp_request('set', oids, setting.tag, setting.value, **kwargs)
 
-	def compare_get_result(self, result, oid, expect):
+	def snmpwalk(self, oid, **kwargs):
+		return self.snmp_request('walk', oid, **kwargs)
+
+	def check_get_result(self, result, oid, expect):
 		# return OID match
 		if oid == '.':
 			assert(result["oid"] == ".0.1")
@@ -144,7 +147,7 @@ class SNMPTestBase(unittest.TestCase):
 		else:
 			assert(expect.value == result["error"] or re.match(expect.value, result["error"]))
 
-	def compare_set_result(self, result, oid, expect):
+	def check_set_result(self, result, oid, expect):
 		# result
 		assert(isinstance(expect, SNMPASN1Tag) or isinstance(expect, SNMPErrorStatus))
 		if isinstance(expect, SNMPASN1Tag):
@@ -166,10 +169,16 @@ class SNMPTestBase(unittest.TestCase):
 			# oid object
 			assert(oid == result["oid"])
 
+	def check_walk_result(self, result, length, index):
+		if index != length - 1:
+			assert(result.has_key("oid") and result.has_key("tag") and result.has_key("value"))
+		else:
+			assert(result.has_key("oid") and result.has_key("error") and result["error"] == SNMPEndOfMib().value)
+
 	def snmpget_expect(self, oid, expect, **kwargs):
 		results = self.snmpget(oid, **kwargs)
 		print results[0]
-		self.compare_get_result(results[0], oid, expect)
+		self.check_get_result(results[0], oid, expect)
 
 	def snmpget_expects(self, args, **kwargs):
 		oids = []
@@ -178,18 +187,23 @@ class SNMPTestBase(unittest.TestCase):
 		results = self.snmpget(oids, **kwargs)
 		for i in range(len(results)):
 			print results[i]
-			self.compare_get_result(results[i], oids[i], args[i][1])
+			self.check_get_result(results[i], oids[i], args[i][1])
 
 	def snmpgetnext_expect(self, req_oid, ret_oid, expect, **kwargs):
 		results = self.snmpgetnext(req_oid, **kwargs)
 		print results[0]
-		self.compare_get_result(results[0], ret_oid, expect)
+		self.check_get_result(results[0], ret_oid, expect)
 
 	def snmpset_expect(self, oid, setting, expect, **kwargs):
 		results = self.snmpset(oid, setting, **kwargs)
 		print(results[0])
-		self.compare_set_result(results[0], oid, expect)
+		self.check_set_result(results[0], oid, expect)
 
+	def snmpwalk_expect(self, oid, **kwargs):
+		results = self.snmpwalk(oid, **kwargs)
+		for i in range(len(results)):
+			print(results[i])
+			self.check_walk_result(results[i], len(results), i)
 
 class SNMPv2cTestCase(SNMPTestBase):
 	def test_get(self):
@@ -221,7 +235,7 @@ class SNMPv2cTestCase(SNMPTestBase):
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888), community = "private")
 
 	def test_walk(self):
-		self.snmp_request('walk', ['.'])
+		self.snmpwalk_expect(".")
 
 
 class SNMPv3TestCase(SNMPTestBase):
@@ -251,7 +265,7 @@ class SNMPv3TestCase(SNMPTestBase):
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888), version = '3')
 
 	def test_walk(self):
-		self.snmp_request('walk', ['.'], version = '3')
+		self.snmpwalk_expect(".", version = '3')
 
 
 if __name__ == '__main__':
