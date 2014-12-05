@@ -2,6 +2,7 @@ import unittest
 import pexpect
 from pprint import pprint
 import re
+import time
 
 logfile = open("tests/test.log", 'w')
 env = {
@@ -53,7 +54,10 @@ class SNMPNoWritable(SNMPErrorStatus): value = "notWritable (That object does no
 class SNMPTestBase(unittest.TestCase):
 	@classmethod
 	def setUpClass(self):
-		self.agent = pexpect.spawn('./bin/smartsnmpd -c config/snmp.conf', logfile = logfile, env = env)
+		self.netsnmp = pexpect.spawn("./tests/net-snmp-release/sbin/snmpd -f -Lo -m \"\" -C -c tests/snmpd.conf")
+		time.sleep(1)
+		self.agentx = pexpect.spawn("./bin/smartsnmpd -c config/agentx.conf", logfile = logfile, env = env)
+		time.sleep(1)
 		self.version = "2c"
 		self.community = "public"
 		self.user = "noAuthUser"
@@ -63,7 +67,8 @@ class SNMPTestBase(unittest.TestCase):
 
 	@classmethod
 	def tearDownClass(self):
-		self.agent.close(force = True)
+		self.agentx.close(force = True)
+		self.netsnmp.close(force = True)
 
 	def snmp_request(self, req, oids = [], tag = None, value = None, version = None, community = None, user = None, level = None, ip = None, port = None):
 		# parse oid
@@ -103,14 +108,15 @@ class SNMPTestBase(unittest.TestCase):
 		client = pexpect.spawn(snmp_req, logfile = logfile, env = env)
 
 		# match pattern for snmpreq output
-		normal_pattern = r"(?P<oid>\S+) = (?P<tag>[^:\r\n]+): [\"]*(?P<value>[^\r\n]+)[\"]*\r\n"
+		normal_pattern = r"(?P<oid>\S+) = (?P<tag>[^:\r\n]+): [\"]*(?P<value>[^\r\n]*)[\"]*\r\n"
+		empty_value_pattern = r"(?P<oid>\S+) = (?P<value>\"\")\r\n"
 		not_found_pattern = r"(?P<oid>\S+) = (?P<error>[^\r\n]+)\r\n"
 		error_status_pattern = r"Error in packet.\r\nReason: (?P<error>[^\r\n]+)\r\nFailed object: (?P<oid>[^\r\n]+)\r\n\r\n"
-		timeout_pattern = r"Timeout: (?P<error>[^\r\n]+)\r\n"
+		timeout_pattern = r"No response from (?P<ip>[^:]+):(?P<port>[^\r\n]+)\r\n"
 
 		results = []
 		while True:
-			i = client.expect([pexpect.EOF, normal_pattern, not_found_pattern, error_status_pattern, timeout_pattern])
+			i = client.expect([pexpect.EOF, normal_pattern, empty_value_pattern, not_found_pattern, error_status_pattern, timeout_pattern])
 			if i == 0:
 				break
 			else:
@@ -171,7 +177,7 @@ class SNMPTestBase(unittest.TestCase):
 
 	def check_walk_result(self, result, length, index):
 		if index != length - 1:
-			assert(result.has_key("oid") and result.has_key("tag") and result.has_key("value"))
+			assert(result.has_key("oid") and result.has_key("value"))
 		else:
 			assert(result.has_key("oid") and result.has_key("error") and result["error"] == SNMPEndOfMib().value)
 
@@ -227,9 +233,9 @@ class SNMPv2cTestCase(SNMPTestBase):
 		self.snmpgetnext_expect(".1.5.6.7.8.100", ".1.5.6.7.8.100", SNMPEndOfMib())
 
 	def test_set(self):
-		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPAuthErr(), community = "public")
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPAuthErr(), community = "public")
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), SNMPAuthErr(), community = "public")
+		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPNoAccess(), community = "public")
+		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPNoAccess(), community = "public")
+		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), SNMPNoAccess(), community = "public")
 		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPNoAccess(), community = "private")
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPWrongType(), community = "private")
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888), community = "private")
