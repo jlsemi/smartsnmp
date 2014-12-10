@@ -10,10 +10,10 @@ env = {
 	'LUA_CPATH': "build/?.so",
 }
 
+# ASN.1 tag
 class SNMPASN1Tag:
 	def __init__(self, value):
 		self.value = str(value)
-
 class Integer(SNMPASN1Tag): tag = "INTEGER"
 class OctStr(SNMPASN1Tag): tag = "STRING"
 class Timeticks(SNMPASN1Tag): tag = "Timeticks"
@@ -28,8 +28,8 @@ class IpAddress(SNMPASN1Tag): tag = "IpAddress"
 class Count32(SNMPASN1Tag): tag = "Count32"
 class Gauge32(SNMPASN1Tag): tag = "Gauge32"
 
+# Error status
 class SNMPErrorStatus: pass 
-
 class SNMPNoSuchObject(SNMPErrorStatus): value = "No Such Object available on this agent at this OID"
 class SNMPNoSuchInstance(SNMPErrorStatus): value = "No Such Instance currently exists at this OID"
 class SNMPEndOfMib(SNMPErrorStatus): value = "No more variables left in this MIB View (It is past the end of the MIB tree)"
@@ -51,15 +51,7 @@ class SNMPUndoFail(SNMPErrorStatus): value = "undoFailed"
 class SNMPAuthErr(SNMPErrorStatus): value = "authorizationError (access denied to that object)"
 class SNMPNoWritable(SNMPErrorStatus): value = "notWritable (That object does not support modification)"
 
-class SNMPTestBase(unittest.TestCase):
-	def setUp(self):
-		self.version = "2c"
-		self.community = "public"
-		self.user = "noAuthUser"
-		self.level = "noAuthNoPriv"
-		self.ip = "127.0.0.1"
-		self.port = 161
-
+class SmartSNMPTestCmd:
 	def snmp_request(self, req, oids = [], tag = None, value = None, version = None, community = None, user = None, level = None, ip = None, port = None):
 		# parse oid
 		if isinstance(oids, str):
@@ -201,6 +193,16 @@ class SNMPTestBase(unittest.TestCase):
 			print(results[i])
 			self.snmpwalk_result_check(results[i], len(results), i)
 
+
+class SmartSNMPTestCase(SmartSNMPTestCmd):
+	def __init__(self):
+		self.version = "2c"
+		self.community = "public"
+		self.user = "noAuthUser"
+		self.level = "noAuthNoPriv"
+		self.ip = "127.0.0.1"
+		self.port = 161
+
 	def test_snmpv2cget(self):
 		self.snmpget_expect(".1.3.6.1.2.1.7.5.1.2.4", SNMPNoSuchInstance())
 		self.snmpget_expect(".1.3.6.1.2.1.2.1.0", Integer(5))
@@ -221,7 +223,7 @@ class SNMPTestBase(unittest.TestCase):
 		self.snmpgetnext_expect(".1.4", ".1.4", SNMPEndOfMib())
 		self.snmpgetnext_expect(".1.5.6.7.8.100", ".1.5.6.7.8.100", SNMPEndOfMib())
 
-	def test_snmpv2cset(self):
+	def test_snmpv2cset_for_snmp(self):
 		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPAuthErr(), community = "public")
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPAuthErr(), community = "public")
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), SNMPAuthErr(), community = "public")
@@ -269,21 +271,21 @@ class SNMPTestBase(unittest.TestCase):
 		self.snmpwalk_expect(".", version = '3')
 
 
-class SNMPTestCase(SNMPTestBase):
+class SNMPTestCase(unittest.TestCase, SmartSNMPTestCase):
 	def setUp(self):
-		super(SNMPTestCase, self).setUp()
+		SmartSNMPTestCase.__init__(self)
 		self.snmp = pexpect.spawn("./bin/smartsnmpd -c config/snmp.conf", logfile = logfile, env = env)
 
 	def tearDown(self):
 		self.snmp.close(force = True)
 
 
-class AgentXTestCase(SNMPTestBase):
+class AgentXTestCase(unittest.TestCase, SmartSNMPTestCase):
 	def setUp(self):
-		super(AgentXTestCase, self).setUp()
-		self.netsnmp = pexpect.spawn("./tests/net-snmp-release/sbin/snmpd -f -Lo -m \"\" -C -c tests/snmpd.conf")
+		SmartSNMPTestCase.__init__(self)
+		self.netsnmp = pexpect.spawn(r"./tests/net-snmp-release/sbin/snmpd -f -Lo -m "" -C -c tests/snmpd.conf")
 		time.sleep(1)
-		self.agentx = pexpect.spawn("./bin/smartsnmpd -c config/agentx.conf", logfile = logfile, env = env)
+		self.agentx = pexpect.spawn(r"./bin/smartsnmpd -c config/agentx.conf", logfile = logfile, env = env)
 		time.sleep(1)
 
 	def tearDown(self):
@@ -295,7 +297,7 @@ class SNMPTestSuite(unittest.TestSuite):
 	def __init__(self):
 		unittest.TestSuite.__init__(self, map(SNMPTestCase, ("test_snmpv2cget",
 								"test_snmpv2cgetnext",
-								"test_snmpv2cset",
+								"test_snmpv2cset_for_snmp",
 								"test_snmpv2cwalk",
 								"test_snmpv3get",
 								"test_snmpv3getnext",
@@ -313,6 +315,7 @@ class AgentXTestSuite(unittest.TestSuite):
 								"test_snmpv3getnext",
 								"test_snmpv3set",
 								"test_snmpv3walk")))
+
 
 if __name__ == '__main__':
 	suite = unittest.TestSuite((SNMPTestSuite(), AgentXTestSuite()))
