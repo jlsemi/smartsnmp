@@ -1,8 +1,7 @@
-import unittest
 import pexpect
-from pprint import pprint
 import re
 import time
+from pprint import pprint
 
 logfile = open("tests/test.log", 'w')
 env = {
@@ -57,9 +56,6 @@ class SmartSNMPTestCmd:
 		if isinstance(oids, str):
 			oids = [oids]
 		# snmp parameter initialize
-		community = community or self.community
-		user = user or self.user
-		level = level or self.level
 		version = version or self.version
 		ip = ip or self.ip
 		port = port or self.port
@@ -73,11 +69,14 @@ class SmartSNMPTestCmd:
 		oid_str = " ".join(oid_list)
 
 		if version == "1" or version == "2c":
+			community = community or self.community
 			if req == "set":
 				snmp_req = "snmp%s -On -v%s -c%s %s:%d %s %s %r" % (req, version, community, ip, port, oid_str, tag[0].lower(), value)
 			else:
 				snmp_req = "snmp%s -On -v%s -c%s %s:%d %s" % (req, version, community, ip, port, oid_str)
 		elif version == "3":
+			user = user or self.user
+			level = level or self.level
 			if req == "set":
 				snmp_req = "snmp%s -On -v%s -u%s -l%s %s:%d %s %s %r" % (req, version, user, level, ip, port, oid_str, tag[0].lower(), value)
 			else:
@@ -193,131 +192,18 @@ class SmartSNMPTestCmd:
 			print(results[i])
 			self.snmpwalk_result_check(results[i], len(results), i)
 
+	def snmp_setup(self, config_file):
+		self.snmp = pexpect.spawn("./bin/smartsnmpd -c " + config_file, logfile = logfile, env = env)
 
-class SmartSNMPTestCase(SmartSNMPTestCmd):
-	def __init__(self):
-		self.version = "2c"
-		self.community = "public"
-		self.user = "noAuthUser"
-		self.level = "noAuthNoPriv"
-		self.ip = "127.0.0.1"
-		self.port = 161
-
-	def test_snmpv2cget(self):
-		self.snmpget_expect(".1.3.6.1.2.1.7.5.1.2.4", SNMPNoSuchInstance())
-		self.snmpget_expect(".1.3.6.1.2.1.2.1.0", Integer(5))
-		self.snmpget_expect(".", SNMPNoSuchObject())
-		self.snmpget_expect(".0", SNMPNoSuchObject())
-		self.snmpget_expect(".1.3", SNMPNoSuchObject())
-		self.snmpget_expect(".1.4", SNMPNoSuchObject())
-		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.2.1", Oid(".1.3.6.1.2.1.4"))
-		self.snmpget_expects(((".1.3.6.1.2.1.1.9.1.0", SNMPNoSuchObject()), (".1.3.6.1.2.1.1.2.0", Oid(".1.3.6.1.2.1.1"))))
-		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.1", SNMPNoSuchInstance())
-		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.2", SNMPNoSuchInstance())
-		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.5", SNMPNoSuchObject())
-
-	def test_snmpv2cgetnext(self):
-		self.snmpgetnext_expect(".", ".1.3.6.1.2.1.1.1.0", OctStr(r".*"))
-		self.snmpgetnext_expect(".0", ".1.3.6.1.2.1.1.1.0", OctStr(r".*"))
-		self.snmpgetnext_expect(".1.3", ".1.3.6.1.2.1.1.1.0", OctStr(r".*"))
-		self.snmpgetnext_expect(".1.4", ".1.4", SNMPEndOfMib())
-		self.snmpgetnext_expect(".1.5.6.7.8.100", ".1.5.6.7.8.100", SNMPEndOfMib())
-
-	def test_snmpv2cset_for_snmp(self):
-		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPAuthErr(), community = "public")
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPAuthErr(), community = "public")
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), SNMPAuthErr(), community = "public")
-		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPNoAccess(), community = "private")
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPWrongType(), community = "private")
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888), community = "private")
-
-	def test_snmpv2cset_for_agentx(self):
-		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPNoAccess(), community = "public")
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPNoAccess(), community = "public")
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), SNMPNoAccess(), community = "public")
-		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPNoAccess(), community = "private")
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPWrongType(), community = "private")
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888), community = "private")
-
-	def test_snmpv2cwalk(self):
-		self.snmpwalk_expect(".")
-
-	def test_snmpv3get(self):
-		self.snmpget_expect(".1.3.6.1.2.1.7.5.1.2.4", SNMPNoSuchInstance(), version = '3')
-		self.snmpget_expect(".1.3.6.1.2.1.2.1.0", Integer(5), version = '3')
-		self.snmpget_expect(".", SNMPNoSuchObject(), version = '3')
-		self.snmpget_expect(".0", SNMPNoSuchObject(), version = '3')
-		self.snmpget_expect(".1.3", SNMPNoSuchObject(), version = '3')
-		self.snmpget_expect(".1.4", SNMPNoSuchObject(), version = '3')
-		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.2.1", Oid(".1.3.6.1.2.1.4"), version = '3')
-		self.snmpget_expects(((".1.3.6.1.2.1.1.9.1.0", SNMPNoSuchObject()), (".1.3.6.1.2.1.1.2.0", Oid(".1.3.6.1.2.1.1"))), version = '3')
-		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.1", SNMPNoSuchInstance(), version = '3')
-		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.2", SNMPNoSuchInstance(), version = '3')
-		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.5", SNMPNoSuchObject(), version = '3')
-
-	def test_snmpv3getnext(self):
-		self.snmpgetnext_expect(".", ".1.3.6.1.2.1.1.1.0", OctStr(r".*"), version = '3')
-		self.snmpgetnext_expect(".0", ".1.3.6.1.2.1.1.1.0", OctStr(r".*"), version = '3')
-		self.snmpgetnext_expect(".1.3", ".1.3.6.1.2.1.1.1.0", OctStr(r".*"), version = '3')
-		self.snmpgetnext_expect(".1.4", ".1.4", SNMPEndOfMib(), version = '3')
-		self.snmpgetnext_expect(".1.5.6.7.8.100", ".1.5.6.7.8.100", SNMPEndOfMib(), version = '3')
-
-	def test_snmpv3set(self):
-		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPNoAccess(), version = '3')
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPWrongType(), version = '3')
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888), version = '3')
-
-	def test_snmpv3walk(self):
-		self.snmpwalk_expect(".", version = '3')
-
-
-class SNMPTestCase(unittest.TestCase, SmartSNMPTestCase):
-	def setUp(self):
-		SmartSNMPTestCase.__init__(self)
-		self.snmp = pexpect.spawn("./bin/smartsnmpd -c config/snmp.conf", logfile = logfile, env = env)
-
-	def tearDown(self):
+	def snmp_teardown(self):
 		self.snmp.close(force = True)
 
-
-class AgentXTestCase(unittest.TestCase, SmartSNMPTestCase):
-	def setUp(self):
-		SmartSNMPTestCase.__init__(self)
+	def agentx_setup(self, config_file):
 		self.netsnmp = pexpect.spawn(r"./tests/net-snmp-release/sbin/snmpd -f -Lo -m "" -C -c tests/snmpd.conf")
 		time.sleep(1)
-		self.agentx = pexpect.spawn(r"./bin/smartsnmpd -c config/agentx.conf", logfile = logfile, env = env)
+		self.agentx = pexpect.spawn(r"./bin/smartsnmpd -c " + config_file, logfile = logfile, env = env)
 		time.sleep(1)
 
-	def tearDown(self):
+	def agentx_teardown(self):
 		self.agentx.close(force = True)
 		self.netsnmp.close(force = True)
-
-
-class SNMPTestSuite(unittest.TestSuite):
-	def __init__(self):
-		unittest.TestSuite.__init__(self, map(SNMPTestCase, ("test_snmpv2cget",
-								"test_snmpv2cgetnext",
-								"test_snmpv2cset_for_snmp",
-								"test_snmpv2cwalk",
-								"test_snmpv3get",
-								"test_snmpv3getnext",
-								"test_snmpv3set",
-								"test_snmpv3walk")))
-
-
-class AgentXTestSuite(unittest.TestSuite):
-	def __init__(self):
-		unittest.TestSuite.__init__(self, map(AgentXTestCase, ("test_snmpv2cget",
-								"test_snmpv2cgetnext",
-								"test_snmpv2cset_for_agentx",
-								"test_snmpv2cwalk",
-								"test_snmpv3get",
-								"test_snmpv3getnext",
-								"test_snmpv3set",
-								"test_snmpv3walk")))
-
-
-if __name__ == '__main__':
-	suite = unittest.TestSuite((SNMPTestSuite(), AgentXTestSuite()))
-	runner = unittest.TextTestRunner()
-	runner.run(suite)
