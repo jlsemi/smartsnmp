@@ -24,6 +24,7 @@ class SNMPv2cTestCase(unittest.TestCase, SmartSNMPTestCmd):
 		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.1", SNMPNoSuchInstance())
 		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.2", SNMPNoSuchInstance())
 		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.5", SNMPNoSuchObject())
+		self.snmpget_expect(".1.3.6.1.2.1.1.0", SNMPNoSuchObject())
 
 	def test_snmpv2cgetnext(self):
 		self.snmpgetnext_expect(".", ".1.3.6.1.2.1.1.1.0", OctStr(r".*"))
@@ -39,6 +40,7 @@ class SNMPv2cTestCase(unittest.TestCase, SmartSNMPTestCmd):
 		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPNoAccess(), community = "private")
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPWrongType(), community = "private")
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888), community = "private")
+		self.snmpset_expect(".1.3.6.1.2.1.4.0", Integer(8888), SNMPNoSuchObject(), community = "private")
 
 	def test_snmpv2cwalk(self):
 		self.snmpwalk_expect(".")
