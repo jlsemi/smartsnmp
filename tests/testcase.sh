@@ -13,6 +13,7 @@ snmpget -v2c -cpublic localhost .1.3.6.1.2.1.1.1.0 .1.3.6.1.2.1.1.2.0
 snmpget -v2c -cpublic localhost .1.3.6.1.2.1.1.9.1.1
 snmpget -v2c -cpublic localhost .1.3.6.1.2.1.1.9.1.2
 snmpget -v2c -cpublic localhost .1.3.6.1.2.1.1.9.1.5
+snmpget -v2c -cpublic localhost .1.3.6.1.2.1.1.0
 
 snmpgetnext -v2c -cpublic localhost .
 snmpgetnext -v2c -cpublic localhost .0
@@ -52,6 +53,7 @@ snmpget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.1.0 .1.3.6.1.2.1.
 snmpget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.9.1.1
 snmpget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.9.1.2
 snmpget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.9.1.5
+snmpget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.0
 
 snmpgetnext -u noAuthUser -l noAuthNoPriv localhost .
 snmpgetnext -u noAuthUser -l noAuthNoPriv localhost .0 
