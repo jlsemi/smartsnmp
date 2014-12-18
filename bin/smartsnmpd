@@ -124,8 +124,11 @@ for oid_str, mib_module_name in pairs(mib_modules) do
     end
 end
 
-snmpd.set_ro_community(ro_community)
-snmpd.set_rw_community(rw_community)
+snmpd.set_ro_community("public")
+snmpd.set_rw_community("private")
+
+snmpd.set_ro_user("noAuthUser")
+snmpd.set_rw_user("noAuthUser")
 
 snmpd.init(protocol, port)
 
@@ -143,4 +146,3 @@ mib_modules = nil
 mib_mod_refs = nil
 
 snmpd.start()
-

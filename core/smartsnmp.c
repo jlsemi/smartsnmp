@@ -18,11 +18,13 @@
  *
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "mib.h"
 #include "snmp.h"
 #include "agentx.h"
 #include "protocol.h"
-#include "string.h"
 #include "util.h"
 
 static struct protocol_operation *prot_ops;
@@ -138,12 +140,102 @@ smartsnmp_mib_node_unreg(lua_State *L)
   return 1;
 }
 
+/* Register community string from Lua */
+int
+smartsnmp_mib_community_reg(lua_State *L)
+{
+  oid_t *oid;
+  int i, id_len, attribute;
+  const char *community;
+
+  /* Check if the first argument is a table. */
+  luaL_checktype(L, 1, LUA_TTABLE);
+  /* Get oid length */
+  id_len = lua_objlen(L, 1);
+  /* Get oid */
+  oid = xmalloc(id_len * sizeof(oid_t));
+  for (i = 0; i < id_len; i++) {
+    lua_rawgeti(L, 1, i + 1);
+    oid[i] = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+  }
+
+  /* Community string and RW attribute */
+  community = luaL_checkstring(L, 2);
+  attribute = luaL_checkint(L, 3);
+
+  /* Register community string */
+  mib_community_reg(oid, id_len, community, attribute);
+  free(oid);
+
+  return 0;
+}
+
+/* Unregister mib community string from Lua */
+int
+smartsnmp_mib_community_unreg(lua_State *L)
+{
+  /* Unregister community string */
+  const char *community = luaL_checkstring(L, 1);
+  int attribute = luaL_checkint(L, 2);
+  mib_community_unreg(community, attribute);
+
+  return 0;
+}
+
+/* Register mib user from Lua */
+int
+smartsnmp_mib_user_reg(lua_State *L)
+{
+  oid_t *oid;
+  int i, id_len, attribute;
+  const char *user;
+
+  /* Check if the first argument is a table. */
+  luaL_checktype(L, 1, LUA_TTABLE);
+  /* Get oid length */
+  id_len = lua_objlen(L, 1);
+  /* Get oid */
+  oid = xmalloc(id_len * sizeof(oid_t));
+  for (i = 0; i < id_len; i++) {
+    lua_rawgeti(L, 1, i + 1);
+    oid[i] = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+  }
+
+  /* User string and RW attribute */
+  user = luaL_checkstring(L, 2);
+  attribute = luaL_checkint(L, 3);
+
+  /* Register user string */
+  mib_user_reg(oid, id_len, user, attribute);
+  free(oid);
+
+  return 0;
+}
+
+/* Unregister mib user string from Lua */
+int
+smartsnmp_mib_user_unreg(lua_State *L)
+{
+  /* Unregister user string */
+  const char *user = luaL_checkstring(L, 1);
+  int attribute = luaL_checkint(L, 2);
+  mib_user_unreg(user, attribute);
+
+  return 0;
+}
+
 static const luaL_Reg smartsnmp_func[] = {
   { "init", smartsnmp_init },
   { "open", smartsnmp_open },
   { "run", smartsnmp_run },
   { "mib_node_reg", smartsnmp_mib_node_reg },
   { "mib_node_unreg", smartsnmp_mib_node_unreg },
+  { "mib_community_reg", smartsnmp_mib_community_reg },
+  { "mib_community_unreg", smartsnmp_mib_community_unreg },
+  { "mib_user_reg", smartsnmp_mib_user_reg },
+  { "mib_user_unreg", smartsnmp_mib_user_unreg },
   { NULL, NULL }
 };
 

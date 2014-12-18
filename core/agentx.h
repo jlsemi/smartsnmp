@@ -164,6 +164,8 @@ struct x_var_bind {
   oid_t *oid;
   uint32_t oid_len;
   uint16_t val_type;
+  /* Number of elements as vb_in,
+   * number of bytes as vb_out. */
   uint32_t val_len;
   uint8_t value[0];
 };

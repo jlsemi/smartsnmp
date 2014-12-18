@@ -18,7 +18,7 @@ snmpgetnext -v2c -cpublic localhost .1.3
 snmpgetnext -v2c -cpublic localhost .1.4
 snmpgetnext -v2c -cpublic localhost .1.5.6.7.8.100
 
-snmpbulkget -v2c -cpublic localhost .1.3.6.1.2.1.1
+snmpbulkget -v2c -cpublic localhost .1.3.6.1.2.1.1.9.1.4
 
 # Error test (community authorization)
 snmpset -v2c -cpublic localhost .1.3.6.1.2.1.1.9.1.1 i 1
@@ -55,7 +55,7 @@ snmpgetnext -u noAuthUser -l noAuthNoPriv localhost .1.3
 snmpgetnext -u noAuthUser -l noAuthNoPriv localhost .1.4
 snmpgetnext -u noAuthUser -l noAuthNoPriv localhost .1.5.6.7.8.100
 
-snmpbulkget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1
+snmpbulkget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.9.1.4
 
 # Error test (community authorization)
 snmpset -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.9.1.1 i 1
