@@ -83,7 +83,7 @@ community_create(const char *community)
   return c;
 }
 
-static void
+static int
 community_view_filter(const oid_t *oid, uint32_t id_len, struct list_head *views)
 {
   struct list_head *curr, *next;
@@ -92,13 +92,15 @@ community_view_filter(const oid_t *oid, uint32_t id_len, struct list_head *views
     struct community_view *cv = list_entry(curr, struct community_view, clink);
     int cover = oid_cover(cv->view->oid, cv->view->id_len, oid, id_len);
     if (cover > 0) {
-      return;
+      return 1;
     } else if (cover < 0) {
       list_del(&cv->clink);
       list_del(&cv->vlink);
       free(cv);
     }
-  } 
+  }
+
+  return 0;
 }
 
 static void
@@ -141,6 +143,7 @@ community_view_remove(struct list_head *views)
 static void
 community_view_bind(const oid_t *oid, uint32_t id_len, struct mib_community *c, MIB_ACES_ATTR_E attribute)
 {
+  int filtered;
   struct mib_view *v;
   struct list_head *views;
 
@@ -152,11 +155,13 @@ community_view_bind(const oid_t *oid, uint32_t id_len, struct mib_community *c, 
   }
 
   /* Filter out covered mib views in community list */
-  community_view_filter(oid, id_len, views);
-  /* Create new community and insert into mib view list */
-  v = view_create(oid, id_len);
-  /* Add new community view */
-  community_view_add(oid, id_len, c, v, views);
+  filtered = community_view_filter(oid, id_len, views);
+  if (!filtered) {
+    /* Create new community and insert into mib view list */
+    v = view_create(oid, id_len);
+    /* Add new community view */
+    community_view_add(oid, id_len, c, v, views);
+  }
 }
 
 void
@@ -295,7 +300,7 @@ user_create(const char *user)
   return u;
 }
 
-static void
+static int
 user_view_filter(const oid_t *oid, uint32_t id_len, struct list_head *views)
 {
   struct list_head *curr, *next;
@@ -304,13 +309,15 @@ user_view_filter(const oid_t *oid, uint32_t id_len, struct list_head *views)
     struct user_view *uv = list_entry(curr, struct user_view, ulink);
     int cover = oid_cover(uv->view->oid, uv->view->id_len, oid, id_len);
     if (cover > 0) {
-      return;
+      return 1;
     } else if (cover < 0) {
       list_del(&uv->ulink);
       list_del(&uv->vlink);
       free(uv);
     }
-  } 
+  }
+
+  return 0;
 }
 
 static void
@@ -353,6 +360,7 @@ user_view_remove(struct list_head *views)
 static void
 user_view_bind(const oid_t *oid, uint32_t id_len, struct mib_user *u, MIB_ACES_ATTR_E attribute)
 {
+  int filtered;
   struct mib_view *v;
   struct list_head *views;
 
@@ -364,11 +372,13 @@ user_view_bind(const oid_t *oid, uint32_t id_len, struct mib_user *u, MIB_ACES_A
   }
 
   /* Filter out covered mib views in user list */
-  user_view_filter(oid, id_len, views);
-  /* Create new user and insert into mib view list */
-  v = view_create(oid, id_len);
-  /* Add new user view */
-  user_view_add(oid, id_len, u, v, views);
+  filtered = user_view_filter(oid, id_len, views);
+  if (!filtered) {
+    /* Create new user and insert into mib view list */
+    v = view_create(oid, id_len);
+    /* Add new user view */
+    user_view_add(oid, id_len, u, v, views);
+  }
 }
 
 void
