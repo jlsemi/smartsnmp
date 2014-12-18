@@ -809,12 +809,12 @@ end
 
 -- initialize snmp agent
 _M.init = function (protocol, port)
-    core.init(protocol, port)
+    return core.init(protocol, port)
 end
 
 -- open snmp agent
 _M.open = function ()
-    core.open()
+    return core.open()
 end
 
 -- start snmp agent

@@ -127,20 +127,20 @@ end
 snmpd.set_ro_community(ro_community)
 snmpd.set_rw_community(rw_community)
 
-snmpd.init(protocol, port)
-
-snmpd.open()
-
-for i, v in ipairs(mib_mod_refs) do
-    status, err = register_mib_module(v['oid'], v['name'])
-    if status ~= true then
-        print("Failed to load MIB module: "..v['name'])
-        print(err)
+local init = snmpd.init(protocol, port)
+if init == true then
+    local open = snmpd.open()
+    if open == true then
+        for i, v in ipairs(mib_mod_refs) do
+            status, err = register_mib_module(v['oid'], v['name'])
+            if status ~= true then
+                print("Failed to load MIB module: "..v['name'])
+                print(err)
+            end
+        end
+        snmpd.start()
     end
 end
 
 mib_modules = nil
 mib_mod_refs = nil
-
-snmpd.start()
-
