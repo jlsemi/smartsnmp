@@ -26,7 +26,7 @@
 
 struct protocol_operation {
   const char *name;
-  void (*init)(int port);
+  int (*init)(int port);
   int (*open)(void);
   int (*close)(void);
   void (*run)(void);

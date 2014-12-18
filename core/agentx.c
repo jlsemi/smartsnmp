@@ -127,7 +127,7 @@ agentx_mib_node_unreg(const oid_t *grp_id, int id_len)
   return 0;
 }
 
-static void
+static int
 agentx_init(int port)
 {
   INIT_LIST_HEAD(&agentx_datagram.vb_in_list);

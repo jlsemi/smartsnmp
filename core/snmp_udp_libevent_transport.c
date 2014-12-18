@@ -32,6 +32,7 @@
 
 #include "transport.h"
 #include "protocol.h"
+#include "util.h"
 
 static struct event_base *event_base;
 static struct event *snmp_recv_event;
@@ -85,17 +86,8 @@ snmp_read_cb(const int sock, short int which, void *arg)
   int len;
   uint8_t * buf;
 
-  buf = malloc(TRANS_BUF_SIZ);
-  if (buf == NULL) {
-    perror("malloc()");
-    exit(EXIT_FAILURE);
-  }
-
-  client_sin = malloc(server_sz);
-  if (client_sin == NULL) {
-    perror("malloc()");
-    exit(EXIT_FAILURE);
-  }
+  buf = xmalloc(TRANS_BUF_SIZ);
+  client_sin = xmalloc(server_sz);
 
   /* Receive UDP data, store the address of the sender in client_sin */
   len = recvfrom(sock, buf, TRANS_BUF_SIZ, 0, (struct sockaddr *)client_sin, &server_sz);
@@ -113,12 +105,7 @@ transport_send(uint8_t * buf, int len)
 {
   struct send_data_entry * entry;
 
-  entry = malloc(sizeof(struct send_data_entry));
-  if (entry == NULL) {
-    perror("malloc()");
-    exit(EXIT_FAILURE);
-  }
-
+  entry = xmalloc(sizeof(struct send_data_entry));
   entry->buf = buf;
   entry->len = len;
   entry->client_sin = client_sin;
@@ -147,7 +134,7 @@ transport_running(void)
   close(sock);
 }
 
-static void
+static int
 transport_init(int port)
 {
   struct sockaddr_in sin;
@@ -155,7 +142,7 @@ transport_init(int port)
   sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {
     perror("usock");
-    exit(EXIT_FAILURE);
+    return -1;
   }
 
   memset(&sin, 0, sizeof(sin));
@@ -168,8 +155,11 @@ transport_init(int port)
 
   if (bind(sock, (struct sockaddr *) &sin, sizeof(sin))) {
     perror("bind()");
-    exit(EXIT_FAILURE);
+    close(sock);
+    return -1;
   }
+
+  return 0;
 }
 
 struct transport_operation snmp_trans_ops = {
