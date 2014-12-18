@@ -116,7 +116,7 @@ AddOption(
 env = Environment(
   ENV = os.environ,
   LIBS = ['m', 'dl'],
-  CFLAGS = ['-std=c99', '-Wall', '-Os'],
+  CFLAGS = ['-std=c99', '-Wall'],
 )
 
 # handle options/environment varibles.
@@ -217,7 +217,7 @@ else:
 
 env = conf.Finish()
 
-src = env.Glob("core/snmp_msg*.c") + env.Glob("core/snmp_*coder.c") + env.Glob("core/snmp.c") + env.Glob("core/agentx_msg*.c") + env.Glob("core/agentx_*coder.c") + env.Glob("core/agentx.c") + env.Glob("core/mib_tree.c") + env.Glob("core/smartsnmp.c") + transport_src
+src = env.Glob("core/snmp_msg*.c") + env.Glob("core/snmp_*coder.c") + env.Glob("core/snmp.c") + env.Glob("core/agentx_msg*.c") + env.Glob("core/agentx_*coder.c") + env.Glob("core/agentx.c") + env.Glob("core/mib_*.c") + env.Glob("core/smartsnmp.c") + transport_src
 
 # generate lua c module
 libsmartsnmp_core = env.SharedLibrary('build/smartsnmp/core', src, SHLIBPREFIX = '')

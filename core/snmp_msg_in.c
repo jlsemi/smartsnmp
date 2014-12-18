@@ -122,19 +122,60 @@ snmp_get(struct snmp_datagram *sdg)
   struct list_head *curr, *next;
   struct var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
+  struct mib_view *view;
+  struct mib_community *community;
+  struct mib_user *user;
   uint32_t oid_len, len_len, val_len;
   uint32_t vb_in_cnt = 0;
   const uint32_t tag_len = 1;
 
   ret_oid.request = MIB_REQ_GET;
-  ret_oid.context = sdg->context_name;
+
+  /* Access control */
+  if (sdg->version >= 3) {
+    user = mib_user_search(sdg->user_name);
+  } else {
+    community = mib_community_search(sdg->context_name);
+  }
 
   list_for_each_safe(curr, next, &sdg->vb_in_list) {
     vb_in = list_entry(curr, struct var_bind, link);
     vb_in_cnt++;
 
     /* Search at the input oid */
-    mib_tree_search(vb_in->oid, vb_in->oid_len, &ret_oid);
+    view = NULL;
+    for (; ;) {
+      /* Traverse all availble view */
+      if (sdg->version >= 3) {
+        if (user != NULL) {
+          view = mib_user_next_view(user, MIB_ACES_READ, view);
+        } else {
+          ret_oid.exist_state = SNMP_ERR_STAT_AUTHORIZATION;
+        }
+      } else {
+        if (community != NULL) {
+          view = mib_community_next_view(community, MIB_ACES_READ, view);
+        } else {
+          ret_oid.exist_state = SNMP_ERR_STAT_AUTHORIZATION;
+        }
+      }
+
+      /* End of mib view */
+      if (view == NULL) {
+        /* Duplicate original oid when result not found */
+        ret_oid.oid = oid_dup(vb_in->oid, vb_in->oid_len);
+        ret_oid.id_len = vb_in->oid_len;
+        break;
+      }
+
+      mib_tree_search(view, vb_in->oid, vb_in->oid_len, &ret_oid);
+      if (ret_oid.exist_state == 0 || oid_cmp(vb_in->oid, vb_in->oid_len, view->oid, view->id_len) < 0) {
+        /* Gotcha or ahead of all views */
+        break;
+      }
+      /* Free temporary result */
+      free(ret_oid.oid);
+    }
 
     if (ret_oid.exist_state) {
       /* something wrong */
@@ -190,19 +231,60 @@ snmp_getnext(struct snmp_datagram *sdg)
   struct list_head *curr, *next;
   struct var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
+  struct mib_view *view;
+  struct mib_community *community;
+  struct mib_user *user;
   uint32_t oid_len, len_len, val_len;
   uint32_t vb_in_cnt = 0;
   const uint32_t tag_len = 1;
 
   ret_oid.request = MIB_REQ_GETNEXT;
-  ret_oid.context = sdg->context_name;
+
+  /* Access control */
+  if (sdg->version >= 3) {
+    user = mib_user_search(sdg->user_name);
+  } else {
+    community = mib_community_search(sdg->context_name);
+  }
 
   list_for_each_safe(curr, next, &sdg->vb_in_list) {
     vb_in = list_entry(curr, struct var_bind, link);
     vb_in_cnt++;
 
-    /* Search at the input oid */
-    mib_tree_search_next(vb_in->oid, vb_in->oid_len, &ret_oid);
+    /* Search at the next input oid */
+    view = NULL;
+    for (; ;) {
+      /* Traverse all availble view */
+      if (sdg->version >= 3) {
+        if (user != NULL) {
+          view = mib_user_next_view(user, MIB_ACES_READ, view);
+        } else {
+          ret_oid.exist_state = SNMP_ERR_STAT_AUTHORIZATION;
+        }
+      } else {
+        if (community != NULL) {
+          view = mib_community_next_view(community, MIB_ACES_READ, view);
+        } else {
+          ret_oid.exist_state = SNMP_ERR_STAT_AUTHORIZATION;
+        }
+      }
+
+      /* End of mib view */
+      if (view == NULL) {
+        /* Duplicate original oid when result not found */
+        ret_oid.oid = oid_dup(vb_in->oid, vb_in->oid_len);
+        ret_oid.id_len = vb_in->oid_len;
+        break;
+      }
+
+      mib_tree_search_next(view, vb_in->oid, vb_in->oid_len, &ret_oid);
+      if (ret_oid.exist_state != ASN1_TAG_END_OF_MIB_VIEW) {
+        /* Gotcha */
+        break;
+      }
+      /* Free temporary result */
+      free(ret_oid.oid);
+    }
 
     if (ret_oid.exist_state) {
       /* This situation is only for traversal when end-of-mib-tree */
@@ -257,12 +339,21 @@ snmp_set(struct snmp_datagram *sdg)
   struct list_head *curr, *next;
   struct var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
+  struct mib_view *view;
+  struct mib_community *community;
+  struct mib_user *user;
   uint32_t oid_len, len_len;
   uint32_t vb_in_cnt = 0;
   const uint32_t tag_len = 1;
 
   ret_oid.request = MIB_REQ_SET;
-  ret_oid.context = sdg->context_name;
+
+  /* Access control */
+  if (sdg->version >= 3) {
+    user = mib_user_search(sdg->user_name);
+  } else {
+    community = mib_community_search(sdg->context_name);
+  }
 
   list_for_each_safe(curr, next, &sdg->vb_in_list) {
     vb_in = list_entry(curr, struct var_bind, link);
@@ -273,7 +364,48 @@ snmp_set(struct snmp_datagram *sdg)
     length(&ret_oid.var) = ber_value_dec(vb_in->value, vb_in->value_len, tag(&ret_oid.var), value(&ret_oid.var));
 
     /* Search at the input oid and set it */
-    mib_tree_search(vb_in->oid, vb_in->oid_len, &ret_oid);
+    view = NULL;
+    for (; ;) {
+      /* Traverse all availble view */
+      if (sdg->version >= 3) {
+        if (user != NULL) {
+          view = mib_user_next_view(user, MIB_ACES_READ, view);
+          /* Check in mib write view */
+          if (!mib_user_view_cover(user, MIB_ACES_WRITE, vb_in->oid, vb_in->oid_len)) {
+            ret_oid.exist_state = SNMP_ERR_STAT_AUTHORIZATION;
+            view = NULL;
+          }
+        } else {
+          ret_oid.exist_state = SNMP_ERR_STAT_AUTHORIZATION;
+        }
+      } else {
+        if (community != NULL) {
+          view = mib_community_next_view(community, MIB_ACES_READ, view);
+          /* Check in mib write view */
+          if (!mib_community_view_cover(community, MIB_ACES_WRITE, vb_in->oid, vb_in->oid_len)) {
+            ret_oid.exist_state = SNMP_ERR_STAT_AUTHORIZATION;
+            view = NULL;
+          }
+        } else {
+          ret_oid.exist_state = SNMP_ERR_STAT_AUTHORIZATION;
+        }
+      }
+
+      /* End of mib view */
+      if (view == NULL) {
+        ret_oid.oid = oid_dup(vb_in->oid, vb_in->oid_len);
+        ret_oid.id_len = vb_in->oid_len;
+        break;
+      }
+
+      mib_tree_search(view, vb_in->oid, vb_in->oid_len, &ret_oid);
+      if (ret_oid.exist_state == 0 || oid_cmp(vb_in->oid, vb_in->oid_len, view->oid, view->id_len) < 0) {
+        /* Gotcha or ahead of all views */
+        break;
+      }
+      /* Free temporary result */
+      free(ret_oid.oid);
+    }
 
     vb_out = xmalloc(sizeof(*vb_out) + vb_in->value_len);
     vb_out->oid = ret_oid.oid;
@@ -323,6 +455,9 @@ snmp_bulkget(struct snmp_datagram *sdg)
   struct list_head *curr, *next;
   struct var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
+  struct mib_view *view;
+  struct mib_community *community;
+  struct mib_user *user;
   uint32_t oid_len, len_len, val_len, id_len;
   uint32_t vb_in_cnt = 0;
   uint32_t repeat;
@@ -330,9 +465,15 @@ snmp_bulkget(struct snmp_datagram *sdg)
   const oid_t *oid;
 
   ret_oid.request = MIB_REQ_GETNEXT;
-  ret_oid.context = sdg->context_name;
   repeat = sdg->pdu_hdr.err_idx;
   sdg->pdu_hdr.err_idx = 0;
+
+  /* Access control */
+  if (sdg->version >= 3) {
+    user = mib_user_search(sdg->user_name);
+  } else {
+    community = mib_community_search(sdg->context_name);
+  }
 
   while (repeat-- > 0) {
     list_for_each_safe(curr, next, &sdg->vb_in_list) {
@@ -342,8 +483,39 @@ snmp_bulkget(struct snmp_datagram *sdg)
       oid = vb_in->oid;
       id_len = vb_in->oid_len;
 
-      /* Search at the input oid */
-      mib_tree_search_next(oid, id_len, &ret_oid);
+      /* Search at the next input oid */
+      view = NULL;
+      for (; ;) {
+        /* Traverse all availble view */
+        if (sdg->version >= 3) {
+          if (user != NULL) {
+            view = mib_user_next_view(user, MIB_ACES_READ, view);
+          } else {
+            ret_oid.exist_state = SNMP_ERR_STAT_AUTHORIZATION;
+          }
+        } else {
+          if (community != NULL) {
+            view = mib_community_next_view(community, MIB_ACES_READ, view);
+          } else {
+            ret_oid.exist_state = SNMP_ERR_STAT_AUTHORIZATION;
+          }
+        }
+
+        /* End of mib view */
+        if (view == NULL || !repeat)  {
+          ret_oid.oid = oid_dup(vb_in->oid, vb_in->oid_len);
+          ret_oid.id_len = vb_in->oid_len;
+          break;
+        }
+
+        mib_tree_search_next(view, oid, id_len, &ret_oid);
+        if (ret_oid.exist_state != ASN1_TAG_END_OF_MIB_VIEW) {
+          /* Gotcha */
+          break;
+        }
+        /* Free temporary result */
+        free(ret_oid.oid);
+      }
 
       /* Return oid for the next query. */
       free(vb_in->oid);
