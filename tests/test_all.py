@@ -12,5 +12,10 @@ os.chdir(project_root)
 suite = unittest.defaultTestLoader.loadTestsFromNames(test_names)
 
 if __name__ == "__main__":
+	from pprint import pprint
 	runner = unittest.TextTestRunner()
-	runner.run(suite)
+	result = runner.run(suite)
+	if result.wasSuccessful() == True:
+		exit(0)
+	else:
+		exit(1)
