@@ -19,5 +19,3 @@ if __name__ == "__main__":
 		exit(0)
 	else:
 		exit(1)
-
-
