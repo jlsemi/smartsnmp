@@ -10,7 +10,7 @@ env:
 install:
   - "sudo apt-get install -y $LUA $lib$LUA-0-dev"
   - "sudo apt-get install -y python-pexpect"
-  - "sudo apt-get install -y libjson-c-dev"
+  - "sudo apt-get install -y libjson0-dev"
   - "if [ $TRANSPORT = 'libevent' ]; then
         sudo apt-get install -y libevent-dev;
     fi"
