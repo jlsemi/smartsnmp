@@ -44,6 +44,6 @@ script:
     else
         scons --transport=$TRANSPORT;
     fi"
-  - "python ./tests/test_all.py"
+  - "sudo python ./tests/test_all.py"
 
 after_script: cat config.log
