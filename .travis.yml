@@ -14,7 +14,7 @@ install:
         sudo apt-get install -y libevent-dev;
     fi"
   - "if [ $TRANSPORT = 'uloop' ]; then
-        sudo apt-get install -y libjson0-dev &&
+        sudo apt-get install -y libjson-c-dev &&
         rm -rf libubox &&
         git clone http://git.openwrt.org/project/libubox.git &&
         (
