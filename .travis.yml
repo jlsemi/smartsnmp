@@ -14,22 +14,22 @@ install:
         sudo apt-get install -y libevent-dev;
     fi"
   - "if [ $TRANSPORT = 'uloop' ]; then
-	(
-		rm -rf json-c &&
-		git clone https://github.com/json-c/json-c.git &&
-		cd json-c &&
-		sh autogen.sh &&
-		./configure &&
-		make &&
-		sudo make install
-	) &&
-        (
-        	rm -rf libubox &&
-        	git clone http://git.openwrt.org/project/libubox.git &&
-        	cd libubox &&
-        	cmake . &&
-        	make
-        );
+       (
+         rm -rf json-c &&
+         git clone https://github.com/json-c/json-c.git &&
+         cd json-c &&
+         sh autogen.sh &&
+         ./configure &&
+         make &&
+         sudo make install
+       ) &&
+       (
+         rm -rf libubox &&
+         git clone http://git.openwrt.org/project/libubox.git &&
+         cd libubox &&
+         cmake . &&
+         make
+       );
     fi"
   - ./tests/netsnmp_build.sh
 
