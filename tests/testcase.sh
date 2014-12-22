@@ -12,6 +12,7 @@ snmpget -v2c -cpublic localhost .1.3.6.1.2.1.1.1.0 .1.3.6.1.2.1.1.2.0
 snmpget -v2c -cpublic localhost .1.3.6.1.2.1.1.9.1.1
 snmpget -v2c -cpublic localhost .1.3.6.1.2.1.1.9.1.2
 snmpget -v2c -cpublic localhost .1.3.6.1.2.1.1.9.1.5
+snmpget -v2c -cpublic localhost .1.3.6.1.2.1.1.0
 
 snmpgetnext -v2c -cpublic localhost .0 
 snmpgetnext -v2c -cpublic localhost .1.3
@@ -31,6 +32,8 @@ snmpset -v2c -cpublic localhost .1.3.6.1.2.1.4.1.0 i 8888
 snmpset -v2c -cprivate localhost .1.3.6.1.2.1.1.9.1.1 i 1
 # Error test (wrong type)
 snmpset -v2c -cprivate localhost .1.3.6.1.2.1.4.1.0 s "This agent is really smart!"
+# Error test (no such object)
+snmpset -v2c -cprivate localhost .1.3.6.1.2.1.4.0 i 8888
 # OK test
 snmpset -v2c -cprivate localhost .1.3.6.1.2.1.4.1.0 i 8888
 
@@ -49,6 +52,7 @@ snmpget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.1.0 .1.3.6.1.2.1.
 snmpget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.9.1.1
 snmpget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.9.1.2
 snmpget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.9.1.5
+snmpget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.0
 
 snmpgetnext -u noAuthUser -l noAuthNoPriv localhost .0 
 snmpgetnext -u noAuthUser -l noAuthNoPriv localhost .1.3
@@ -57,17 +61,12 @@ snmpgetnext -u noAuthUser -l noAuthNoPriv localhost .1.5.6.7.8.100
 
 snmpbulkget -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.9.1.4
 
-# Error test (community authorization)
-snmpset -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.9.1.1 i 1
-# Error test (community authorization)
-snmpset -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.4.1.0 s "This agent is really smart!"
-# Error test (community authorization)
-snmpset -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.4.1.0 i 8888
-
 # Error test (unaccessible)
 snmpset -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.1.9.1.1 i 1
 # Error test (wrong type)
 snmpset -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.4.1.0 s "This agent is really smart!"
+# Error test (no such object)
+snmpset -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.4.0 i 8888
 # OK test
 snmpset -u noAuthUser -l noAuthNoPriv localhost .1.3.6.1.2.1.4.1.0 i 8888
 
