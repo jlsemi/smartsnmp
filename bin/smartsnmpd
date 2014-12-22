@@ -66,13 +66,13 @@ if type(port) ~= 'number' then
     os.exit(-1)
 end
 
-if type(ro_community) ~= 'string' then
-    print("Can't get read only community for SNMP agent, please check your configuration file!")
+if communities ~= nil and type(communities) ~= 'table' then
+    print("Can't set communities for SNMPv2c agent, please check your configuration file!")
     os.exit(-1)
 end
 
-if type(rw_community) ~= 'string' then
-    print("Can't get read and write only community for SNMP agent, please check your configuration file!")
+if users ~= nil and type(users) ~= 'table' then
+    print("Can't set users for SNMPv3 agent, please check your configuration file!")
     os.exit(-1)
 end
 
@@ -124,11 +124,45 @@ for oid_str, mib_module_name in pairs(mib_modules) do
     end
 end
 
-snmpd.set_ro_community("public")
-snmpd.set_rw_community("private")
+if communities ~= nil then
+    for _, t in ipairs(communities) do
+        if t.views == nil or next(t.views) == nil then
+            if t.attribute == 'rw' then 
+                    snmpd.set_ro_community(t.community)
+            else
+                    snmpd.set_ro_community(t.community)
+            end
+        else
+            for _, view in ipairs(t.views) do
+                if t.attribute == 'rw' then 
+                        snmpd.set_ro_community(t.community, view)
+                else
+                        snmpd.set_ro_community(t.community, view)
+                end
+            end
+        end
+    end
+end
 
-snmpd.set_ro_user("noAuthUser")
-snmpd.set_rw_user("noAuthUser")
+if users ~= nil then
+    for _, t in ipairs(users) do
+        if t.views == nil or next(t.views) == nil then
+            if t.attribute == 'rw' then 
+                    snmpd.set_ro_user(t.user)
+            else
+                    snmpd.set_ro_user(t.user)
+            end
+        else
+            for _, view in ipairs(t.views) do
+                if t.attribute == 'rw' then 
+                        snmpd.set_ro_user(t.user, view)
+                else
+                        snmpd.set_ro_user(t.user, view)
+                end
+            end
+        end
+    end
+end
 
 snmpd.init(protocol, port)
 
