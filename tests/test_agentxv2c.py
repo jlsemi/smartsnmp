@@ -12,6 +12,7 @@ class AgentXv2cTestCase(unittest.TestCase, SmartSNMPTestCmd):
 	def tearDown(self):
 		self.agentx_teardown()
 
+	@agentx_before_check
 	def test_snmpv2cget(self):
 		self.snmpget_expect(".1.3.6.1.2.1.7.5.1.2.4", SNMPNoSuchInstance())
 		self.snmpget_expect(".1.3.6.1.2.1.2.1.0", Integer(5))
@@ -26,6 +27,7 @@ class AgentXv2cTestCase(unittest.TestCase, SmartSNMPTestCmd):
 		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.5", SNMPNoSuchObject())
 		self.snmpget_expect(".1.3.6.1.2.1.1.0", SNMPNoSuchObject())
 
+	@agentx_before_check
 	def test_snmpv2cgetnext(self):
 		self.snmpgetnext_expect(".", ".1.3.6.1.2.1.1.1.0", OctStr(r".*"))
 		self.snmpgetnext_expect(".0", ".1.3.6.1.2.1.1.1.0", OctStr(r".*"))
@@ -33,6 +35,7 @@ class AgentXv2cTestCase(unittest.TestCase, SmartSNMPTestCmd):
 		self.snmpgetnext_expect(".1.4", ".1.4", SNMPEndOfMib())
 		self.snmpgetnext_expect(".1.5.6.7.8.100", ".1.5.6.7.8.100", SNMPEndOfMib())
 
+	@agentx_before_check
 	def test_snmpv2cset(self):
 		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPNoAccess(), community = "public")
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPNoAccess(), community = "public")
@@ -42,6 +45,7 @@ class AgentXv2cTestCase(unittest.TestCase, SmartSNMPTestCmd):
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888), community = "private")
 		self.snmpset_expect(".1.3.6.1.2.1.4.0", Integer(8888), Integer(8888), community = "private")
 
+	@agentx_before_check
 	def test_snmpv2cwalk(self):
 		self.snmpwalk_expect(".")
 

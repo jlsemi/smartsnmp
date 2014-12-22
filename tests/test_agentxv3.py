@@ -13,6 +13,7 @@ class AgentXv3TestCase(unittest.TestCase, SmartSNMPTestCmd):
 	def tearDown(self):
 		self.agentx_teardown()
 
+	@agentx_before_check
 	def test_snmpv3get(self):
 		self.snmpget_expect(".1.3.6.1.2.1.7.5.1.2.4", SNMPNoSuchInstance(), version = '3')
 		self.snmpget_expect(".1.3.6.1.2.1.2.1.0", Integer(5), version = '3')
@@ -27,6 +28,7 @@ class AgentXv3TestCase(unittest.TestCase, SmartSNMPTestCmd):
 		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.5", SNMPNoSuchObject(), version = '3')
 		self.snmpget_expect(".1.3.6.1.2.1.1.0", SNMPNoSuchObject(), version = '3')
 
+	@agentx_before_check
 	def test_snmpv3getnext(self):
 		self.snmpgetnext_expect(".", ".1.3.6.1.2.1.1.1.0", OctStr(r".*"), version = '3')
 		self.snmpgetnext_expect(".0", ".1.3.6.1.2.1.1.1.0", OctStr(r".*"), version = '3')
@@ -34,12 +36,14 @@ class AgentXv3TestCase(unittest.TestCase, SmartSNMPTestCmd):
 		self.snmpgetnext_expect(".1.4", ".1.4", SNMPEndOfMib(), version = '3')
 		self.snmpgetnext_expect(".1.5.6.7.8.100", ".1.5.6.7.8.100", SNMPEndOfMib(), version = '3')
 
+	@agentx_before_check
 	def test_snmpv3set(self):
 		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPNoAccess(), version = '3')
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPWrongType(), version = '3')
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888), version = '3')
 		self.snmpset_expect(".1.3.6.1.2.1.4.0", Integer(8888), Integer(8888), version = '3')
 
+	@agentx_before_check
 	def test_snmpv3walk(self):
 		self.snmpwalk_expect(".", version = '3')
 

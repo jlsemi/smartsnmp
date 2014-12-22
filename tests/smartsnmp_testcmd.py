@@ -1,7 +1,6 @@
-import pexpect
-import re
-import time
+import pexpect, sys, re, time
 from pprint import pprint
+from functools import wraps
 
 logfile = open("tests/test.log", 'w')
 env = {
@@ -194,8 +193,9 @@ class SmartSNMPTestCmd:
 			self.snmpwalk_result_check(results[i], len(results), i)
 
 	def snmp_setup(self, config_file):
-		self.snmp = pexpect.spawn("./bin/smartsnmpd -c " + config_file, logfile = logfile, env = env)
-		self.snmp.expect(pexpect.EOF)
+		self.snmp = pexpect.spawn(r"./bin/smartsnmpd -c " + config_file, env = env)
+		self.snmp.logfile_read = sys.stderr
+		time.sleep(1)
 
 	def snmp_teardown(self):
 		self.snmp.close(force = True)
@@ -203,11 +203,30 @@ class SmartSNMPTestCmd:
 	def agentx_setup(self, config_file):
 		self.netsnmp = pexpect.spawn(r"./tests/net-snmp-release/sbin/snmpd -f -Lo -m "" -C -c tests/snmpd.conf")
 		time.sleep(1)
-		self.netsnmp.expect(pexpect.EOF)
-		self.agentx = pexpect.spawn(r"./bin/smartsnmpd -c " + config_file, logfile = logfile, env = env)
+		self.agentx = pexpect.spawn(r"./bin/smartsnmpd -c " + config_file, env = env)
+		self.agentx.logfile_read = sys.stderr
 		time.sleep(1)
-		self.agentx.expect(pexpect.EOF)
 
 	def agentx_teardown(self):
 		self.agentx.close(force = True)
 		self.netsnmp.close(force = True)
+
+def snmp_before_check(test_func):
+	@wraps(test_func)
+	def wrapper(daemon):
+		if daemon.snmp.isalive() == False:
+			daemon.snmp.read()
+			raise Exception("SNMP daemon start error!")
+		else:
+			test_func(daemon)
+	return wrapper
+
+def agentx_before_check(test_func):
+	@wraps(test_func)
+	def wrapper(daemon):
+		if daemon.agentx.isalive() == False:
+			daemon.agentx.read()
+			raise Exception("AgentX daemon start error!")
+		else:
+			test_func(daemon)
+	return wrapper
