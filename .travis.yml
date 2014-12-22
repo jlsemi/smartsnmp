@@ -29,7 +29,8 @@ install:
          git clone http://git.openwrt.org/project/libubox.git &&
          cd libubox &&
          cmake . &&
-         make
+         make &&
+         cp libubox.so ..
        );
     fi"
   - ./tests/netsnmp_build.sh

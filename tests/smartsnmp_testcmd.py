@@ -5,6 +5,7 @@ from pprint import pprint
 
 logfile = open("tests/test.log", 'w')
 env = {
+	'LD_LIBRARY_PATH': ".",
 	'LUA_PATH': "lualib/?/init.lua;lualib/?.lua;./?.lua",
 	'LUA_CPATH': "build/?.so",
 }
@@ -194,6 +195,7 @@ class SmartSNMPTestCmd:
 
 	def snmp_setup(self, config_file):
 		self.snmp = pexpect.spawn("./bin/smartsnmpd -c " + config_file, logfile = logfile, env = env)
+		self.snmp.expect(pexpect.EOF)
 
 	def snmp_teardown(self):
 		self.snmp.close(force = True)
@@ -201,8 +203,10 @@ class SmartSNMPTestCmd:
 	def agentx_setup(self, config_file):
 		self.netsnmp = pexpect.spawn(r"./tests/net-snmp-release/sbin/snmpd -f -Lo -m "" -C -c tests/snmpd.conf")
 		time.sleep(1)
+		self.netsnmp.expect(pexpect.EOF)
 		self.agentx = pexpect.spawn(r"./bin/smartsnmpd -c " + config_file, logfile = logfile, env = env)
 		time.sleep(1)
+		self.agentx.expect(pexpect.EOF)
 
 	def agentx_teardown(self):
 		self.agentx.close(force = True)
