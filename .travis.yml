@@ -9,27 +9,42 @@ env:
 
 install:
   - "sudo apt-get install -y $LUA $lib$LUA-0-dev"
-  - "if [ $TRANSPORT = 'libevent' ]; then 
-        sudo apt-get install -y libevent-dev ; 
+  - "sudo apt-get install -y python-pexpect"
+  - "sudo apt-get install -y snmp"
+  - "if [ $TRANSPORT = 'libevent' ]; then
+        sudo apt-get install -y libevent-dev;
     fi"
-  - "if [ $TRANSPORT = 'uloop' ]; then 
-        rm -rf libubox &&
-        git clone http://git.openwrt.org/project/libubox.git &&
-        ( 
-            cd libubox &&
-            cmake . && 
-            make
-        );
+  - "if [ $TRANSPORT = 'uloop' ]; then
+       (
+         rm -rf json-c &&
+         git clone https://github.com/json-c/json-c.git &&
+         cd json-c &&
+         sh autogen.sh &&
+         ./configure &&
+         make &&
+         sudo make install
+       ) &&
+       (
+         rm -rf libubox &&
+         git clone http://git.openwrt.org/project/libubox.git &&
+         cd libubox &&
+         cmake . &&
+         make &&
+         cp libubox.so ..
+       );
     fi"
+  - ./tests/netsnmp_build.sh
 
 script:
-  - "if [ $TRANSPORT = 'uloop' ]; then 
-        export LDFLAGS='-L./libubox' && 
+  - "if [ $TRANSPORT = 'uloop' ]; then
+        export LDFLAGS='-L./libubox' &&
         export CFLAGS='-I.';
     fi"
-  - "if [ $TRANSPORT = 'built-in' ]; then 
+  - "if [ $TRANSPORT = 'built-in' ]; then
         scons --transport=$TRANSPORT --evloop=$EVLOOP;
     else
         scons --transport=$TRANSPORT;
     fi"
-  - "cat config.log"
+  - "sudo python ./tests/test_all.py"
+
+after_script: cat config.log
