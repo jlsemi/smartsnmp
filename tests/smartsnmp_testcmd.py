@@ -48,7 +48,7 @@ class SNMPResourceUna(SNMPErrorStatus): value = "resourceUnavailable (This is li
 class SNMPCommitFail(SNMPErrorStatus): value = "commitFailed"
 class SNMPUndoFail(SNMPErrorStatus): value = "undoFailed"
 class SNMPAuthErr(SNMPErrorStatus): value = "authorizationError (access denied to that object)"
-class SNMPNoWritable(SNMPErrorStatus): value = "notWritable (That object does not support modification)"
+class SNMPNotWritable(SNMPErrorStatus): value = "notWritable (That object does not support modification)"
 
 class SmartSNMPTestCmd:
 	def snmp_request(self, req, oids = [], tag = None, value = None, version = None, community = None, user = None, level = None, ip = None, port = None):
