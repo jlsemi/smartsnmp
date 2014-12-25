@@ -576,53 +576,57 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
 
         local obj_no = req_sub_oid[1]
         local dim = effective_object_index(group_index_table, obj_no)
-        if dim == 2 then
-            -- scalar
-            local scalar = group[obj_no]
-            -- check access
-            if scalar.access == MIB_ACES_UNA or not(#req_sub_oid == 2 and req_sub_oid[2] == 0) then
-                return _M.SNMP_ERR_STAT_UNACCESS, rsp_sub_oid, rsp_val, rsp_val_type
-            end
-            -- check type
-            if rsp_val_type ~= scalar.tag then
-                return _M.SNMP_ERR_STAT_WRONG_TYPE, rsp_sub_oid, rsp_val, rsp_val_type
-            end
-
-            err_stat = scalar.set_f(rsp_val)
-        elseif dim >= 4 then
-            -- table
-            local table_no = obj_no
-            local entry_no = req_sub_oid[2]
-            local var_no = req_sub_oid[3]
-            local tab = group[table_no]
-            if #req_sub_oid < 3 or tab[entry_no] == nil or tab[entry_no][var_no] == nil then
-                return _M.SNMP_ERR_STAT_UNACCESS, rsp_sub_oid, rsp_val, rsp_val_type
-            end
-            -- check access
-            local variable = tab[entry_no][var_no]
-            local inst_no
-            if #rsp_sub_oid == 4 then
-                inst_no = rsp_sub_oid[4]
-            else
-                inst_no = {}
-                for i = 4, #rsp_sub_oid do
-                    table.insert(inst_no, rsp_sub_oid[i])
+        if dim ~= nil then
+            if dim == 2 then
+                -- scalar
+                local scalar = group[obj_no]
+                -- check access
+                if scalar.access == MIB_ACES_UNA or not(#req_sub_oid == 2 and req_sub_oid[2] == 0) then
+                    return _M.SNMP_ERR_STAT_UNACCESS, rsp_sub_oid, rsp_val, rsp_val_type
                 end
-            end
-            if variable.access == MIB_ACES_UNA or
-               type(inst_no) == 'number' and inst_no == nil or
-               type(inst_no) == 'table' and next(inst_no) == nil then
-                return _M.SNMP_ERR_STAT_UNACCESS, rsp_sub_oid, rsp_val, rsp_val_type
-            end
-            -- check type
-            if rsp_val_type ~= variable.tag then
-                return _M.SNMP_ERR_STAT_WRONG_TYPE, rsp_sub_oid, rsp_val, rsp_val_type
-            end
+                -- check type
+                if rsp_val_type ~= scalar.tag then
+                    return _M.SNMP_ERR_STAT_WRONG_TYPE, rsp_sub_oid, rsp_val, rsp_val_type
+                end
 
-            err_stat = variable.set_f(inst_no, rsp_val)
-        else
-            return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, rsp_val, rsp_val_type
-        end
+                err_stat = scalar.set_f(rsp_val)
+            elseif dim >= 4 then
+                -- table
+                local table_no = obj_no
+                local entry_no = req_sub_oid[2]
+                local var_no = req_sub_oid[3]
+                local tab = group[table_no]
+                if #req_sub_oid < 3 or tab[entry_no] == nil or tab[entry_no][var_no] == nil then
+                    return _M.SNMP_ERR_STAT_UNACCESS, rsp_sub_oid, rsp_val, rsp_val_type
+                end
+                -- check access
+                local variable = tab[entry_no][var_no]
+                local inst_no
+                if #rsp_sub_oid == 4 then
+                    inst_no = rsp_sub_oid[4]
+                else
+                    inst_no = {}
+                    for i = 4, #rsp_sub_oid do
+                        table.insert(inst_no, rsp_sub_oid[i])
+                    end
+                end
+                if variable.access == MIB_ACES_UNA or
+                   type(inst_no) == 'number' and inst_no == nil or
+                   type(inst_no) == 'table' and next(inst_no) == nil then
+                    return _M.SNMP_ERR_STAT_UNACCESS, rsp_sub_oid, rsp_val, rsp_val_type
+                end
+                -- check type
+                if rsp_val_type ~= variable.tag then
+                    return _M.SNMP_ERR_STAT_WRONG_TYPE, rsp_sub_oid, rsp_val, rsp_val_type
+                end
+
+                err_stat = variable.set_f(inst_no, rsp_val)
+            else
+                return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, rsp_val, rsp_val_type
+            end
+       else
+           return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, rsp_val, rsp_val_type
+       end
 
         return_value_check(name, rsp_val, rsp_val_type)
 
@@ -651,50 +655,54 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
 
         local obj_no = req_sub_oid[1]
         local dim = effective_object_index(group_index_table, obj_no)
-        if dim == 2 then
-            -- Scalar
-            local scalar = group[obj_no]
-            -- Check access
-            if scalar.access == MIB_ACES_UNA then
-                return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
-            end
-            -- Check existence
-            if not(#req_sub_oid == 2 and req_sub_oid[2] == 0) then
-                return ASN1_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
-            end
-            rsp_val, err_stat = scalar.get_f()
-            rsp_val_type = scalar.tag
-        elseif dim >= 4 then
-            -- table
-            local table_no = obj_no
-            local entry_no = req_sub_oid[2]
-            local var_no = req_sub_oid[3]
-            local tab = group[table_no]
-            if #req_sub_oid < 3 or tab[entry_no] == nil or tab[entry_no][var_no] == nil then
-                return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
-            end
-            -- Check access
-            local variable = tab[entry_no][var_no]
-            if variable.access == MIB_ACES_UNA then
-                return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
-            end
-            -- Check instance existence
-            local inst_no
-            if #rsp_sub_oid == 4 then
-                inst_no = rsp_sub_oid[4]
-            else
-                inst_no = {}
-                for i = 4, #rsp_sub_oid do
-                    table.insert(inst_no, rsp_sub_oid[i])
+        if dim ~= nil then
+            if dim == 2 then
+                -- Scalar
+                local scalar = group[obj_no]
+                -- Check access
+                if scalar.access == MIB_ACES_UNA then
+                    return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
                 end
+                -- Check existence
+                if not(#req_sub_oid == 2 and req_sub_oid[2] == 0) then
+                    return ASN1_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
+                end
+                rsp_val, err_stat = scalar.get_f()
+                rsp_val_type = scalar.tag
+            elseif dim >= 4 then
+                -- table
+                local table_no = obj_no
+                local entry_no = req_sub_oid[2]
+                local var_no = req_sub_oid[3]
+                local tab = group[table_no]
+                if #req_sub_oid < 3 or tab[entry_no] == nil or tab[entry_no][var_no] == nil then
+                    return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+                end
+                -- Check access
+                local variable = tab[entry_no][var_no]
+                if variable.access == MIB_ACES_UNA then
+                    return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+                end
+                -- Check instance existence
+                local inst_no
+                if #rsp_sub_oid == 4 then
+                    inst_no = rsp_sub_oid[4]
+                else
+                    inst_no = {}
+                    for i = 4, #rsp_sub_oid do
+                        table.insert(inst_no, rsp_sub_oid[i])
+                    end
+                end
+                if type(inst_no) == 'number' and inst_no == nil or
+                   type(inst_no) == 'table' and next(inst_no) == nil then
+                    return ASN1_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
+                end
+                -- Get instance value
+                rsp_val, err_stat = variable.get_f(inst_no)
+                rsp_val_type = variable.tag
+            else
+                return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
             end
-            if type(inst_no) == 'number' and inst_no == nil or
-               type(inst_no) == 'table' and next(inst_no) == nil then
-                return ASN1_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
-            end
-            -- Get instance value
-            rsp_val, err_stat = variable.get_f(inst_no)
-            rsp_val_type = variable.tag
         else
             return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
         end
