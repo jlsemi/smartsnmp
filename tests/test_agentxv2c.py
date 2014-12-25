@@ -25,6 +25,10 @@ class AgentXv2cTestCase(unittest.TestCase, SmartSNMPTestCmd):
 		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.2", SNMPNoSuchInstance())
 		self.snmpget_expect(".1.3.6.1.2.1.1.9.1.5", SNMPNoSuchObject())
 		self.snmpget_expect(".1.3.6.1.2.1.1.0", SNMPNoSuchObject())
+		
+		# a correct request for MIB-II/UDP should be .1.3.6.1.2.1.7.5.1.2.4.x.x.x.x.p
+		self.snmpget_expect(".1.3.6.1.2.1.7.5.1.2.4", SNMPNoSuchInstance())
+		self.snmpget_expect(".1.3.6.1.2.1.7.5.1.2.4.1.1", SNMPNoSuchInstance())
 
 	@agentx_before_check
 	def test_snmpv2cgetnext(self):
