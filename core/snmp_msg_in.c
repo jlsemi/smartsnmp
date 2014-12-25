@@ -286,6 +286,11 @@ snmp_set(struct snmp_datagram *sdg)
       if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
         /* Object not found */
         vb_out->value_type = ret_oid.exist_state;
+	if (!sdg->pdu_hdr.err_stat) {
+          /* Report the first varbind error status */
+          sdg->pdu_hdr.err_stat = SNMP_ERR_STAT_NOT_WRITABLE;
+          sdg->pdu_hdr.err_idx = vb_in_cnt;
+        }
       } else {
         if (!sdg->pdu_hdr.err_stat) {
           /* Report the first varbind error status */
