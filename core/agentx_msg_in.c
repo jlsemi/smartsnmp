@@ -298,6 +298,11 @@ agentx_set(struct agentx_datagram *xdg)
       if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
         vb_out->val_type = ret_oid.exist_state;
         vb_out->val_len = 0;
+        if (!xdg->u.response.error) {
+          /* Report the first object error status in search range */
+          xdg->u.response.error = AGENTX_ERR_STAT_NOT_WRITABLE;
+          xdg->u.response.index = vb_in_cnt;
+        }
       } else {
         /* Error status */
         vb_out->val_type = vb_in->val_type;
