@@ -23,8 +23,9 @@
 
 #include <stdint.h>
 
-#define MIB_OID_MAX_LEN       64
-#define MIB_VALUE_MAX_LEN     (1024)
+#define MIB_OID_MAX_LEN     64
+#define MIB_VALUE_MAX_LEN   (1024)
+#define MIB_TAG_VALID(tag)  ((tag) < ASN1_TAG_NO_SUCH_OBJ)
 
 /* ASN1 variable type */
 enum asn1_variable_type {

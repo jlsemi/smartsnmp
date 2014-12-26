@@ -55,8 +55,8 @@ struct oid_search_res {
   int callback;
   /* Request id */
   int request;
-  /* Search return status */
-  int exist_state;
+  /* Error status */
+  int err_stat;
   /* Search return value */
   Variable var;
 };
