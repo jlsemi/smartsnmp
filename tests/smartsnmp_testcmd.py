@@ -1,10 +1,10 @@
-import pexpect, sys, re, time
+import pexpect, sys, re, time, os
 from pprint import pprint
 from functools import wraps
 
 logfile = open("tests/test.log", 'w')
 env = {
-	'LD_LIBRARY_PATH': ".",
+	'LD_LIBRARY_PATH': ";".join([os.path.abspath('.'), os.path.abspath('./tests/net-snmp-release/lib')]),
 	'LUA_PATH': "lualib/?/init.lua;lualib/?.lua;./?.lua",
 	'LUA_CPATH': "build/?.so",
 }
@@ -193,6 +193,7 @@ class SmartSNMPTestCmd:
 			self.snmpwalk_result_check(results[i], len(results), i)
 
 	def snmp_setup(self, config_file):
+		print "Starting Smart-SNMP Agent (Master Mode)..."
 		self.snmp = pexpect.spawn(r"./bin/smartsnmpd -c " + config_file, env = env)
 		self.snmp.logfile_read = sys.stderr
 		time.sleep(1)
@@ -201,8 +202,10 @@ class SmartSNMPTestCmd:
 		self.snmp.close(force = True)
 
 	def agentx_setup(self, config_file):
-		self.netsnmp = pexpect.spawn(r"./tests/net-snmp-release/sbin/snmpd -f -Lo -m "" -C -c tests/snmpd.conf")
+		print "Starting NET-SNMP Agent (Master Mode)..."
+		self.netsnmp = pexpect.spawn(r"./tests/net-snmp-release/sbin/snmpd -f -Lo -m "" -C -c tests/snmpd.conf", env = env)
 		time.sleep(1)
+		print "Starting SmartSNMP SubAgent (AgentX Mode)..."
 		self.agentx = pexpect.spawn(r"./bin/smartsnmpd -c " + config_file, env = env)
 		self.agentx.logfile_read = sys.stderr
 		time.sleep(1)
