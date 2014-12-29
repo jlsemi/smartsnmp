@@ -341,11 +341,7 @@ var_bind_alloc(uint8_t **buffer, uint8_t flag, enum agentx_err_code *err)
   buf = *buffer;
 
   /* value type */
-  if (flag & NETWORD_BYTE_ORDER) {
-    type = NTOH16(*(uint16_t *)buf);
-  } else {
-    type = *(uint16_t *)buf;
-  }
+  type = *(uint16_t *)buf;
   buf += 4;
 
   /* oid length */
@@ -505,33 +501,18 @@ pdu_hdr_parse(struct agentx_datagram *xdg, uint8_t **buffer)
   xdg->pdu_hdr.type = *buf++;
   xdg->pdu_hdr.flags = *buf++;
   xdg->pdu_hdr.reserved = *buf++;
-  if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
-    xdg->pdu_hdr.session_id = NTOH32(*(uint32_t *)buf);
-    buf += sizeof(uint32_t);
-    xdg->pdu_hdr.transaction_id = NTOH32(*(uint32_t *)buf);
-    buf += sizeof(uint32_t);
-    xdg->pdu_hdr.packet_id = NTOH32(*(uint32_t *)buf);
-    buf += sizeof(uint32_t);
-    xdg->pdu_hdr.payload_length = NTOH32(*(uint32_t *)buf);
-    buf += sizeof(uint32_t);
-  } else {
-    xdg->pdu_hdr.session_id = *(uint32_t *)buf;
-    buf += sizeof(uint32_t);
-    xdg->pdu_hdr.transaction_id = *(uint32_t *)buf;
-    buf += sizeof(uint32_t);
-    xdg->pdu_hdr.packet_id = *(uint32_t *)buf;
-    buf += sizeof(uint32_t);
-    xdg->pdu_hdr.payload_length = *(uint32_t *)buf;
-    buf += sizeof(uint32_t);
-  }
+  xdg->pdu_hdr.session_id = *(uint32_t *)buf;
+  buf += sizeof(uint32_t);
+  xdg->pdu_hdr.transaction_id = *(uint32_t *)buf;
+  buf += sizeof(uint32_t);
+  xdg->pdu_hdr.packet_id = *(uint32_t *)buf;
+  buf += sizeof(uint32_t);
+  xdg->pdu_hdr.payload_length = *(uint32_t *)buf;
+  buf += sizeof(uint32_t);
 
   /* Optinal context */
   if (xdg->pdu_hdr.flags & NON_DEFAULT_CONTEXT) {
-    if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
-      xdg->ctx_len = NTOH32(*(uint32_t *)buf);
-    } else {
-      xdg->ctx_len = *(uint32_t *)buf;
-    }
+    xdg->ctx_len = *(uint32_t *)buf;
     if (xdg->ctx_len + 1 > sizeof(xdg->context)) {
       err = AGENTX_ERR_PDU_CTX_LEN;
       *buffer = buf;
@@ -551,39 +532,19 @@ pdu_hdr_parse(struct agentx_datagram *xdg, uint8_t **buffer)
       xdg->pdu_hdr.payload_length -= sizeof(uint32_t);
       break;
     case AGENTX_PDU_GETBULK:
-      if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
-        xdg->u.getbulk.non_rep = NTOH16(*(uint16_t *)buf);
-      } else {
-        xdg->u.getbulk.non_rep = *(uint16_t *)buf;
-      }
+      xdg->u.getbulk.non_rep = *(uint16_t *)buf;
       buf += sizeof(uint16_t);
-      if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
-        xdg->u.getbulk.max_rep = NTOH16(*(uint16_t *)buf);
-      } else {
-        xdg->u.getbulk.max_rep = *(uint16_t *)buf;
-      }
+      xdg->u.getbulk.max_rep = *(uint16_t *)buf;
       buf += sizeof(uint16_t);
       xdg->pdu_hdr.payload_length -= 2 * sizeof(uint16_t);
       break;
     case AGENTX_PDU_RESPONSE:
-      if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
-        xdg->u.response.sys_up_time = NTOH32(*(uint32_t *)buf);
-      } else {
-        xdg->u.response.sys_up_time = *(uint32_t *)buf;
-      }
+      xdg->u.response.sys_up_time = *(uint32_t *)buf;
       buf += sizeof(uint32_t);
-      if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
-        xdg->u.response.error = NTOH16(*(uint16_t *)buf);
-      } else {
-        xdg->u.response.error = *(uint16_t *)buf;
-      }
+      xdg->u.response.error = *(uint16_t *)buf;
       buf += sizeof(uint16_t);
       xdg->u.response.index = *(uint16_t *)buf;
-      if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
-        xdg->u.response.index = NTOH16(*(uint16_t *)buf);
-      } else {
-        xdg->u.response.index = *(uint16_t *)buf;
-      }
+      xdg->u.response.index = *(uint16_t *)buf;
       buf += sizeof(uint16_t);
       xdg->pdu_hdr.payload_length -= sizeof(uint32_t) + 2 * sizeof(uint16_t);
     default:

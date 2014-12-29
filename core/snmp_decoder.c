@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include "asn1.h"
-#include "snmp.h"
 
 /* Input:  buffer, byte length;
  * Output: none
@@ -87,15 +86,16 @@ ber_value_dec_try(const uint8_t *buf, uint32_t len, uint8_t type)
 static uint32_t
 ber_int_dec(const uint8_t *buf, uint32_t len, int *value)
 {
-  uint32_t i = 1;
-  int sign = buf[0] & 0x80 ? -1 : 1;
+  uint32_t i = 0;
 
-  *value = buf[0] & 0x7f;
+  while (buf[i] == 0x0) {
+    i++;
+  }
 
-  while (i < len)
+  *value = 0;
+  while (i < len) {
     *value = (*value << 8) | buf[i++];
-
-  *value *= sign;
+  }
 
   return 1;
 }
