@@ -87,7 +87,7 @@ int oid_cmp(const oid_t *src, uint32_t src_len, const oid_t *target, uint32_t ta
 void mib_handler_unref(int handler);
 int mib_instance_search(struct oid_search_res *ret_oid);
 struct mib_node *mib_tree_search(const oid_t *oid, uint32_t id_len, struct oid_search_res *ret_oid);
-struct mib_node *mib_tree_search_next(const oid_t *oid, uint32_t id_len, struct oid_search_res *ret_oid);
+void mib_tree_search_next(const oid_t *oid, uint32_t id_len, struct oid_search_res *ret_oid);
 
 int mib_node_reg(const oid_t *oid, uint32_t id_len, int callback);
 void mib_node_unreg(const oid_t *oid, uint32_t id_len);

@@ -337,7 +337,7 @@ nbl_pop(struct node_backlog **top, struct node_backlog **buttom)
 }
 
 /* GETNEXT request search, depth-first traversal in mib-tree, find the closest next oid. */
-struct mib_node *
+void
 mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_res *ret_oid)
 {
   oid_t *oid;
@@ -479,7 +479,7 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
         if (MIB_TAG_VALID(tag(&ret_oid->var))) {
           ret_oid->id_len = oid - ret_oid->oid + ret_oid->inst_id_len;
           assert(ret_oid->id_len <= MIB_OID_MAX_LEN);
-          return node;
+          return;
         } else {
           /* Instance not found */
           break;
@@ -503,15 +503,12 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
       ret_oid->inst_id_len = 0;
       ret_oid->err_stat = 0;
       tag(&ret_oid->var) = ASN1_TAG_END_OF_MIB_VIEW;
-      return (struct mib_node *)&mib_dummy_node;
+      return;
     }
     oid--;  /* OID length is ignored once backtracking. */
     node = p_nbl->node;
     immediate = 1;  /* Switch to the immediate search mode. */
   }
-
-  assert(0);
-  return node;
 }
 
 /* Check if mib root node is initialized */

@@ -275,8 +275,12 @@ agentx_set(struct agentx_datagram *xdg)
     vb_out->oid = ret_oid.oid;
     vb_out->oid_len = ret_oid.id_len;
     vb_out->val_type = vb_in->val_type;
-    vb_out->val_len = vb_in->val_len;
-    memcpy(vb_out->value, vb_in->value, vb_in->val_len);
+    vb_out->val_len = agentx_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
+
+    /* Invalid tags convert to error status for snmpset */
+    if (!ret_oid.err_stat && !MIB_TAG_VALID(tag(&ret_oid.var))) {
+      ret_oid.err_stat = AGENTX_ERR_STAT_NOT_WRITABLE;
+    }
 
     if (ret_oid.err_stat) {
       /* Something wrong */
