@@ -179,15 +179,16 @@ mib_instance_search(struct oid_search_res *ret_oid)
 
   if (lua_pcall(L, 5, 4, 0) != 0) {
     SMARTSNMP_LOG(L_ERROR, "MIB search hander %d fail: %s\n", ret_oid->callback, lua_tostring(L, -1));
-    ret_oid->exist_state = ASN1_TAG_NO_SUCH_OBJ;
+    tag(var) = ASN1_TAG_NO_SUCH_OBJ;
     return 0;
   }
 
-  ret_oid->exist_state = lua_tointeger(L, -4);
+  ret_oid->err_stat = lua_tointeger(L, -4);
+  tag(var) = lua_tonumber(L, -1);
 
-  if (ret_oid->exist_state == 0) {
+  if (!ret_oid->err_stat && MIB_TAG_VALID(tag(var))) {
+    /* Return value */
     if (ret_oid->request != MIB_REQ_SET) {
-      tag(var) = lua_tonumber(L, -1);
       switch (tag(var)) {
         case ASN1_TAG_INT:
           length(var) = 1;
@@ -242,7 +243,7 @@ mib_instance_search(struct oid_search_res *ret_oid)
     }
   }
 
-  return ret_oid->exist_state;
+  return ret_oid->err_stat;
 }
 
 /* GET request search, depth-first traversal in mib-tree, oid must match */
@@ -258,7 +259,7 @@ mib_tree_search(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_r
   /* Duplicate OID as return value */
   ret_oid->oid = oid_dup(orig_oid, orig_id_len);
   ret_oid->id_len = orig_id_len;
-  ret_oid->exist_state = 0;
+  ret_oid->err_stat = 0;
 
   /* Init something */
   node = (struct mib_node *)&mib_dummy_node;
@@ -281,7 +282,7 @@ mib_tree_search(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_r
           /* Sub-id not found */
           ret_oid->inst_id = oid;
           ret_oid->inst_id_len = id_len;
-          ret_oid->exist_state = ASN1_TAG_NO_SUCH_OBJ;
+          tag(&ret_oid->var) = ASN1_TAG_NO_SUCH_OBJ;
           return node;
         }
 
@@ -291,12 +292,8 @@ mib_tree_search(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_r
         ret_oid->inst_id = oid;
         ret_oid->inst_id_len = id_len;
         ret_oid->callback = in->callback;
-        ret_oid->exist_state = mib_instance_search(ret_oid);
-        if (ret_oid->exist_state == 0) {
-          return node;
-        } else {
-          return NULL;
-        }
+        ret_oid->err_stat = mib_instance_search(ret_oid);
+        return node;
 
       default:
         assert(0);
@@ -307,9 +304,9 @@ mib_tree_search(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_r
   ret_oid->inst_id = oid;
   ret_oid->inst_id_len = id_len;
   if (node && node->type == MIB_OBJ_INSTANCE) {
-    ret_oid->exist_state = ASN1_TAG_NO_SUCH_INST;
+    tag(&ret_oid->var) = ASN1_TAG_NO_SUCH_INST;
   } else {
-    ret_oid->exist_state = ASN1_TAG_NO_SUCH_OBJ;
+    tag(&ret_oid->var) = ASN1_TAG_NO_SUCH_OBJ;
   }
   return node;
 }
@@ -340,7 +337,7 @@ nbl_pop(struct node_backlog **top, struct node_backlog **buttom)
 }
 
 /* GETNEXT request search, depth-first traversal in mib-tree, find the closest next oid. */
-struct mib_node *
+void
 mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_search_res *ret_oid)
 {
   oid_t *oid;
@@ -386,7 +383,7 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
   id_len = ret_oid->id_len - root_oid_len;
   ret_oid->inst_id = NULL;
   ret_oid->inst_id_len = 0;
-  ret_oid->exist_state = 0;
+  ret_oid->err_stat = 0;
 
   for (; ;) {
 
@@ -478,11 +475,11 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
         /* Find instance variable through lua handler function */
         ret_oid->inst_id = oid;
         ret_oid->callback = in->callback;
-        ret_oid->exist_state = mib_instance_search(ret_oid);
-        if (ret_oid->exist_state == 0 || ret_oid->exist_state < ASN1_TAG_NO_SUCH_OBJ) {
+        ret_oid->err_stat = mib_instance_search(ret_oid);
+        if (MIB_TAG_VALID(tag(&ret_oid->var))) {
           ret_oid->id_len = oid - ret_oid->oid + ret_oid->inst_id_len;
           assert(ret_oid->id_len <= MIB_OID_MAX_LEN);
-          return node;
+          return;
         } else {
           /* Instance not found */
           break;
@@ -504,16 +501,14 @@ mib_tree_search_next(const oid_t *orig_oid, uint32_t orig_id_len, struct oid_sea
       ret_oid->id_len = orig_id_len;
       ret_oid->inst_id = NULL;
       ret_oid->inst_id_len = 0;
-      ret_oid->exist_state = ASN1_TAG_END_OF_MIB_VIEW;
-      return (struct mib_node *)&mib_dummy_node;
+      ret_oid->err_stat = 0;
+      tag(&ret_oid->var) = ASN1_TAG_END_OF_MIB_VIEW;
+      return;
     }
     oid--;  /* OID length is ignored once backtracking. */
     node = p_nbl->node;
     immediate = 1;  /* Switch to the immediate search mode. */
   }
-
-  assert(0);
-  return node;
 }
 
 /* Check if mib root node is initialized */

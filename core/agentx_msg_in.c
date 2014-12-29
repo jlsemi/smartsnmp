@@ -142,6 +142,7 @@ agentx_get(struct agentx_datagram *xdg)
   struct x_search_range *sr_in;
   struct oid_search_res ret_oid;
 
+  memset(&ret_oid, 0, sizeof(ret_oid));
   ret_oid.request = MIB_REQ_GET; 
   ret_oid.context = xdg->context; 
 
@@ -152,31 +153,20 @@ agentx_get(struct agentx_datagram *xdg)
     /* Search at the input oid */
     mib_tree_search(sr_in->start, sr_in->start_len, &ret_oid);
 
-    if (ret_oid.exist_state) {
-      /* Something wrong */
-      vb_out = xmalloc(sizeof(*vb_out));
-      vb_out->oid = ret_oid.oid;
-      vb_out->oid_len = ret_oid.id_len;
-      vb_out->val_len = 0;
-      if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
-        vb_out->val_type = ret_oid.exist_state;
-      } else {
-        /* Error status */
-        vb_out->val_type = ASN1_TAG_NO_SUCH_OBJ;
-        if (!xdg->u.response.error) {
-          /* Report the first object error status in search range */
-          xdg->u.response.error = ret_oid.exist_state;
-          xdg->u.response.index = sr_in_cnt;
-        }
+    val_len = agentx_value_enc_try(length(&ret_oid.var), tag(&ret_oid.var));
+    vb_out = xmalloc(sizeof(*vb_out) + val_len);
+    vb_out->oid = ret_oid.oid;
+    vb_out->oid_len = ret_oid.id_len;
+    vb_out->val_type = tag(&ret_oid.var);
+    vb_out->val_len = agentx_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
+
+    /* Error status */
+    if (ret_oid.err_stat) {
+      if (!xdg->u.response.error) {
+        /* Report the first object error status in search range */
+        xdg->u.response.error = ret_oid.err_stat;
+        xdg->u.response.index = sr_in_cnt;
       }
-    } else {
-      /* Gotcha */
-      val_len = agentx_value_enc_try(length(&ret_oid.var), tag(&ret_oid.var));
-      vb_out = xmalloc(sizeof(*vb_out) + val_len);
-      vb_out->oid = ret_oid.oid;
-      vb_out->oid_len = ret_oid.id_len;
-      vb_out->val_type = tag(&ret_oid.var);
-      vb_out->val_len = agentx_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
     }
 
     /* Add into list. */
@@ -197,7 +187,8 @@ agentx_getnext(struct agentx_datagram *xdg)
   struct x_search_range *sr_in;
   struct oid_search_res ret_oid;
 
-  ret_oid.request = MIB_REQ_GETNEXT; 
+  memset(&ret_oid, 0, sizeof(ret_oid));
+  ret_oid.request = MIB_REQ_GETNEXT;
   ret_oid.context = xdg->context; 
 
   list_for_each_safe(curr, next, &xdg->sr_in_list) {
@@ -207,53 +198,43 @@ agentx_getnext(struct agentx_datagram *xdg)
     /* Search the included start oid */
     if (sr_in->start_include) {
       mib_tree_search(sr_in->start, sr_in->start_len, &ret_oid);
-      if (ret_oid.exist_state) {
-        /* Ineffective query */
+      if (ret_oid.err_stat || !MIB_TAG_VALID(tag(&ret_oid.var))) {
+        /* Invalid query */
         free(ret_oid.oid);
       }
     }
     
     /* If start oid not included or not exist, search the next one */
-    if (!sr_in->start_include || ret_oid.exist_state) {
+    if (!sr_in->start_include || ret_oid.err_stat || !MIB_TAG_VALID(tag(&ret_oid.var))) {
       mib_tree_search_next(sr_in->start, sr_in->start_len, &ret_oid);
-      if (ret_oid.exist_state == 0) {
-        /* Compare with end oid */
+      if (!ret_oid.err_stat && MIB_TAG_VALID(tag(&ret_oid.var))) {
+        /* Check whether return oid exceeds end oid */
         if ((sr_in->end_include && oid_cmp(ret_oid.oid, ret_oid.id_len, sr_in->end, sr_in->end_len) > 0) ||
             (!sr_in->end_include && oid_cmp(ret_oid.oid, ret_oid.id_len, sr_in->end, sr_in->end_len) >= 0)) {
-          /* end_of_mib_view */
+          /* Oid exceeds, end_of_mib_view */
           oid_cpy(ret_oid.oid, sr_in->start, sr_in->start_len);
           ret_oid.id_len = sr_in->start_len;
           ret_oid.inst_id = NULL;
           ret_oid.inst_id_len = 0;
-          ret_oid.exist_state = ASN1_TAG_END_OF_MIB_VIEW;
+          tag(&ret_oid.var) = ASN1_TAG_END_OF_MIB_VIEW;
         }
       }
     }
 
-    if (ret_oid.exist_state) {
-      /* Something wrong */
-      vb_out = xmalloc(sizeof(*vb_out));
-      vb_out->oid = ret_oid.oid;
-      vb_out->oid_len = ret_oid.id_len;
-      vb_out->val_len = 0;
-      if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
-        vb_out->val_type = ret_oid.exist_state;
-      } else {
-        /* Error status */
-        vb_out->val_type = ASN1_TAG_NO_SUCH_OBJ;
-        if (!xdg->u.response.error) {
-          /* Report the first object error status in search range */
-          xdg->u.response.error = ret_oid.exist_state;
-          xdg->u.response.index = sr_in_cnt;
-        }
+    val_len = agentx_value_enc_try(length(&ret_oid.var), tag(&ret_oid.var));
+    vb_out = xmalloc(sizeof(*vb_out) + val_len);
+    vb_out->oid = ret_oid.oid;
+    vb_out->oid_len = ret_oid.id_len;
+    vb_out->val_type = tag(&ret_oid.var);
+    vb_out->val_len = agentx_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
+
+    /* Error status */
+    if (ret_oid.err_stat) {
+      if (!xdg->u.response.error) {
+        /* Report the first object error status in search range */
+        xdg->u.response.error = ret_oid.err_stat;
+        xdg->u.response.index = sr_in_cnt;
       }
-    } else {
-      val_len = agentx_value_enc_try(length(&ret_oid.var), tag(&ret_oid.var));
-      vb_out = xmalloc(sizeof(*vb_out) + val_len);
-      vb_out->oid = ret_oid.oid;
-      vb_out->oid_len = ret_oid.id_len;
-      vb_out->val_type = tag(&ret_oid.var);
-      vb_out->val_len = agentx_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
     }
 
     /* Add into list. */
@@ -273,6 +254,7 @@ agentx_set(struct agentx_datagram *xdg)
   struct x_var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
 
+  memset(&ret_oid, 0, sizeof(ret_oid));
   ret_oid.request = MIB_REQ_SET;
   ret_oid.context = xdg->context; 
 
@@ -289,34 +271,29 @@ agentx_set(struct agentx_datagram *xdg)
     /* Search at the input oid and set it */
     mib_tree_search(vb_in->oid, vb_in->oid_len, &ret_oid);
     
-    if (ret_oid.exist_state) {
-      /* Something wrong */
-      vb_out = xmalloc(sizeof(*vb_out) + vb_in->val_len);
-      vb_out->oid = ret_oid.oid;
-      vb_out->oid_len = ret_oid.id_len;
-      memcpy(vb_out->value, vb_in->value, vb_in->val_len);
-      if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
-        vb_out->val_type = ret_oid.exist_state;
-        vb_out->val_len = 0;
-        if (!xdg->u.response.error) {
-          /* Report the first object error status in search range */
-          xdg->u.response.error = AGENTX_ERR_STAT_NOT_WRITABLE;
-          xdg->u.response.index = vb_in_cnt;
-        }
-      } else {
-        /* Error status */
-        vb_out->val_type = vb_in->val_type;
-        vb_out->val_len = vb_in->val_len;
-        if (!xdg->u.response.error) {
-          /* Report the first object error status in search range */
-          xdg->u.response.error = ret_oid.exist_state;
-          xdg->u.response.index = vb_in_cnt;
-        }
-      }
-      /* Add into list. */
-      list_add_tail(&vb_out->link, &xdg->vb_out_list);
-      xdg->vb_out_cnt++;
+    vb_out = xmalloc(sizeof(*vb_out) + vb_in->val_len);
+    vb_out->oid = ret_oid.oid;
+    vb_out->oid_len = ret_oid.id_len;
+    vb_out->val_type = vb_in->val_type;
+    vb_out->val_len = agentx_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
+
+    /* Invalid tags convert to error status for snmpset */
+    if (!ret_oid.err_stat && !MIB_TAG_VALID(tag(&ret_oid.var))) {
+      ret_oid.err_stat = AGENTX_ERR_STAT_NOT_WRITABLE;
     }
+
+    if (ret_oid.err_stat) {
+      /* Something wrong */
+      if (!xdg->u.response.error) {
+        /* Report the first object error status in search range */
+        xdg->u.response.error = ret_oid.err_stat;
+        xdg->u.response.index = vb_in_cnt;
+      }
+    }
+
+    /* Add into list. */
+    list_add_tail(&vb_out->link, &xdg->vb_out_list);
+    xdg->vb_out_cnt++;
   }
 
   agentx_response(xdg);

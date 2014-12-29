@@ -126,6 +126,7 @@ snmp_get(struct snmp_datagram *sdg)
   uint32_t vb_in_cnt = 0;
   const uint32_t tag_len = 1;
 
+  memset(&ret_oid, 0, sizeof(ret_oid));
   ret_oid.request = MIB_REQ_GET;
   ret_oid.context = sdg->context_name;
 
@@ -136,30 +137,20 @@ snmp_get(struct snmp_datagram *sdg)
     /* Search at the input oid */
     mib_tree_search(vb_in->oid, vb_in->oid_len, &ret_oid);
 
-    if (ret_oid.exist_state) {
-      /* something wrong */
-      vb_out = xmalloc(sizeof(*vb_out));
-      vb_out->oid = ret_oid.oid;
-      vb_out->oid_len = ret_oid.id_len;
-      vb_out->value_len = 0;
-      if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
-        vb_out->value_type = ret_oid.exist_state;
-      } else {
-        vb_out->value_type = vb_in->value_type;
-        if (!sdg->pdu_hdr.err_stat) {
-          /* Report the first varbind error status */
-          sdg->pdu_hdr.err_stat = ret_oid.exist_state;
-          sdg->pdu_hdr.err_idx = vb_in_cnt;
-        }
+    val_len = ber_value_enc_try(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var));
+    vb_out = xmalloc(sizeof(*vb_out) + val_len);
+    vb_out->oid = ret_oid.oid;
+    vb_out->oid_len = ret_oid.id_len;
+    vb_out->value_type = tag(&ret_oid.var);
+    vb_out->value_len = ber_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
+
+    /* Error status */
+    if (ret_oid.err_stat) {
+      if (!sdg->pdu_hdr.err_stat) {
+        /* Mark the first error varbind */
+        sdg->pdu_hdr.err_stat = ret_oid.err_stat;
+        sdg->pdu_hdr.err_idx = vb_in_cnt;
       }
-    } else {
-      /* Gotcha */
-      val_len = ber_value_enc_try(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var));
-      vb_out = xmalloc(sizeof(*vb_out) + val_len);
-      vb_out->oid = ret_oid.oid;
-      vb_out->oid_len = ret_oid.id_len;
-      vb_out->value_type = tag(&ret_oid.var);
-      vb_out->value_len = ber_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
     }
 
     /* OID length encoding */
@@ -194,6 +185,7 @@ snmp_getnext(struct snmp_datagram *sdg)
   uint32_t vb_in_cnt = 0;
   const uint32_t tag_len = 1;
 
+  memset(&ret_oid, 0, sizeof(ret_oid));
   ret_oid.request = MIB_REQ_GETNEXT;
   ret_oid.context = sdg->context_name;
 
@@ -204,29 +196,20 @@ snmp_getnext(struct snmp_datagram *sdg)
     /* Search at the input oid */
     mib_tree_search_next(vb_in->oid, vb_in->oid_len, &ret_oid);
 
-    if (ret_oid.exist_state) {
-      /* This situation is only for traversal when end-of-mib-tree */
-      vb_out = xmalloc(sizeof(*vb_out));
-      vb_out->oid = ret_oid.oid;
-      vb_out->oid_len = ret_oid.id_len;
-      vb_out->value_len = 0;
-      if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
-        vb_out->value_type = ret_oid.exist_state;
-      } else {
-        vb_out->value_type = vb_in->value_type;
-        if (!sdg->pdu_hdr.err_stat) {
-          /* Report the first varbind error status */
-          sdg->pdu_hdr.err_stat = ret_oid.exist_state;
-          sdg->pdu_hdr.err_idx = vb_in_cnt;
-        }
+    val_len = ber_value_enc_try(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var));
+    vb_out = xmalloc(sizeof(*vb_out) + val_len);
+    vb_out->oid = ret_oid.oid;
+    vb_out->oid_len = ret_oid.id_len;
+    vb_out->value_type = tag(&ret_oid.var);
+    vb_out->value_len = ber_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
+
+    /* Error status */
+    if (ret_oid.err_stat) {
+      if (!sdg->pdu_hdr.err_stat) {
+        /* Report the first error varbind */
+        sdg->pdu_hdr.err_stat = ret_oid.err_stat;
+        sdg->pdu_hdr.err_idx = vb_in_cnt;
       }
-    } else {
-      val_len = ber_value_enc_try(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var));
-      vb_out = xmalloc(sizeof(*vb_out) + val_len);
-      vb_out->oid = ret_oid.oid;
-      vb_out->oid_len = ret_oid.id_len;
-      vb_out->value_type = tag(&ret_oid.var);
-      vb_out->value_len = ber_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
     }
 
     /* OID length encoding */
@@ -261,6 +244,7 @@ snmp_set(struct snmp_datagram *sdg)
   uint32_t vb_in_cnt = 0;
   const uint32_t tag_len = 1;
 
+  memset(&ret_oid, 0, sizeof(ret_oid));
   ret_oid.request = MIB_REQ_SET;
   ret_oid.context = sdg->context_name;
 
@@ -279,24 +263,20 @@ snmp_set(struct snmp_datagram *sdg)
     vb_out->oid = ret_oid.oid;
     vb_out->oid_len = ret_oid.id_len;
     vb_out->value_type = vb_in->value_type;
-    vb_out->value_len = vb_in->value_len;
-    memcpy(vb_out->value, vb_in->value, vb_out->value_len);
+    vb_out->value_type = vb_in->value_type;
+    vb_out->value_len = ber_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
 
-    if (ret_oid.exist_state) {
-      if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
-        /* Object not found */
-        vb_out->value_type = ret_oid.exist_state;
-	if (!sdg->pdu_hdr.err_stat) {
-          /* Report the first varbind error status */
-          sdg->pdu_hdr.err_stat = SNMP_ERR_STAT_NOT_WRITABLE;
-          sdg->pdu_hdr.err_idx = vb_in_cnt;
-        }
-      } else {
-        if (!sdg->pdu_hdr.err_stat) {
-          /* Report the first varbind error status */
-          sdg->pdu_hdr.err_stat = ret_oid.exist_state;
-          sdg->pdu_hdr.err_idx = vb_in_cnt;
-        }
+    /* Invalid tags convert to error status for snmpset */
+    if (!ret_oid.err_stat && !MIB_TAG_VALID(tag(&ret_oid.var))) {
+      ret_oid.err_stat = SNMP_ERR_STAT_NOT_WRITABLE;
+    }
+
+    /* Error status */
+    if (ret_oid.err_stat) {
+      if (!sdg->pdu_hdr.err_stat) {
+        /* Report the first error varbind */
+        sdg->pdu_hdr.err_stat = ret_oid.err_stat;
+        sdg->pdu_hdr.err_idx = vb_in_cnt;
       }
     }
 
@@ -355,29 +335,20 @@ snmp_bulkget(struct snmp_datagram *sdg)
       vb_in->oid = oid_dup(ret_oid.oid, ret_oid.id_len);
       vb_in->oid_len = ret_oid.id_len;
 
-      if (ret_oid.exist_state) {
-        /* This situation is only for traversal when end-of-mib-tree */
-        vb_out = xmalloc(sizeof(*vb_out));
-        vb_out->oid = ret_oid.oid;
-        vb_out->oid_len = ret_oid.id_len;
-        vb_out->value_len = 0;
-        if (ret_oid.exist_state >= ASN1_TAG_NO_SUCH_OBJ) {
-          vb_out->value_type = ret_oid.exist_state;
-        } else {
-          vb_out->value_type = vb_in->value_type;
-          if (!sdg->pdu_hdr.err_stat) {
-            /* Report the first varbind error status */
-            sdg->pdu_hdr.err_stat = ret_oid.exist_state;
-            sdg->pdu_hdr.err_idx = vb_in_cnt;
-          }
+      val_len = ber_value_enc_try(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var));
+      vb_out = xmalloc(sizeof(*vb_out) + val_len);
+      vb_out->oid = ret_oid.oid;
+      vb_out->oid_len = ret_oid.id_len;
+      vb_out->value_type = tag(&ret_oid.var);
+      vb_out->value_len = ber_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
+
+      /* Error status */
+      if (ret_oid.err_stat) {
+        if (!sdg->pdu_hdr.err_stat) {
+          /* Report the first error varbind */
+          sdg->pdu_hdr.err_stat = ret_oid.err_stat;
+          sdg->pdu_hdr.err_idx = vb_in_cnt;
         }
-      } else {
-        val_len = ber_value_enc_try(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var));
-        vb_out = xmalloc(sizeof(*vb_out) + val_len);
-        vb_out->oid = ret_oid.oid;
-        vb_out->oid_len = ret_oid.id_len;
-        vb_out->value_type = tag(&ret_oid.var);
-        vb_out->value_len = ber_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
       }
 
       /* OID length encoding */

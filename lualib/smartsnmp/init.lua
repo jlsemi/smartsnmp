@@ -29,36 +29,36 @@ _M._VERSION = "dev"
 --
 
 -- Access
-local MIB_ACES_UNA        = 0
-local MIB_ACES_RO         = 1
-local MIB_ACES_RW         = 2
-local MIB_ACES_RC         = 2
+local MIB_ACES_UNA                   = 0
+local MIB_ACES_RO                    = 1
+local MIB_ACES_RW                    = 2
+local MIB_ACES_RC                    = 2
 
 -- SNMP request
-local SNMP_REQ_GET        = 0xA0
-local SNMP_REQ_GETNEXT    = 0xA1
-local SNMP_RESP           = 0xA2
-local SNMP_REQ_SET        = 0xA3
-local SNMP_REQ_GET_BLK    = 0xA5
-local SNMP_REQ_INF        = 0xA6
-local SNMP_TRAP           = 0xA7
-local SNMP_REPO           = 0xA8
+local SNMP_REQ_GET                   = 0xA0
+local SNMP_REQ_GETNEXT               = 0xA1
+local SNMP_RESP                      = 0xA2
+local SNMP_REQ_SET                   = 0xA3
+local SNMP_REQ_GET_BLK               = 0xA5
+local SNMP_REQ_INF                   = 0xA6
+local SNMP_TRAP                      = 0xA7
+local SNMP_REPO                      = 0xA8
 
 -- ASN1 tag
-local ASN1_TAG_BOOL              = 0x01
-local ASN1_TAG_INT               = 0x02
-local ASN1_TAG_BITSTR            = 0x03
-local ASN1_TAG_OCTSTR            = 0x04
-local ASN1_TAG_NUL               = 0x05
-local ASN1_TAG_OBJID             = 0x06
-local ASN1_TAG_SEQ               = 0x30
-local ASN1_TAG_IPADDR            = 0x40
-local ASN1_TAG_CNT               = 0x41
-local ASN1_TAG_GAU               = 0x42
-local ASN1_TAG_TIMETICKS         = 0x43
-local ASN1_TAG_OPAQ              = 0x44
-local ASN1_TAG_NO_SUCH_OBJ       = 0x80
-local ASN1_TAG_NO_SUCH_INST      = 0x81
+local ASN1_TAG_BOOL                  = 0x01
+local ASN1_TAG_INT                   = 0x02
+local ASN1_TAG_BITSTR                = 0x03
+local ASN1_TAG_OCTSTR                = 0x04
+local ASN1_TAG_NUL                   = 0x05
+local ASN1_TAG_OBJID                 = 0x06
+local ASN1_TAG_SEQ                   = 0x30
+local ASN1_TAG_IPADDR                = 0x40
+local ASN1_TAG_CNT                   = 0x41
+local ASN1_TAG_GAU                   = 0x42
+local ASN1_TAG_TIMETICKS             = 0x43
+local ASN1_TAG_OPAQ                  = 0x44
+local ASN1_TAG_NO_SUCH_OBJ           = 0x80
+local ASN1_TAG_NO_SUCH_INST          = 0x81
 
 -- Error status
 -- v1
@@ -70,7 +70,7 @@ _M.SNMP_ERR_STAT_READ_ONLY           = 4
 _M.SNMP_ERR_STAT_GEN_ERR             = 5
 
 -- v2c
-_M.SNMP_ERR_STAT_UNACCESS           = 6
+_M.SNMP_ERR_STAT_UNACCESS            = 6
 _M.SNMP_ERR_STAT_WRONG_TYPE          = 7
 _M.SNMP_ERR_STAT_WRONG_LEN           = 8
 _M.SNMP_ERR_STAT_ENCODING            = 9
@@ -622,10 +622,10 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
 
                 err_stat = variable.set_f(inst_no, rsp_val)
             else
-                return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, rsp_val, rsp_val_type
+                return _M.SNMP_ERR_STAT_NOT_WRITABLE, rsp_sub_oid, rsp_val, rsp_val_type
             end
        else
-           return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, rsp_val, rsp_val_type
+           return _M.SNMP_ERR_STAT_NOT_WRITABLE, rsp_sub_oid, rsp_val, rsp_val_type
        end
 
         return_value_check(name, rsp_val, rsp_val_type)
@@ -633,7 +633,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         if err_stat ~= nil then
             return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
         else
-            return 0, rsp_sub_oid, rsp_val, rsp_val_type
+            return _M.SNMP_ERR_STAT_NO_ERR, rsp_sub_oid, rsp_val, rsp_val_type
         end
     end
 
@@ -661,11 +661,11 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                 local scalar = group[obj_no]
                 -- Check access
                 if scalar.access == MIB_ACES_UNA then
-                    return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+                    return _M.SNMP_ERR_STAT_NO_ERR, rsp_sub_oid, nil, ASN1_TAG_NO_SUCH_OBJ
                 end
                 -- Check existence
                 if not(#req_sub_oid == 2 and req_sub_oid[2] == 0) then
-                    return ASN1_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
+                    return _M.SNMP_ERR_STAT_NO_ERR, rsp_sub_oid, nil, ASN1_TAG_NO_SUCH_INST
                 end
                 rsp_val, err_stat = scalar.get_f()
                 rsp_val_type = scalar.tag
@@ -676,12 +676,12 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                 local var_no = req_sub_oid[3]
                 local tab = group[table_no]
                 if #req_sub_oid < 3 or tab[entry_no] == nil or tab[entry_no][var_no] == nil then
-                    return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+                    return _M.SNMP_ERR_STAT_NO_ERR, rsp_sub_oid, nil, ASN1_TAG_NO_SUCH_OBJ
                 end
                 -- Check access
                 local variable = tab[entry_no][var_no]
                 if variable.access == MIB_ACES_UNA then
-                    return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+                    return _M.SNMP_ERR_STAT_NO_ERR, rsp_sub_oid, nil, ASN1_TAG_NO_SUCH_OBJ
                 end
                 -- Check instance existence
                 local inst_no
@@ -695,20 +695,20 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
                 end
                 if type(inst_no) == 'number' and inst_no == nil or
                    type(inst_no) == 'table' and next(inst_no) == nil then
-                    return ASN1_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
+                    return _M.SNMP_ERR_STAT_NO_ERR, rsp_sub_oid, nil, ASN1_TAG_NO_SUCH_INST
                 end
                 -- Get instance value
                 rsp_val, err_stat = variable.get_f(inst_no)
                 rsp_val_type = variable.tag
             else
-                return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+                return _M.SNMP_ERR_STAT_NO_ERR, rsp_sub_oid, nil, ASN1_TAG_NO_SUCH_OBJ
             end
         else
-            return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+            return _M.SNMP_ERR_STAT_NO_ERR, rsp_sub_oid, nil, ASN1_TAG_NO_SUCH_OBJ
         end
 
         if rsp_val == nil or rsp_val_type == nil then
-            return ASN1_TAG_NO_SUCH_INST, rsp_sub_oid, nil, nil
+            return _M.SNMP_ERR_STAT_NO_ERR, rsp_sub_oid, nil, ASN1_TAG_NO_SUCH_INST
         end
 
         return_value_check(name, rsp_val, rsp_val_type)
@@ -716,7 +716,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         if err_stat ~= nil then
             return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
         else
-            return 0, rsp_sub_oid, rsp_val, rsp_val_type
+            return _M.SNMP_ERR_STAT_NO_ERR, rsp_sub_oid, rsp_val, rsp_val_type
         end
     end
 
@@ -794,7 +794,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         until rsp_val and rsp_val_type and variable.access ~= MIB_ACES_UNA
 
         if next(rsp_sub_oid) == nil then
-            return ASN1_TAG_NO_SUCH_OBJ, rsp_sub_oid, nil, nil
+            return _M.SNMP_ERR_STAT_NO_ERR, rsp_sub_oid, nil, ASN1_TAG_NO_SUCH_OBJ
         end
 
         return_value_check(name, rsp_val, rsp_val_type)
@@ -802,7 +802,7 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         if err_stat ~= nil then
             return err_stat, rsp_sub_oid, rsp_val, rsp_val_type
         else
-            return 0, rsp_sub_oid, rsp_val, rsp_val_type
+            return _M.SNMP_ERR_STAT_NO_ERR, rsp_sub_oid, rsp_val, rsp_val_type
         end
     end
 
