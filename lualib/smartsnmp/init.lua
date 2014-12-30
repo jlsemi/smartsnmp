@@ -539,7 +539,7 @@ local function return_value_check(g, v, t)
 end
 
 -- Search and operation
-local mib_node_search = function (group, name, op, community, req_sub_oid, req_val, req_val_type)
+local mib_node_search = function (group, name, op, req_sub_oid, req_val, req_val_type)
     local err_stat = nil
     local rsp_sub_oid = nil
     local rsp_val = nil
@@ -561,18 +561,6 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
         rsp_sub_oid = req_sub_oid
         rsp_val = req_val
         rsp_val_type = req_val_type
-
-        -- Priority for local group community string
-        if #community ~= 0 and group.rwcommunity ~= community then
-            -- Global community
-            if _M.rwcommunity ~= nil and _M.rwcommunity ~= '' and _M.rwcommunity ~= community then
-                return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
-            end
-            -- Local community
-            if group.rwcommunity ~= nil and group.rwcommunity ~= '' then
-                return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
-            end
-        end
 
         local obj_no = req_sub_oid[1]
         local dim = effective_object_index(group_index_table, obj_no)
@@ -640,18 +628,6 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
     -- get operation
     handlers[SNMP_REQ_GET] = function ()
         rsp_sub_oid = req_sub_oid
-
-        -- priority for local group community string
-        if #community ~= 0 and group.rocommunity ~= community then
-            -- Global community
-            if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
-                return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
-            end
-            -- Local community
-            if group.rocommunity ~= nil and group.rocommunity ~= '' then
-                return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
-            end
-        end
 
         local obj_no = req_sub_oid[1]
         local dim = effective_object_index(group_index_table, obj_no)
@@ -723,18 +699,6 @@ local mib_node_search = function (group, name, op, community, req_sub_oid, req_v
     -- get next operation
     handlers[SNMP_REQ_GETNEXT] = function ()
         rsp_sub_oid = req_sub_oid
-
-        -- Priority for local group community string
-        if #community ~= 0 and group.rocommunity ~= community then
-            -- Global community
-            if _M.rocommunity ~= nil and _M.rocommunity ~= '' and _M.rocommunity ~= community then
-                return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
-            end
-            -- Local community
-            if group.rocommunity ~= nil and group.rocommunity ~= '' then
-                return _M.SNMP_ERR_STAT_AUTHORIZATION, rsp_sub_oid, rsp_val, rsp_val_type
-            end
-        end
 
         local i = 1
         local variable = nil
@@ -831,21 +795,53 @@ _M.start = function ()
 end
 
 -- set read only community
-_M.set_ro_community = function (s)
-    assert(type(s) == 'string')
-    _M.rocommunity = s
+_M.set_ro_community = function (community, oid)
+    assert(type(community) == 'string')
+    if oid ~= nil then
+        assert(type(oid) == 'table')
+        core.mib_community_reg(oid, community, 1)
+    else
+        core.mib_community_reg({}, community, 1)
+    end
 end
 
 -- set read/write community
-_M.set_rw_community = function (s)
-    assert(type(s) == 'string')
-    _M.rwcommunity = s
+_M.set_rw_community = function (community, oid)
+    assert(type(community) == 'string')
+    if oid ~= nil then
+        assert(type(oid) == 'table')
+        core.mib_community_reg(oid, community, 2)
+    else
+        core.mib_community_reg({}, community, 2)
+    end
+end
+
+-- set read only user
+_M.set_ro_user = function (user, oid)
+    assert(type(user) == 'string')
+    if oid ~= nil then
+        assert(type(oid) == 'table')
+        core.mib_user_reg(oid, user, 1)
+    else
+        core.mib_user_reg({}, user, 1)
+    end
+end
+
+-- set read/write user
+_M.set_rw_user = function (user, oid)
+    assert(type(user) == 'string')
+    if oid ~= nil then
+        assert(type(oid) == 'table')
+        core.mib_user_reg(oid, user, 2)
+    else
+        core.mib_user_reg({}, user, 2)
+    end
 end
 
 -- register a group of snmp mib nodes
 _M.register_mib_group = function (oid, group, name)
-    local mib_search_handler = function (op, community, req_sub_oid, req_val, req_val_type)
-        return mib_node_search(group, name, op, community, req_sub_oid, req_val, req_val_type)
+    local mib_search_handler = function (op, req_sub_oid, req_val, req_val_type)
+        return mib_node_search(group, name, op, req_sub_oid, req_val, req_val_type)
     end
     core.mib_node_reg(oid, mib_search_handler)
 end

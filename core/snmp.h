@@ -103,6 +103,8 @@ struct var_bind {
   uint32_t vb_len;
   uint32_t oid_len;
 
+  /* Number of elements as vb_in,
+   * number of bytes as vb_out. */
   uint32_t value_len;
   uint8_t value_type;
   uint8_t value[0];

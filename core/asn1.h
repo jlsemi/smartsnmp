@@ -62,6 +62,7 @@ typedef unsigned int timeticks_t;
 /* variable as TLV */
 typedef struct {
   uint8_t tag;
+  /* Number of elements according to tag */
   uint16_t len;
   union {
     integer_t i;

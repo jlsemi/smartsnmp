@@ -124,7 +124,7 @@ Then run NET-SNMP master agent:
 Then run the sub-agent at another terminal:
 
     cd smartsnmp
-    ./tests/agentx_deamon.sh
+    ./tests/agentx_daemon.sh
 
 Then run test cases at the third terminal:
 
