@@ -315,11 +315,10 @@ ber_length_enc_try(uint32_t value)
 
 #ifdef LITTLE_ENDIAN
   /* Number zero counts one */
-  i = 1;
-
-  while (i < sizeof(uint32_t) && a.buf[i]) {
+  i = 0;
+  do {
     i++;
-  }
+  } while (i < sizeof(uint32_t) && a.buf[i]);
 
   if (a.tmp > 127) {
     len += 1;
@@ -362,10 +361,10 @@ ber_length_enc(uint32_t value, uint8_t *buf)
 
 #ifdef LITTLE_ENDIAN
   /* Number zero counts one */
-  i = 1;
-  while (i < sizeof(uint32_t) && a.buf[i]) {
+  i = 0;
+  do {
     i++;
-  }
+  } while (i < sizeof(uint32_t) && a.buf[i]);
 
   if (a.tmp > 127) {
     buf[j++] = 0x80 | i;
@@ -377,7 +376,6 @@ ber_length_enc(uint32_t value, uint8_t *buf)
 #else
   /* Number zero counts one */
   i = sizeof(uint32_t) - 1;
-
   while (i > 0 && a.buf[i - 1]) {
     i--;
   }
