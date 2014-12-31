@@ -86,13 +86,21 @@ ber_value_dec_try(const uint8_t *buf, uint32_t len, uint8_t type)
 static uint32_t
 ber_int_dec(const uint8_t *buf, uint32_t len, int *value)
 {
-  uint32_t i = 0;
-
-  while (buf[i] == 0x0) {
-    i++;
-  }
+  uint32_t i, j;
 
   *value = 0;
+
+  if (buf[0] & 0x80) {
+    for (i = 0, j = 0; j < sizeof(int) - len; j++) {
+      *value = (*value << 8) | 0xff;
+    }
+  } else {
+    i = 0;
+    if (!buf[0]) {
+      i++;
+    }
+  }
+
   while (i < len) {
     *value = (*value << 8) | buf[i++];
   }

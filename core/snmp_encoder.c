@@ -41,26 +41,46 @@ ber_int_enc_try(int value)
   len = 0;
 
 #ifdef LITTLE_ENDIAN
-  i = 0;
   /* Number zero counts one */
-  do {
-    i++;
-  } while (i < sizeof(int) && a.buf[i]);
+  i = 1;
 
-  if (a.tmp > 0 && (a.buf[i - 1] & 0x80)) {
-    i++;
+  if (value >= 0) {
+    while (i < sizeof(int) && a.buf[i]) {
+      i++;
+    }
+    if (a.buf[i - 1] & 0x80) {
+      i++;
+    }
+  } else {
+    while (i < sizeof(int) && a.buf[i] != 0xff) {
+      i++;
+    }
+    if (!(a.buf[i - 1] & 0x80)) {
+      i++;
+    }
   }
+
   len = i;
 #else
-  i = sizeof(int) - 1;
   /* Number zero counts one */
-  while (i > 0 && a.buf[i - 1]) {
-    i--;
+  i = sizeof(int) - 1;
+
+  if (value >= 0) {
+    while (i > 0 && a.buf[i - 1]) {
+      i--;
+    }
+    if (a.buf[i] & 0x80) {
+      len += 1;
+    }
+  } else {
+    while (i > 0 && a.buf[i - 1] != 0xff) {
+      i--;
+    }
+    if (!(a.buf[i] & 0x80)) {
+      len += 1;
+    }
   }
 
-  if (a.tmp > 0 && (a.buf[i] & 0x80)) {
-    len += 1;
-  }
   len += sizeof(int) - i;
 #endif
 
@@ -151,26 +171,46 @@ ber_int_enc(int value, uint8_t *buf)
   j = 0;
 
 #ifdef LITTLE_ENDIAN
-  i = 0;
-  do {
-    i++;
-  } while (i < sizeof(int) && a.buf[i]);
+  /* Number zero counts one */
+  i = 1;
 
-  if (a.tmp > 0 && (a.buf[i - 1] & 0x80)) {
-    buf[j++] = 0x0;
+  if (value >= 0) {
+    while (i < sizeof(int) && a.buf[i]) {
+      i++;
+    }
+    if (a.buf[i - 1] & 0x80) {
+      buf[j++] = 0x0;
+    }
+  } else {
+    while (i < sizeof(int) && a.buf[i] != 0xff) {
+      i++;
+    }
+    if (!(a.buf[i - 1] & 0x80)) {
+      buf[j++] = 0xff;
+    }
   }
 
-  while (i) {
+  while (i > 0) {
     buf[j++] = a.buf[--i];
   }
 #else
+  /* Number zero counts one */
   i = sizeof(int) - 1;
-  while (i > 0 && a.buf[i - 1]) {
-    i--;
-  }
 
-  if (a.tmp > 0 && (a.buf[i] & 0x80)) {
-    buf[j++] = 0x0;
+  if (value >= 0) {
+    while (i > 0 && a.buf[i - 1]) {
+      i--;
+    }
+    if (a.buf[i] & 0x80) {
+      buf[j++] = 0x0;
+    }
+  } else {
+    while (i > 0 && a.buf[i - 1] != 0xff) {
+      i--;
+    }
+    if (!(a.buf[i] & 0x80)) {
+      buf[j++] = 0xff;
+    }
   }
 
   while (i < sizeof(int)) {
@@ -274,18 +314,22 @@ ber_length_enc_try(uint32_t value)
   len = 0;
 
 #ifdef LITTLE_ENDIAN
-  i = 0;
   /* Number zero counts one */
-  do {
-    i++;
-  } while (i < sizeof(uint32_t) && a.buf[i]);
+  i = 1;
 
-  if (a.tmp > 127)
+  while (i < sizeof(uint32_t) && a.buf[i]) {
+    i++;
+  }
+
+  if (a.tmp > 127) {
     len += 1;
+  }
+
   len += i;
 #else
-  i = sizeof(uint32_t) - 1;
   /* Number zero counts one */
+  i = sizeof(uint32_t) - 1;
+
   while (i > 0 && a.buf[i - 1]) {
     i--;
   }
@@ -293,6 +337,7 @@ ber_length_enc_try(uint32_t value)
   if (a.tmp > 127) {
     len += 1;
   }
+
   len += (sizeof(uint32_t) - i);
 #endif
 
@@ -316,11 +361,11 @@ ber_length_enc(uint32_t value, uint8_t *buf)
   j = 0;
 
 #ifdef LITTLE_ENDIAN
-  i = 0;
   /* Number zero counts one */
-  do {
+  i = 1;
+  while (i < sizeof(uint32_t) && a.buf[i]) {
     i++;
-  } while (i < sizeof(uint32_t) && a.buf[i]);
+  }
 
   if (a.tmp > 127) {
     buf[j++] = 0x80 | i;
@@ -330,8 +375,9 @@ ber_length_enc(uint32_t value, uint8_t *buf)
     buf[j++] = a.buf[--i];
   }
 #else
-  i = sizeof(uint32_t) - 1;
   /* Number zero counts one */
+  i = sizeof(uint32_t) - 1;
+
   while (i > 0 && a.buf[i - 1]) {
     i--;
   }
