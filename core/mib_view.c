@@ -35,7 +35,6 @@ mib_view_search(const oid_t *oid, uint32_t id_len)
 {
   struct mib_view *v;
 
-  assert(oid != NULL);
   for (v = mib_views; v != NULL; v = v->next) {
     if (!oid_cmp(v->oid, v->id_len, oid, id_len)) {
       return v;
@@ -187,6 +186,7 @@ mib_community_unreg(const char *community, MIB_ACES_ATTR_E attribute)
   struct mib_community **cc = &mib_communities;
 
   assert(community != NULL);
+
   while (*cc != NULL) {
     struct mib_community *c = *cc;
     if (!strcmp(c->name, community)) {
@@ -212,10 +212,11 @@ mib_community_search(const char *community)
 {
   struct mib_community *c;
 
-  assert(community != NULL);
-  for (c = mib_communities; c != NULL; c = c->next) {
-    if (!strcmp(c->name, community)) {
-      return c;
+  if (community != NULL) {
+    for (c = mib_communities; c != NULL; c = c->next) {
+      if (!strcmp(c->name, community)) {
+        return c;
+      }
     }
   }
 
@@ -227,20 +228,20 @@ mib_community_view_cover(struct mib_community *c, MIB_ACES_ATTR_E attribute, con
 {
   struct list_head *pos, *views;
 
-  assert(c != NULL);
+  if (c != NULL) {
+    /* Access attribute */
+    if (attribute == MIB_ACES_READ) {
+      views = &c->ro_views;
+    } else {
+      views = &c->rw_views;
+    }
 
-  /* Access attribute */
-  if (attribute == MIB_ACES_READ) {
-    views = &c->ro_views;
-  } else {
-    views = &c->rw_views;
-  }
-
-  list_for_each(pos, views) {
-    struct community_view *cv = list_entry(pos, struct community_view, clink);
-    struct mib_view *v = cv->view;
-    if (oid_cover(v->oid, v->id_len, oid, id_len) > 0) {
-      return 1;
+    list_for_each(pos, views) {
+      struct community_view *cv = list_entry(pos, struct community_view, clink);
+      struct mib_view *v = cv->view;
+      if (oid_cover(v->oid, v->id_len, oid, id_len) > 0) {
+        return 1;
+      }
     }
   }
 
@@ -252,28 +253,28 @@ mib_community_next_view(struct mib_community *c, MIB_ACES_ATTR_E attribute, stru
 {
   struct list_head *pos, *views;
 
-  assert(c != NULL);
+  if (c != NULL) {
+    /* Access attribute */
+    if (attribute == MIB_ACES_READ) {
+      views = &c->ro_views;
+    } else {
+      views = &c->rw_views;
+    }
 
-  /* Access attribute */
-  if (attribute == MIB_ACES_READ) {
-    views = &c->ro_views;
-  } else {
-    views = &c->rw_views;
-  }
-
-  list_for_each(pos, views) {
-    struct community_view *cv = list_entry(pos, struct community_view, clink);
-    if (v == NULL) {
-      /* Return first view */
-      pos = views->next;
-      cv = list_entry(pos, struct community_view, clink);
-      return cv->view;
-    } else if (v == cv->view) {
-      if (!list_is_last(&cv->clink, views)) {
-        /* Return next view */
-        pos = cv->clink.next;
+    list_for_each(pos, views) {
+      struct community_view *cv = list_entry(pos, struct community_view, clink);
+      if (v == NULL) {
+        /* Return first view */
+        pos = views->next;
         cv = list_entry(pos, struct community_view, clink);
         return cv->view;
+      } else if (v == cv->view) {
+        if (!list_is_last(&cv->clink, views)) {
+          /* Return next view */
+          pos = cv->clink.next;
+          cv = list_entry(pos, struct community_view, clink);
+          return cv->view;
+        }
       }
     }
   }
@@ -404,6 +405,7 @@ mib_user_unreg(const char *user, MIB_ACES_ATTR_E attribute)
   struct mib_user **uu = &mib_users;
 
   assert(user != NULL);
+
   while (*uu != NULL) {
     struct mib_user *u = *uu;
     if (!strcmp(u->name, user)) {
@@ -429,10 +431,11 @@ mib_user_search(const char *user)
 {
   struct mib_user *u;
 
-  assert(user != NULL);
-  for (u = mib_users; u != NULL; u = u->next) {
-    if (!strcmp(u->name, user)) {
-      return u;
+  if (user != NULL) {
+    for (u = mib_users; u != NULL; u = u->next) {
+      if (!strcmp(u->name, user)) {
+        return u;
+      }
     }
   }
 
@@ -444,20 +447,20 @@ mib_user_view_cover(struct mib_user *u, MIB_ACES_ATTR_E attribute, const oid_t *
 {
   struct list_head *pos, *views;
 
-  assert(u != NULL);
+  if (u != NULL) {
+    /* Access attribute */
+    if (attribute == MIB_ACES_READ) {
+      views = &u->ro_views;
+    } else {
+      views = &u->rw_views;
+    }
 
-  /* Access attribute */
-  if (attribute == MIB_ACES_READ) {
-    views = &u->ro_views;
-  } else {
-    views = &u->rw_views;
-  }
-
-  list_for_each(pos, views) {
-    struct user_view *uv = list_entry(pos, struct user_view, ulink);
-    struct mib_view *v = uv->view;
-    if (oid_cover(v->oid, v->id_len, oid, id_len) > 0) {
-      return 1;
+    list_for_each(pos, views) {
+      struct user_view *uv = list_entry(pos, struct user_view, ulink);
+      struct mib_view *v = uv->view;
+      if (oid_cover(v->oid, v->id_len, oid, id_len) > 0) {
+        return 1;
+      }
     }
   }
 
@@ -469,28 +472,28 @@ mib_user_next_view(struct mib_user *u, MIB_ACES_ATTR_E attribute, struct mib_vie
 {
   struct list_head *pos, *views;
 
-  assert(u != NULL);
+  if (u != NULL) {
+    /* Access attribute */
+    if (attribute == MIB_ACES_READ) {
+      views = &u->ro_views;
+    } else {
+      views = &u->rw_views;
+    }
 
-  /* Access attribute */
-  if (attribute == MIB_ACES_READ) {
-    views = &u->ro_views;
-  } else {
-    views = &u->rw_views;
-  }
-
-  list_for_each(pos, views) {
-    struct user_view *uv = list_entry(pos, struct user_view, ulink);
-    if (v == NULL) {
-      /* Return first view */
-      pos = views->next;
-      uv = list_entry(pos, struct user_view, ulink);
-      return uv->view;
-    } else if (v == uv->view) {
-      if (!list_is_last(&uv->ulink, views)) {
-        /* Return next view */
-        pos = uv->ulink.next;
+    list_for_each(pos, views) {
+      struct user_view *uv = list_entry(pos, struct user_view, ulink);
+      if (v == NULL) {
+        /* Return first view */
+        pos = views->next;
         uv = list_entry(pos, struct user_view, ulink);
         return uv->view;
+      } else if (v == uv->view) {
+        if (!list_is_last(&uv->ulink, views)) {
+          /* Return next view */
+          pos = uv->ulink.next;
+          uv = list_entry(pos, struct user_view, ulink);
+          return uv->view;
+        }
       }
     }
   }
