@@ -20,7 +20,9 @@ import sys
 
 sys.path.append(os.path.join(os.getcwd(), "scons_tools"))
 
+from SCons.SConf import SConfError
 from select_probe import *
+from endian_probe import *
 from kqueue_probe import *
 from epoll_probe import *
 
@@ -116,7 +118,7 @@ AddOption(
 env = Environment(
   ENV = os.environ,
   LIBS = ['m', 'dl'],
-  CFLAGS = ['-std=c99', '-Wall', '-Os'],
+  CFLAGS = ['-std=c99', '-Wall'],
 )
 
 # handle options/environment varibles.
@@ -177,7 +179,16 @@ else:
   Exit(1)
 
 # autoconf
-conf = Configure(env, custom_tests = {'CheckEpoll' : CheckEpoll, 'CheckSelect' : CheckSelect, 'CheckKqueue' : CheckKqueue})
+conf = Configure(env, custom_tests = {'CheckEpoll' : CheckEpoll, 'CheckSelect' : CheckSelect, 'CheckKqueue' : CheckKqueue, 'CheckEndian' : CheckEndian})
+
+# Endian check
+endian = conf.CheckEndian()
+if endian == 'Big':
+  env.Append(CFLAGS = ["-DBIG_ENDIAN"])
+elif endian == 'Little':
+  env.Append(CFLAGS = ["-DLITTLE_ENDIAN"])
+else:
+  raise SConfError("Error when testing the endian.")
 
 # built-in event loop check
 if GetOption("transport") == 'built-in' or GetOption("transport") == '':

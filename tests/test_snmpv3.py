@@ -44,6 +44,8 @@ class SNMPv3TestCase(unittest.TestCase, SmartSNMPTestCmd):
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPWrongType(), version = '3')
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888), version = '3')
 		self.snmpset_expect(".1.3.6.1.2.1.4.0", Integer(8888), SNMPNotWritable(), version = '3')
+		# Set as nagative integer
+		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(-40000), Integer(-40000), version = '3')
 
 	@snmp_before_check
 	def test_snmpv3walk(self):

@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include "asn1.h"
-#include "snmp.h"
 
 /* Input:  integer value
  * Output: none
@@ -32,21 +31,60 @@
 static uint32_t
 ber_int_enc_try(int value)
 {
-  uint32_t i = sizeof(int);
+  uint32_t i, len;
   union anonymous {
     uint8_t buf[sizeof(int)];
     int tmp;
   } a;
 
   a.tmp = value;
+  len = 0;
 
-  while (!a.buf[i - 1] && i > 1)
-    i--;
+#ifdef LITTLE_ENDIAN
+  /* Number zero counts one */
+  i = 1;
 
-  if (a.tmp > 0 && (a.buf[i - 1] & 0x80))
-    i++;
+  if (value >= 0) {
+    while (i < sizeof(int) && a.buf[i]) {
+      i++;
+    }
+    if (a.buf[i - 1] & 0x80) {
+      i++;
+    }
+  } else {
+    while (i < sizeof(int) && a.buf[i] != 0xff) {
+      i++;
+    }
+    if (!(a.buf[i - 1] & 0x80)) {
+      i++;
+    }
+  }
 
-  return i;
+  len = i;
+#else
+  /* Number zero counts one */
+  i = sizeof(int) - 1;
+
+  if (value >= 0) {
+    while (i > 0 && a.buf[i - 1]) {
+      i--;
+    }
+    if (a.buf[i] & 0x80) {
+      len += 1;
+    }
+  } else {
+    while (i > 0 && a.buf[i - 1] != 0xff) {
+      i--;
+    }
+    if (!(a.buf[i] & 0x80)) {
+      len += 1;
+    }
+  }
+
+  len += sizeof(int) - i;
+#endif
+
+  return len;
 }
 
 /* Input:  oid pointer, number of elements
@@ -123,27 +161,64 @@ ber_value_enc_try(const void *value, uint32_t len, uint8_t type)
 static uint32_t
 ber_int_enc(int value, uint8_t *buf)
 {
-  uint32_t i = sizeof(int), j = 0, len;
+  uint32_t i, j;
   union anonymous {
     uint8_t buf[sizeof(int)];
     int tmp;
   } a;
 
   a.tmp = value;
+  j = 0;
 
-  while (!a.buf[i - 1] && i > 1)
-    i--;
+#ifdef LITTLE_ENDIAN
+  /* Number zero counts one */
+  i = 1;
 
-  if (a.tmp > 0 && (a.buf[i - 1] & 0x80))
-    i++;
-
-  len = i;
-
-  while (i) {
-    buf[j++] = a.buf[--i];
+  if (value >= 0) {
+    while (i < sizeof(int) && a.buf[i]) {
+      i++;
+    }
+    if (a.buf[i - 1] & 0x80) {
+      buf[j++] = 0x0;
+    }
+  } else {
+    while (i < sizeof(int) && a.buf[i] != 0xff) {
+      i++;
+    }
+    if (!(a.buf[i - 1] & 0x80)) {
+      buf[j++] = 0xff;
+    }
   }
 
-  return len;
+  while (i > 0) {
+    buf[j++] = a.buf[--i];
+  }
+#else
+  /* Number zero counts one */
+  i = sizeof(int) - 1;
+
+  if (value >= 0) {
+    while (i > 0 && a.buf[i - 1]) {
+      i--;
+    }
+    if (a.buf[i] & 0x80) {
+      buf[j++] = 0x0;
+    }
+  } else {
+    while (i > 0 && a.buf[i - 1] != 0xff) {
+      i--;
+    }
+    if (!(a.buf[i] & 0x80)) {
+      buf[j++] = 0xff;
+    }
+  }
+
+  while (i < sizeof(int)) {
+    buf[j++] = a.buf[i++];
+  }
+#endif
+
+  return j;
 }
 
 /* Input:  oid pointer, number of elements
@@ -229,22 +304,41 @@ ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf)
 uint32_t
 ber_length_enc_try(uint32_t value)
 {
-  uint32_t i = 0, len = 0;
+  uint32_t i, len;
   union anonymous {
     uint8_t buf[sizeof(uint32_t)];
     uint32_t tmp;
   } a;
 
   a.tmp = value;
+  len = 0;
 
+#ifdef LITTLE_ENDIAN
+  /* Number zero counts one */
+  i = 0;
   do {
     i++;
-  } while (i < 4 && a.buf[i]);
+  } while (i < sizeof(uint32_t) && a.buf[i]);
 
-  if (a.tmp > 127)
+  if (a.tmp > 127) {
     len += 1;
+  }
 
   len += i;
+#else
+  /* Number zero counts one */
+  i = sizeof(uint32_t) - 1;
+
+  while (i > 0 && a.buf[i - 1]) {
+    i--;
+  }
+
+  if (a.tmp > 127) {
+    len += 1;
+  }
+
+  len += (sizeof(uint32_t) - i);
+#endif
 
   return len;
 }
@@ -256,28 +350,44 @@ ber_length_enc_try(uint32_t value)
 uint32_t
 ber_length_enc(uint32_t value, uint8_t *buf)
 {
-  uint32_t i = 0, j = 0, len = 0;
+  uint32_t i, j;
   union anonymous {
     uint8_t buf[sizeof(uint32_t)];
     uint32_t tmp;
   } a;
 
   a.tmp = value;
+  j = 0;
 
+#ifdef LITTLE_ENDIAN
+  /* Number zero counts one */
+  i = 0;
   do {
     i++;
   } while (i < sizeof(uint32_t) && a.buf[i]);
 
   if (a.tmp > 127) {
     buf[j++] = 0x80 | i;
-    len += 1;
   }
-
-  len += i;
 
   while (i) {
     buf[j++] = a.buf[--i];
   }
+#else
+  /* Number zero counts one */
+  i = sizeof(uint32_t) - 1;
+  while (i > 0 && a.buf[i - 1]) {
+    i--;
+  }
 
-  return len;
+  if (a.tmp > 127) {
+    buf[j++] = 0x80 | (sizeof(uint32_t) - i);
+  }
+
+  while (i < sizeof(uint32_t)) {
+    buf[j++] = a.buf[i++];
+  }
+#endif
+
+  return j;
 }

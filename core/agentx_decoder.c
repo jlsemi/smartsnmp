@@ -46,11 +46,7 @@ agentx_value_dec_try(const uint8_t *buf, uint8_t flag, uint8_t type)
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
     case ASN1_TAG_OPAQ:
-      if (flag & NETWORD_BYTE_ORDER) {
-        ret = NTOH32(*(uint32_t *)buf);
-      } else {
-        ret = *(uint32_t *)buf;
-      }
+      ret = *(uint32_t *)buf;
       break;
     case ASN1_TAG_OBJID:
       ret = *buf;
@@ -90,22 +86,14 @@ agentx_value_dec(uint8_t **buffer, uint8_t flag, uint8_t type, void *value)
     case ASN1_TAG_TIMETICKS:
       inter_src = (uint32_t *)buf;
       inter_dest = (uint32_t *)value;
-      if (flag & NETWORD_BYTE_ORDER) {
-        *inter_dest = NTOH32(*inter_src);
-      } else {
-        *inter_dest = *inter_src;
-      }
+      *inter_dest = *inter_src;
       buf += sizeof(uint32_t);
       ret = 1;
       break;
     case ASN1_TAG_CNT64:
       long_src = (uint64_t *)buf;
       long_dest = (uint64_t *)value;
-      if (flag & NETWORD_BYTE_ORDER) {
-        *long_dest = NTOH64(*long_src);
-      } else {
-        *long_dest = *long_src;
-      }
+      *long_dest = *long_src;
       buf += sizeof(uint64_t);
       ret = 1;
       break;
@@ -133,11 +121,7 @@ agentx_value_dec(uint8_t **buffer, uint8_t flag, uint8_t type, void *value)
       oid_dest[3] = 1;
       oid_dest[4] = prefix;
       for (i = 5; i < ret; i++) {
-        if (flag & NETWORD_BYTE_ORDER) {
-          oid_dest[i] = NTOH32(oid_src[i - 5]);
-        } else {
-          oid_dest[i] = oid_src[i - 5];
-        }
+        oid_dest[i] = oid_src[i - 5];
         buf += sizeof(uint32_t);
       }
       break;
