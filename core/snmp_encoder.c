@@ -41,40 +41,38 @@ ber_int_enc_try(int value)
   len = 0;
 
 #ifdef LITTLE_ENDIAN
-  /* Number zero counts one */
-  i = 1;
-
-  if (value >= 0) {
-    while (i < sizeof(int) && a.buf[i]) {
-      i++;
-    }
-    if (a.buf[i - 1] & 0x80) {
-      i++;
-    }
-  } else {
-    while (i < sizeof(int) && a.buf[i] != 0xff) {
-      i++;
-    }
-    if (!(a.buf[i - 1] & 0x80)) {
-      i++;
-    }
-  }
-
-  len = i;
-#else
-  /* Number zero counts one */
   i = sizeof(int) - 1;
 
   if (value >= 0) {
-    while (i > 0 && a.buf[i - 1]) {
+    while (i > 0 && !a.buf[i]) {
       i--;
     }
     if (a.buf[i] & 0x80) {
       len += 1;
     }
   } else {
-    while (i > 0 && a.buf[i - 1] != 0xff) {
+    while (i > 0 && a.buf[i] == 0xff) {
       i--;
+    }
+    if (!(a.buf[i] & 0x80)) {
+      len += 1;
+    }
+  }
+
+  len += i + 1;
+#else
+  i = 0;
+
+  if (value >= 0) {
+    while (i < sizeof(int) && !a.buf[i]) {
+      i++;
+    }
+    if (a.buf[i] & 0x80) {
+      len += 1;
+    }
+  } else {
+    while (i < sizeof(int) && a.buf[i] == 0xff) {
+      i++;
     }
     if (!(a.buf[i] & 0x80)) {
       len += 1;
@@ -161,7 +159,7 @@ ber_value_enc_try(const void *value, uint32_t len, uint8_t type)
 static uint32_t
 ber_int_enc(int value, uint8_t *buf)
 {
-  uint32_t i, j;
+  int i, j;
   union anonymous {
     uint8_t buf[sizeof(int)];
     int tmp;
@@ -171,42 +169,41 @@ ber_int_enc(int value, uint8_t *buf)
   j = 0;
 
 #ifdef LITTLE_ENDIAN
-  /* Number zero counts one */
-  i = 1;
-
-  if (value >= 0) {
-    while (i < sizeof(int) && a.buf[i]) {
-      i++;
-    }
-    if (a.buf[i - 1] & 0x80) {
-      buf[j++] = 0x0;
-    }
-  } else {
-    while (i < sizeof(int) && a.buf[i] != 0xff) {
-      i++;
-    }
-    if (!(a.buf[i - 1] & 0x80)) {
-      buf[j++] = 0xff;
-    }
-  }
-
-  while (i > 0) {
-    buf[j++] = a.buf[--i];
-  }
-#else
-  /* Number zero counts one */
   i = sizeof(int) - 1;
 
   if (value >= 0) {
-    while (i > 0 && a.buf[i - 1]) {
+    while (i > 0 && !a.buf[i]) {
       i--;
     }
     if (a.buf[i] & 0x80) {
       buf[j++] = 0x0;
     }
   } else {
-    while (i > 0 && a.buf[i - 1] != 0xff) {
+    while (i > 0 && a.buf[i] == 0xff) {
       i--;
+    }
+    if (!(a.buf[i] & 0x80)) {
+      buf[j++] = 0xff;
+    }
+  }
+
+  while (i >= 0) {
+    buf[j++] = a.buf[i--];
+  }
+#else
+  /* Number zero counts one */
+  i = 0;
+
+  if (value >= 0) {
+    while (i < sizeof(int) && !a.buf[i]) {
+      i++;
+    }
+    if (a.buf[i] & 0x80) {
+      buf[j++] = 0x0;
+    }
+  } else {
+    while (i < sizeof(int) && a.buf[i] == 0xff) {
+      i++;
     }
     if (!(a.buf[i] & 0x80)) {
       buf[j++] = 0xff;
