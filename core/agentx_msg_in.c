@@ -43,6 +43,8 @@ static struct err_msg_map agentx_err_msg[] = {
   { AGENTX_ERR_SR_OID_LEN, "AgentX search range oid length exceeds!" },
 };
 
+static oid_t agentx_dummy_view[] = { 1, 3, 6, 1 };
+
 static struct x_var_bind *
 vb_new(uint32_t oid_len, uint32_t val_len)
 {
@@ -141,17 +143,20 @@ agentx_get(struct agentx_datagram *xdg)
   struct x_var_bind *vb_out;
   struct x_search_range *sr_in;
   struct oid_search_res ret_oid;
+  struct mib_view view;
 
   memset(&ret_oid, 0, sizeof(ret_oid));
   ret_oid.request = MIB_REQ_GET; 
-  ret_oid.context = xdg->context; 
+
+  view.oid = agentx_dummy_view;
+  view.id_len = elem_num(agentx_dummy_view);
 
   list_for_each_safe(curr, next, &xdg->sr_in_list) {
     sr_in = list_entry(curr, struct x_search_range, link);
     sr_in_cnt++;
 
     /* Search at the input oid */
-    mib_tree_search(sr_in->start, sr_in->start_len, &ret_oid);
+    mib_tree_search(&view, sr_in->start, sr_in->start_len, &ret_oid);
 
     val_len = agentx_value_enc_try(length(&ret_oid.var), tag(&ret_oid.var));
     vb_out = xmalloc(sizeof(*vb_out) + val_len);
@@ -186,10 +191,13 @@ agentx_getnext(struct agentx_datagram *xdg)
   struct x_var_bind *vb_out;
   struct x_search_range *sr_in;
   struct oid_search_res ret_oid;
+  struct mib_view view;
 
   memset(&ret_oid, 0, sizeof(ret_oid));
   ret_oid.request = MIB_REQ_GETNEXT;
-  ret_oid.context = xdg->context; 
+
+  view.oid = agentx_dummy_view;
+  view.id_len = elem_num(agentx_dummy_view);
 
   list_for_each_safe(curr, next, &xdg->sr_in_list) {
     sr_in = list_entry(curr, struct x_search_range, link);
@@ -197,7 +205,7 @@ agentx_getnext(struct agentx_datagram *xdg)
 
     /* Search the included start oid */
     if (sr_in->start_include) {
-      mib_tree_search(sr_in->start, sr_in->start_len, &ret_oid);
+      mib_tree_search(&view, sr_in->start, sr_in->start_len, &ret_oid);
       if (ret_oid.err_stat || !MIB_TAG_VALID(tag(&ret_oid.var))) {
         /* Invalid query */
         free(ret_oid.oid);
@@ -206,7 +214,7 @@ agentx_getnext(struct agentx_datagram *xdg)
     
     /* If start oid not included or not exist, search the next one */
     if (!sr_in->start_include || ret_oid.err_stat || !MIB_TAG_VALID(tag(&ret_oid.var))) {
-      mib_tree_search_next(sr_in->start, sr_in->start_len, &ret_oid);
+      mib_tree_search_next(&view, sr_in->start, sr_in->start_len, &ret_oid);
       if (!ret_oid.err_stat && MIB_TAG_VALID(tag(&ret_oid.var))) {
         /* Check whether return oid exceeds end oid */
         if ((sr_in->end_include && oid_cmp(ret_oid.oid, ret_oid.id_len, sr_in->end, sr_in->end_len) > 0) ||
@@ -253,10 +261,13 @@ agentx_set(struct agentx_datagram *xdg)
   struct list_head *curr, *next;
   struct x_var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
+  struct mib_view view;
 
   memset(&ret_oid, 0, sizeof(ret_oid));
   ret_oid.request = MIB_REQ_SET;
-  ret_oid.context = xdg->context; 
+
+  view.oid = agentx_dummy_view;
+  view.id_len = elem_num(agentx_dummy_view);
 
   list_for_each_safe(curr, next, &xdg->vb_in_list) {
     vb_in = list_entry(curr, struct x_var_bind, link);
@@ -269,7 +280,7 @@ agentx_set(struct agentx_datagram *xdg)
     memcpy(value(&ret_oid.var), vb_in->value, val_len);
 
     /* Search at the input oid and set it */
-    mib_tree_search(vb_in->oid, vb_in->oid_len, &ret_oid);
+    mib_tree_search(&view, vb_in->oid, vb_in->oid_len, &ret_oid);
     
     vb_out = xmalloc(sizeof(*vb_out) + vb_in->val_len);
     vb_out->oid = ret_oid.oid;
