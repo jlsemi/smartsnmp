@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "agentx.h"
+#include "asn1.h"
 #include "util.h"
 
 /* Input:  buffer, byte length, value type;
@@ -45,7 +45,6 @@ agentx_value_dec_try(const uint8_t *buf, uint8_t flag, uint8_t type)
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
-    case ASN1_TAG_OPAQ:
       ret = *(uint32_t *)buf;
       break;
     case ASN1_TAG_OBJID:
@@ -99,7 +98,6 @@ agentx_value_dec(uint8_t **buffer, uint8_t flag, uint8_t type, void *value)
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
-    case ASN1_TAG_OPAQ:
       ret = *(uint32_t *)buf;
       buf += 4;
       memcpy(value, buf, ret);

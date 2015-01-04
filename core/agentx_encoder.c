@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "agentx.h"
+#include "asn1.h"
 
 /* Input:  value pointer, number of elements, value type
  * Output: none
@@ -48,7 +48,6 @@ agentx_value_enc_try(uint32_t len, uint8_t type)
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
-    case ASN1_TAG_OPAQ:
       ret = len;
       break;
     default:
@@ -98,7 +97,6 @@ agentx_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf)
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
-    case ASN1_TAG_OPAQ:
       str = (uint8_t *)value;
       memcpy(buf, str, len);
       ret = len;

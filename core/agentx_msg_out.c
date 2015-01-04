@@ -396,7 +396,6 @@ agentx_response_pdu(struct agentx_datagram *xdg)
         break;
       case ASN1_TAG_OCTSTR:
       case ASN1_TAG_IPADDR:
-      case ASN1_TAG_OPAQ:
         len += sizeof(uint32_t) + uint_sizeof(vb_out->val_len);
         break;
       case ASN1_TAG_OBJID:
@@ -470,7 +469,6 @@ agentx_response_pdu(struct agentx_datagram *xdg)
         break;
       case ASN1_TAG_OCTSTR:
       case ASN1_TAG_IPADDR:
-      case ASN1_TAG_OPAQ:
         octstr = (struct x_octstr_t *)buf;
         octstr->len = vb_out->val_len;
         memcpy(octstr->str, vb_out->value, vb_out->val_len);
