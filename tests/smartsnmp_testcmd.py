@@ -223,23 +223,3 @@ class SmartSNMPTestCmd:
 		self.agentx.close(force = True)
 		self.netsnmp.close(force = True)
 		time.sleep(1)
-
-def snmp_before_check(test_func):
-	@wraps(test_func)
-	def wrapper(daemon):
-		if daemon.snmp.isalive() == False:
-			daemon.snmp.read()
-			raise Exception("SNMP daemon start error!")
-		else:
-			test_func(daemon)
-	return wrapper
-
-def agentx_before_check(test_func):
-	@wraps(test_func)
-	def wrapper(daemon):
-		if daemon.agentx.isalive() == False:
-			daemon.agentx.read()
-			raise Exception("AgentX daemon start error!")
-		else:
-			test_func(daemon)
-	return wrapper
