@@ -50,19 +50,16 @@ agentx_open_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len,
   ph = (struct x_pdu_hdr *)buf;
   ph->version = 1;
   ph->type = AGENTX_PDU_OPEN;
-  ph->flags = xdg->pdu_hdr.flags;
-  xdg->pdu_hdr.packet_id += 1;
-  if (ph->flags & NETWORD_BYTE_ORDER) {
-    ph->session_id = HTON32(xdg->pdu_hdr.session_id);
-    ph->transaction_id = HTON32(xdg->pdu_hdr.transaction_id);
-    ph->packet_id = HTON32(xdg->pdu_hdr.packet_id);
-    ph->payload_length = HTON32(len - sizeof(*ph));
-  } else {
-    ph->session_id = xdg->pdu_hdr.session_id;
-    ph->transaction_id = xdg->pdu_hdr.transaction_id;
-    ph->packet_id = xdg->pdu_hdr.packet_id;
-    ph->payload_length = len - sizeof(*ph);
-  }
+#ifdef LITTLE_ENDIAN
+  ph->flags = 0;
+#else
+  ph->flags = NETWORD_BYTE_ORDER;
+#endif
+  ph->session_id = xdg->pdu_hdr.session_id;
+  ph->transaction_id = xdg->pdu_hdr.transaction_id;
+  ph->packet_id = 1;
+  ph->payload_length = len - sizeof(*ph);
+
   /* time out == 0 */
   buf += sizeof(*ph) + sizeof(*timeout);
 
@@ -72,22 +69,14 @@ agentx_open_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len,
   objid->prefix = oid_len == 0 ? 0 : oid[4];
   objid->include = 0;
   for (i = 5; i < oid_len; i++) {
-    if (ph->flags & NETWORD_BYTE_ORDER) {
-      objid->sub_id[i - 5] = HTON32(oid[i]);
-    } else {
-      objid->sub_id[i - 5] = oid[i];
-    }
+    objid->sub_id[i - 5] = oid[i];
   }
   buf += 4;
   buf += oid_len == 0 ? 0 : (oid_len - 5) * sizeof(uint32_t);
 
   /* octet string */
   octstr = (struct x_octstr_t *)buf;
-  if (ph->flags & NETWORD_BYTE_ORDER) {
-    octstr->len = HTON32(descr_len);
-  } else {
-    octstr->len = descr_len;
-  } 
+  octstr->len = descr_len;
   memcpy(octstr->str, descr, strlen(descr));
 
   x_pdu.buf = pdu;
@@ -114,25 +103,14 @@ agentx_close_pdu(struct agentx_datagram *xdg, uint32_t reason)
   ph->type = AGENTX_PDU_CLOSE;
   ph->flags = xdg->pdu_hdr.flags;
   xdg->pdu_hdr.packet_id += 1;
-  if (ph->flags & NETWORD_BYTE_ORDER) {
-    ph->session_id = HTON32(xdg->pdu_hdr.session_id);
-    ph->transaction_id = HTON32(xdg->pdu_hdr.transaction_id);
-    ph->packet_id = HTON32(xdg->pdu_hdr.packet_id);
-    ph->payload_length = HTON32(len - sizeof(*ph));
-  } else {
-    ph->session_id = xdg->pdu_hdr.session_id;
-    ph->transaction_id = xdg->pdu_hdr.transaction_id;
-    ph->packet_id = xdg->pdu_hdr.packet_id;
-    ph->payload_length = len - sizeof(*ph);
-  }
+  ph->session_id = xdg->pdu_hdr.session_id;
+  ph->transaction_id = xdg->pdu_hdr.transaction_id;
+  ph->packet_id = xdg->pdu_hdr.packet_id;
+  ph->payload_length = len - sizeof(*ph);
   buf += sizeof(*ph);
 
   /* close reason */
-  if (ph->flags & NETWORD_BYTE_ORDER) {
-    *(uint32_t *)buf = HTON32(reason);
-  } else {
-    *(uint32_t *)buf = reason;
-  }
+  *(uint32_t *)buf = reason;
 
   x_pdu.buf = pdu;
   x_pdu.len = len;
@@ -140,7 +118,7 @@ agentx_close_pdu(struct agentx_datagram *xdg, uint32_t reason)
 }
 
 struct x_pdu_buf
-agentx_register_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len, const char *community, uint32_t comm_len,
+agentx_register_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len, const char *context, uint32_t ctx_len,
                     uint8_t timeout, uint8_t priority, uint8_t range_subid, uint32_t upper_bound)
 {
   uint8_t i, *pdu, *buf;
@@ -150,13 +128,13 @@ agentx_register_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_
   struct x_objid_t *objid;
   struct x_octstr_t *octstr;
 
-  assert(oid_len > 4 && oid_len + 5 <= MIB_OID_MAX_LEN && comm_len <= 40);
-  comm_len = uint_sizeof(comm_len);
+  assert(oid_len > 4 && oid_len + 5 <= MIB_OID_MAX_LEN && ctx_len <= 40);
+  ctx_len = uint_sizeof(ctx_len);
 
   /* PDU length */
   len = sizeof(*ph);
-  if (comm_len) {
-    len += 4 + comm_len;
+  if (ctx_len) {
+    len += 4 + ctx_len;
   }
   len += 4 + 4 + (oid_len - 5) * sizeof(uint32_t);
   if (range_subid) {
@@ -171,29 +149,18 @@ agentx_register_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_
   ph->type = AGENTX_PDU_REG;
   ph->flags = xdg->pdu_hdr.flags | INSTANCE_REGISTRATION;
   xdg->pdu_hdr.packet_id += 1;
-  if (ph->flags & NETWORD_BYTE_ORDER) {
-    ph->session_id = HTON32(xdg->pdu_hdr.session_id);
-    ph->transaction_id = HTON32(xdg->pdu_hdr.transaction_id);
-    ph->packet_id = HTON32(xdg->pdu_hdr.packet_id);
-    ph->payload_length = HTON32(len - sizeof(*ph));
-  } else {
-    ph->session_id = xdg->pdu_hdr.session_id;
-    ph->transaction_id = xdg->pdu_hdr.transaction_id;
-    ph->packet_id = xdg->pdu_hdr.packet_id;
-    ph->payload_length = len - sizeof(*ph);
-  }
+  ph->session_id = xdg->pdu_hdr.session_id;
+  ph->transaction_id = xdg->pdu_hdr.transaction_id;
+  ph->packet_id = xdg->pdu_hdr.packet_id;
+  ph->payload_length = len - sizeof(*ph);
   buf = (uint8_t *)pdu + sizeof(*ph);
 
-  /* community string */
-  if (comm_len > 0) {
+  /* context string */
+  if (ctx_len > 0) {
     octstr = (struct x_octstr_t *)buf;
-    if (ph->flags & NETWORD_BYTE_ORDER) {
-      octstr->len = HTON32(comm_len);
-    } else {
-      octstr->len = comm_len;
-    } 
-    memcpy(octstr->str, community, strlen(community));
-    buf += 4 + comm_len;
+    octstr->len = ctx_len;
+    memcpy(octstr->str, context, strlen(context));
+    buf += 4 + ctx_len;
   }
 
   /* special fields */
@@ -208,21 +175,13 @@ agentx_register_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_
   objid->prefix = oid[4];
   objid->include = 0;
   for (i = 5; i < oid_len; i++) {
-    if (ph->flags & NETWORD_BYTE_ORDER) {
-      objid->sub_id[i - 5] = HTON32(oid[i]);
-    } else {
-      objid->sub_id[i - 5] = oid[i];
-    }
+    objid->sub_id[i - 5] = oid[i];
   }
   buf += 4 + (oid_len - 5) * sizeof(uint32_t);
 
   /* upper bound */
   if (range_subid) {
-    if (ph->flags & NETWORD_BYTE_ORDER) {
-      *(uint32_t *)buf = HTON32(upper_bound);
-    } else {
-      *(uint32_t *)buf = upper_bound;
-    }
+    *(uint32_t *)buf = upper_bound;
   }
 
   x_pdu.buf = pdu;
@@ -231,7 +190,7 @@ agentx_register_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_
 }
 
 struct x_pdu_buf
-agentx_unregister_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len, const char *community, uint32_t comm_len,
+agentx_unregister_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len, const char *context, uint32_t ctx_len,
                       uint8_t timeout, uint8_t priority, uint8_t range_subid, uint32_t upper_bound)
 {
   uint8_t i, *pdu, *buf;
@@ -241,13 +200,13 @@ agentx_unregister_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oi
   struct x_objid_t *objid;
   struct x_octstr_t *octstr;
 
-  assert(oid_len > 4 && oid_len + 5 <= MIB_OID_MAX_LEN && comm_len <= 40);
-  comm_len = uint_sizeof(comm_len);
+  assert(oid_len > 4 && oid_len + 5 <= MIB_OID_MAX_LEN && ctx_len <= 40);
+  ctx_len = uint_sizeof(ctx_len);
 
   /* PDU length */
   len = sizeof(*ph);
-  if (comm_len) {
-    len += 4 + comm_len;
+  if (ctx_len) {
+    len += 4 + ctx_len;
   }
   len += 4 + 4 + (oid_len - 5) * sizeof(uint32_t);
   if (range_subid) {
@@ -262,29 +221,18 @@ agentx_unregister_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oi
   ph->type = AGENTX_PDU_UNREG;
   ph->flags = xdg->pdu_hdr.flags | INSTANCE_REGISTRATION;
   xdg->pdu_hdr.packet_id += 1;
-  if (ph->flags & NETWORD_BYTE_ORDER) {
-    ph->session_id = HTON32(xdg->pdu_hdr.session_id);
-    ph->transaction_id = HTON32(xdg->pdu_hdr.transaction_id);
-    ph->packet_id = HTON32(xdg->pdu_hdr.packet_id);
-    ph->payload_length = HTON32(len - sizeof(*ph));
-  } else {
-    ph->session_id = xdg->pdu_hdr.session_id;
-    ph->transaction_id = xdg->pdu_hdr.transaction_id;
-    ph->packet_id = xdg->pdu_hdr.packet_id;
-    ph->payload_length = len - sizeof(*ph);
-  }
+  ph->session_id = xdg->pdu_hdr.session_id;
+  ph->transaction_id = xdg->pdu_hdr.transaction_id;
+  ph->packet_id = xdg->pdu_hdr.packet_id;
+  ph->payload_length = len - sizeof(*ph);
   buf += sizeof(*ph);
 
-  /* community string */
-  if (comm_len) {
+  /* context string */
+  if (ctx_len) {
     octstr = (struct x_octstr_t *)buf;
-    if (ph->flags & NETWORD_BYTE_ORDER) {
-      octstr->len = HTON32(comm_len);
-    } else {
-      octstr->len = comm_len;
-    } 
-    memcpy(octstr->str, community, strlen(community));
-    buf += 4 + comm_len;
+    octstr->len = ctx_len;
+    memcpy(octstr->str, context, strlen(context));
+    buf += 4 + ctx_len;
   }
 
   /* special fields */
@@ -299,21 +247,13 @@ agentx_unregister_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oi
   objid->prefix = oid[4];
   objid->include = 0;
   for (i = 5; i < oid_len; i++) {
-    if (ph->flags & NETWORD_BYTE_ORDER) {
-      objid->sub_id[i - 5] = HTON32(oid[i]);
-    } else {
-      objid->sub_id[i - 5] = oid[i];
-    }
+    objid->sub_id[i - 5] = oid[i];
   }
   buf += 4 + (oid_len - 5) * sizeof(uint32_t);
 
   /* upper bound */
   if (range_subid) {
-    if (ph->flags & NETWORD_BYTE_ORDER) {
-      *(uint32_t *)buf = HTON32(upper_bound);
-    } else {
-      *(uint32_t *)buf = upper_bound;
-    }
+    *(uint32_t *)buf = upper_bound;
   }
 
   x_pdu.buf = pdu;
@@ -351,27 +291,16 @@ agentx_notify_pdu(struct agentx_datagram *xdg, const char *context, uint32_t con
   ph->type = AGENTX_PDU_NOTIFY;
   ph->flags = 0;
   xdg->pdu_hdr.packet_id += 1;
-  if (ph->flags & NETWORD_BYTE_ORDER) {
-    ph->session_id = HTON32(xdg->pdu_hdr.session_id);
-    ph->transaction_id = HTON32(xdg->pdu_hdr.transaction_id);
-    ph->packet_id = HTON32(xdg->pdu_hdr.packet_id);
-    ph->payload_length = HTON32(len - sizeof(*ph));
-  } else {
-    ph->session_id = xdg->pdu_hdr.session_id;
-    ph->transaction_id = xdg->pdu_hdr.transaction_id;
-    ph->packet_id = xdg->pdu_hdr.packet_id;
-    ph->payload_length = len - sizeof(*ph);
-  }
+  ph->session_id = xdg->pdu_hdr.session_id;
+  ph->transaction_id = xdg->pdu_hdr.transaction_id;
+  ph->packet_id = xdg->pdu_hdr.packet_id;
+  ph->payload_length = len - sizeof(*ph);
   buf = (uint8_t *)pdu + sizeof(*ph);
 
   /* context */
   if (context_len) {
     octstr = (struct x_octstr_t *)buf;
-    if (ph->flags & NETWORD_BYTE_ORDER) {
-      octstr->len = HTON32(context_len);
-    } else {
-      octstr->len = context_len;
-    } 
+    octstr->len = context_len;
     memcpy(octstr->str, context, strlen(context));
     buf += 4 + context_len;
   }
@@ -413,27 +342,16 @@ agentx_ping_pdu(struct agentx_datagram *xdg, const char *context, uint32_t conte
   ph->type = AGENTX_PDU_PING;
   ph->flags = xdg->pdu_hdr.flags;
   xdg->pdu_hdr.packet_id += 1;
-  if (ph->flags & NETWORD_BYTE_ORDER) {
-    ph->session_id = HTON32(xdg->pdu_hdr.session_id);
-    ph->transaction_id = HTON32(xdg->pdu_hdr.transaction_id);
-    ph->packet_id = HTON32(xdg->pdu_hdr.packet_id);
-    ph->payload_length = HTON32(len - sizeof(*ph));
-  } else {
-    ph->session_id = xdg->pdu_hdr.session_id;
-    ph->transaction_id = xdg->pdu_hdr.transaction_id;
-    ph->packet_id = xdg->pdu_hdr.packet_id;
-    ph->payload_length = len - sizeof(*ph);
-  }
+  ph->session_id = xdg->pdu_hdr.session_id;
+  ph->transaction_id = xdg->pdu_hdr.transaction_id;
+  ph->packet_id = xdg->pdu_hdr.packet_id;
+  ph->payload_length = len - sizeof(*ph);
   buf += sizeof(*ph);
 
   /* context */
   if (context_len) {
     octstr = (struct x_octstr_t *)buf;
-    if (ph->flags & NETWORD_BYTE_ORDER) {
-      octstr->len = HTON32(context_len);
-    } else {
-      octstr->len = context_len;
-    } 
+    octstr->len = context_len;
     memcpy(octstr->str, context, strlen(context));
   }
 
@@ -478,7 +396,6 @@ agentx_response_pdu(struct agentx_datagram *xdg)
         break;
       case ASN1_TAG_OCTSTR:
       case ASN1_TAG_IPADDR:
-      case ASN1_TAG_OPAQ:
         len += sizeof(uint32_t) + uint_sizeof(vb_out->val_len);
         break;
       case ASN1_TAG_OBJID:
@@ -500,17 +417,10 @@ agentx_response_pdu(struct agentx_datagram *xdg)
   ph->version = xdg->pdu_hdr.version;
   ph->type = AGENTX_PDU_RESPONSE;
   ph->flags = xdg->pdu_hdr.flags;
-  if (ph->flags & NETWORD_BYTE_ORDER) {
-    ph->session_id = HTON32(xdg->pdu_hdr.session_id);
-    ph->transaction_id = HTON32(xdg->pdu_hdr.transaction_id);
-    ph->packet_id = HTON32(xdg->pdu_hdr.packet_id);
-    ph->payload_length = HTON32(len - sizeof(*ph));
-  } else {
-    ph->session_id = xdg->pdu_hdr.session_id;
-    ph->transaction_id = xdg->pdu_hdr.transaction_id;
-    ph->packet_id = xdg->pdu_hdr.packet_id;
-    ph->payload_length = len - sizeof(*ph);
-  }
+  ph->session_id = xdg->pdu_hdr.session_id;
+  ph->transaction_id = xdg->pdu_hdr.transaction_id;
+  ph->packet_id = xdg->pdu_hdr.packet_id;
+  ph->payload_length = len - sizeof(*ph);
   buf += sizeof(*ph);
 
   /* special fields */
@@ -523,12 +433,9 @@ agentx_response_pdu(struct agentx_datagram *xdg)
   /* var binds */
   list_for_each_safe(curr, next, &xdg->vb_out_list) {
     vb_out = list_entry(curr, struct x_var_bind, link);
+
     /* type */
-    if (ph->flags & NETWORD_BYTE_ORDER) {
-      *(uint16_t *)buf = HTON16(vb_out->val_type);
-    } else {
-      *(uint16_t *)buf = vb_out->val_type;
-    }
+    *(uint16_t *)buf = vb_out->val_type;
     buf += 2 * sizeof(uint16_t);
 
     /* oid */
@@ -537,11 +444,7 @@ agentx_response_pdu(struct agentx_datagram *xdg)
     objid->prefix = vb_out->oid_len > 4 ? vb_out->oid[4] : 0;
     objid->include = 0;
     for (i = 5; i < vb_out->oid_len; i++) {
-      if (ph->flags & NETWORD_BYTE_ORDER) {
-        objid->sub_id[i - 5] = HTON32(vb_out->oid[i]);
-      } else {
-        objid->sub_id[i - 5] = vb_out->oid[i];
-      }
+      objid->sub_id[i - 5] = vb_out->oid[i];
     }
     if (vb_out->oid_len > 5) {
       buf += sizeof(*objid) + (vb_out->oid_len - 5) * sizeof(uint32_t);
@@ -556,31 +459,18 @@ agentx_response_pdu(struct agentx_datagram *xdg)
       case ASN1_TAG_GAU:
       case ASN1_TAG_TIMETICKS:
         p_tmp32 = (uint32_t *)vb_out->value;
-        if (ph->flags & NETWORD_BYTE_ORDER) {
-          *(uint32_t *)buf = HTON32(*p_tmp32);
-        } else {
-          *(uint32_t *)buf = *p_tmp32;
-        }
+        *(uint32_t *)buf = *p_tmp32;
         buf += sizeof(uint32_t);
         break;
       case ASN1_TAG_CNT64:
         p_tmp64 = (uint64_t *)vb_out->value;
-        if (ph->flags & NETWORD_BYTE_ORDER) {
-          *(uint64_t *)buf = HTON32(*p_tmp64);
-        } else {
-          *(uint64_t *)buf = *p_tmp64;
-        }
+        *(uint64_t *)buf = *p_tmp64;
         buf += sizeof(uint64_t);
         break;
       case ASN1_TAG_OCTSTR:
       case ASN1_TAG_IPADDR:
-      case ASN1_TAG_OPAQ:
         octstr = (struct x_octstr_t *)buf;
-        if (ph->flags & NETWORD_BYTE_ORDER) {
-          octstr->len = HTON32(vb_out->val_len);
-        } else {
-          octstr->len = vb_out->val_len;
-        }
+        octstr->len = vb_out->val_len;
         memcpy(octstr->str, vb_out->value, vb_out->val_len);
         buf += sizeof(uint32_t) + uint_sizeof(vb_out->val_len);
         break;
@@ -591,11 +481,7 @@ agentx_response_pdu(struct agentx_datagram *xdg)
         objid->prefix = vb_out->val_len > 4 * sizeof(uint32_t) ? oid[4] : 0;
         objid->include = 0;
         for (i = 5; i < vb_out->val_len / sizeof(uint32_t); i++) {
-          if (ph->flags & NETWORD_BYTE_ORDER) {
-            objid->sub_id[i - 5] = HTON32(oid[i]);
-          } else {
-            objid->sub_id[i - 5] = oid[i];
-          }
+          objid->sub_id[i - 5] = oid[i];
         }
         if (vb_out->val_len > 5 * sizeof(uint32_t)) {
           buf += 4 + vb_out->val_len - 5 * sizeof(uint32_t);

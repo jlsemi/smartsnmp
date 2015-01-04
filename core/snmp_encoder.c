@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include "asn1.h"
-#include "snmp.h"
 
 /* Input:  integer value
  * Output: none
@@ -32,22 +31,103 @@
 static uint32_t
 ber_int_enc_try(int value)
 {
-  uint32_t i = sizeof(int);
+  uint32_t i, len;
   union anonymous {
     uint8_t buf[sizeof(int)];
     int tmp;
   } a;
 
   a.tmp = value;
+  len = 0;
 
-  while (!a.buf[i - 1] && i > 1)
-    i--;
+#ifdef LITTLE_ENDIAN
+  i = sizeof(int) - 1;
 
-  if (a.tmp > 0 && (a.buf[i - 1] & 0x80))
-    i++;
+  if (value >= 0) {
+    while (i > 0 && !a.buf[i]) {
+      i--;
+    }
+    if (a.buf[i] & 0x80) {
+      len += 1;
+    }
+  } else {
+    while (i > 0 && a.buf[i] == 0xff) {
+      i--;
+    }
+    if (!(a.buf[i] & 0x80)) {
+      len += 1;
+    }
+  }
 
-  return i;
+  len += i + 1;
+#else
+  i = 0;
+
+  if (value >= 0) {
+    while (i < sizeof(int) && !a.buf[i]) {
+      i++;
+    }
+    if (a.buf[i] & 0x80) {
+      len += 1;
+    }
+  } else {
+    while (i < sizeof(int) && a.buf[i] == 0xff) {
+      i++;
+    }
+    if (!(a.buf[i] & 0x80)) {
+      len += 1;
+    }
+  }
+
+  len += sizeof(int) - i;
+#endif
+
+  return len;
 }
+
+/* Input:  unsigned integer value
+ * Output: none
+ * Return: byte length.
+ */
+static uint32_t
+ber_uint_enc_try(unsigned int value)
+{
+  uint32_t i, len;
+  union anonymous {
+    uint8_t buf[sizeof(unsigned int)];
+    unsigned int tmp;
+  } a;
+
+  a.tmp = value;
+  len = 0;
+
+#ifdef LITTLE_ENDIAN
+  i = sizeof(unsigned int) - 1;
+
+  while (i > 0 && !a.buf[i]) {
+    i--;
+  }
+  if (a.buf[i] & 0x80) {
+    len += 1;
+  }
+
+  len += i + 1;
+#else
+  i = 0;
+
+  while (i < sizeof(unsigned int) && !a.buf[i]) {
+    i++;
+  }
+  if (a.buf[i] & 0x80) {
+    len += 1;
+  }
+
+  len += sizeof(unsigned int) - i;
+#endif
+
+  return len;
+}
+
 
 /* Input:  oid pointer, number of elements
  * Output: none
@@ -88,14 +168,18 @@ ber_value_enc_try(const void *value, uint32_t len, uint8_t type)
   uint32_t ret;
   const oid_t *oid;
   const int *inter;
+  const unsigned int *uinter;
 
   switch (type) {
     case ASN1_TAG_INT:
     case ASN1_TAG_CNT:
-    case ASN1_TAG_GAU:
-    case ASN1_TAG_TIMETICKS:
       inter = (const int *)value;
       ret = ber_int_enc_try(*inter);
+      break;
+    case ASN1_TAG_GAU:
+    case ASN1_TAG_TIMETICKS:
+      uinter = (const unsigned int *)value;
+      ret = ber_uint_enc_try(*uinter);
       break;
     case ASN1_TAG_OBJID:
       oid = (const oid_t *)value;
@@ -103,7 +187,6 @@ ber_value_enc_try(const void *value, uint32_t len, uint8_t type)
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
-    case ASN1_TAG_OPAQ:
       ret = len;
       break;
     case ASN1_TAG_SEQ:
@@ -123,28 +206,113 @@ ber_value_enc_try(const void *value, uint32_t len, uint8_t type)
 static uint32_t
 ber_int_enc(int value, uint8_t *buf)
 {
-  uint32_t i = sizeof(int), j = 0, len;
+  int i, j;
   union anonymous {
     uint8_t buf[sizeof(int)];
     int tmp;
   } a;
 
   a.tmp = value;
+  j = 0;
 
-  while (!a.buf[i - 1] && i > 1)
-    i--;
+#ifdef LITTLE_ENDIAN
+  i = sizeof(int) - 1;
 
-  if (a.tmp > 0 && (a.buf[i - 1] & 0x80))
-    i++;
-
-  len = i;
-
-  while (i) {
-    buf[j++] = a.buf[--i];
+  if (value >= 0) {
+    while (i > 0 && !a.buf[i]) {
+      i--;
+    }
+    if (a.buf[i] & 0x80) {
+      buf[j++] = 0x0;
+    }
+  } else {
+    while (i > 0 && a.buf[i] == 0xff) {
+      i--;
+    }
+    if (!(a.buf[i] & 0x80)) {
+      buf[j++] = 0xff;
+    }
   }
 
-  return len;
+  while (i >= 0) {
+    buf[j++] = a.buf[i--];
+  }
+#else
+  /* Number zero counts one */
+  i = 0;
+
+  if (value >= 0) {
+    while (i < sizeof(int) && !a.buf[i]) {
+      i++;
+    }
+    if (a.buf[i] & 0x80) {
+      buf[j++] = 0x0;
+    }
+  } else {
+    while (i < sizeof(int) && a.buf[i] == 0xff) {
+      i++;
+    }
+    if (!(a.buf[i] & 0x80)) {
+      buf[j++] = 0xff;
+    }
+  }
+
+  while (i < sizeof(int)) {
+    buf[j++] = a.buf[i++];
+  }
+#endif
+
+  return j;
 }
+
+/* Input:  unsigned integer value
+ * Output: buffer
+ * Return: byte length.
+ */
+static uint32_t
+ber_uint_enc(int value, uint8_t *buf)
+{
+  int i, j;
+  union anonymous {
+    uint8_t buf[sizeof(unsigned int)];
+    unsigned int tmp;
+  } a;
+
+  a.tmp = value;
+  j = 0;
+
+#ifdef LITTLE_ENDIAN
+  i = sizeof(unsigned int) - 1;
+
+  while (i > 0 && !a.buf[i]) {
+    i--;
+  }
+  if (a.buf[i] & 0x80) {
+    buf[j++] = 0x0;
+  }
+
+  while (i >= 0) {
+    buf[j++] = a.buf[i--];
+  }
+#else
+  /* Number zero counts one */
+  i = 0;
+
+  while (i < sizeof(unsigned int) && !a.buf[i]) {
+    i++;
+  }
+  if (a.buf[i] & 0x80) {
+    buf[j++] = 0x0;
+  }
+
+  while (i < sizeof(unsigned int)) {
+    buf[j++] = a.buf[i++];
+  }
+#endif
+
+  return j;
+}
+
 
 /* Input:  oid pointer, number of elements
  * Output: buffer
@@ -192,14 +360,18 @@ ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf)
   const uint8_t *str;
   const oid_t *oid;
   const int *inter;
+  const unsigned int *uinter;
 
   switch (type) {
     case ASN1_TAG_INT:
     case ASN1_TAG_CNT:
-    case ASN1_TAG_GAU:
-    case ASN1_TAG_TIMETICKS:
       inter = (const int *)value;
       ret = ber_int_enc(*inter, buf);
+      break;
+    case ASN1_TAG_GAU:
+    case ASN1_TAG_TIMETICKS:
+      uinter = (const unsigned int *)value;
+      ret = ber_uint_enc(*uinter, buf);
       break;
     case ASN1_TAG_OBJID:
       oid = (const oid_t *)value;
@@ -207,7 +379,6 @@ ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf)
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
-    case ASN1_TAG_OPAQ:
       str = (const uint8_t *)value;
       memcpy(buf, str, len);
       ret = len;
@@ -229,22 +400,41 @@ ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf)
 uint32_t
 ber_length_enc_try(uint32_t value)
 {
-  uint32_t i = 0, len = 0;
+  uint32_t i, len;
   union anonymous {
     uint8_t buf[sizeof(uint32_t)];
     uint32_t tmp;
   } a;
 
   a.tmp = value;
+  len = 0;
 
+#ifdef LITTLE_ENDIAN
+  /* Number zero counts one */
+  i = 0;
   do {
     i++;
-  } while (i < 4 && a.buf[i]);
+  } while (i < sizeof(uint32_t) && a.buf[i]);
 
-  if (a.tmp > 127)
+  if (a.tmp > 127) {
     len += 1;
+  }
 
   len += i;
+#else
+  /* Number zero counts one */
+  i = sizeof(uint32_t) - 1;
+
+  while (i > 0 && a.buf[i - 1]) {
+    i--;
+  }
+
+  if (a.tmp > 127) {
+    len += 1;
+  }
+
+  len += (sizeof(uint32_t) - i);
+#endif
 
   return len;
 }
@@ -256,28 +446,44 @@ ber_length_enc_try(uint32_t value)
 uint32_t
 ber_length_enc(uint32_t value, uint8_t *buf)
 {
-  uint32_t i = 0, j = 0, len = 0;
+  uint32_t i, j;
   union anonymous {
     uint8_t buf[sizeof(uint32_t)];
     uint32_t tmp;
   } a;
 
   a.tmp = value;
+  j = 0;
 
+#ifdef LITTLE_ENDIAN
+  /* Number zero counts one */
+  i = 0;
   do {
     i++;
   } while (i < sizeof(uint32_t) && a.buf[i]);
 
   if (a.tmp > 127) {
     buf[j++] = 0x80 | i;
-    len += 1;
   }
-
-  len += i;
 
   while (i) {
     buf[j++] = a.buf[--i];
   }
+#else
+  /* Number zero counts one */
+  i = sizeof(uint32_t) - 1;
+  while (i > 0 && a.buf[i - 1]) {
+    i--;
+  }
 
-  return len;
+  if (a.tmp > 127) {
+    buf[j++] = 0x80 | (sizeof(uint32_t) - i);
+  }
+
+  while (i < sizeof(uint32_t)) {
+    buf[j++] = a.buf[i++];
+  }
+#endif
+
+  return j;
 }

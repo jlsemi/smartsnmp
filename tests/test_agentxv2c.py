@@ -47,6 +47,8 @@ class AgentXv2cTestCase(unittest.TestCase, SmartSNMPTestCmd):
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPWrongType(), community = "private")
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(0x1234), Integer(0x1234), community = "private")
 		self.snmpset_expect(".1.3.6.1.2.1.4.0", Integer(8888), SNMPNotWritable(), community = "private")
+		# Set as nagative integer
+		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(-40000), Integer(-40000), community = "private")
 
 	@agentx_before_check
 	def test_snmpv2cwalk(self):

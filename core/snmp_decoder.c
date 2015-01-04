@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include "asn1.h"
-#include "snmp.h"
 
 /* Input:  buffer, byte length;
  * Output: none
@@ -67,7 +66,6 @@ ber_value_dec_try(const uint8_t *buf, uint32_t len, uint8_t type)
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
-    case ASN1_TAG_OPAQ:
       ret = len;
       break;
     case ASN1_TAG_SEQ:
@@ -87,18 +85,50 @@ ber_value_dec_try(const uint8_t *buf, uint32_t len, uint8_t type)
 static uint32_t
 ber_int_dec(const uint8_t *buf, uint32_t len, int *value)
 {
-  uint32_t i = 1;
-  int sign = buf[0] & 0x80 ? -1 : 1;
+  int i, j;
 
-  *value = buf[0] & 0x7f;
+  *value = 0;
 
-  while (i < len)
+  if (buf[0] & 0x80) {
+    for (i = 0, j = 0; j < sizeof(int) - len; j++) {
+      *value = (*value << 8) | 0xff;
+    }
+  } else {
+    i = 0;
+    if (!buf[0]) {
+      i++;
+    }
+  }
+
+  while (i < len) {
     *value = (*value << 8) | buf[i++];
-
-  *value *= sign;
+  }
 
   return 1;
 }
+
+/* Input:  buffer, byte length;
+ * Output: unsigned interger pointer
+ * Return: number of elements
+ */
+static uint32_t
+ber_uint_dec(const uint8_t *buf, uint32_t len, unsigned int *value)
+{
+  int i;
+
+  i = 0;
+  if (!buf[0]) {
+    i++;
+  }
+
+  *value = 0;
+  while (i < len) {
+    *value = (*value << 8) | buf[i++];
+  }
+
+  return 1;
+}
+
 
 /* Input:  buffer, byte length;
  * Output: oid pointer
@@ -139,16 +169,17 @@ ber_value_dec(const uint8_t *buf, uint32_t len, uint8_t type, void *value)
   switch (type) {
     case ASN1_TAG_INT:
     case ASN1_TAG_CNT:
+      ret = ber_int_dec(buf, len, value);
+      break;
     case ASN1_TAG_GAU:
     case ASN1_TAG_TIMETICKS:
-      ret = ber_int_dec(buf, len, value);
+      ret = ber_uint_dec(buf, len, value);
       break;
     case ASN1_TAG_OBJID:
       ret = ber_oid_dec(buf, len, value);
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
-    case ASN1_TAG_OPAQ:
       memcpy(value, buf, len);
       ret = len;
       break;
