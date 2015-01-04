@@ -38,7 +38,7 @@ snmpset -v2c -cprivate localhost .1.3.6.1.2.1.4.1.0 i 8888
 snmpwalk -v2c -cpublic localhost .1.3.6.1.2.1.1
 snmpwalk -v2c -cpublic localhost .1.3.6.1
 
-# SNMPv3 cases
+# SNMPv3 non-encryption cases
 
 snmpget -u noAuthUser -l noAuthNoPriv localhost .0 
 snmpget -u noAuthUser -l noAuthNoPriv localhost .1.3

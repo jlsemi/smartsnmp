@@ -51,7 +51,7 @@ class SNMPAuthErr(SNMPErrorStatus): value = "authorizationError (access denied t
 class SNMPNotWritable(SNMPErrorStatus): value = "notWritable (That object does not support modification)"
 
 class SmartSNMPTestCmd:
-	def snmp_request(self, req, oids = [], tag = None, value = None, version = None, community = None, user = None, level = None, ip = None, port = None):
+	def snmp_request(self, req, oids = [], tag = None, value = None, version = None, community = None, user = None, level = None, auth_protocol = None, auth_key = None, priv_protocol = None, priv_key = None, ip = None, port = None):
 		# parse oid
 		if isinstance(oids, str):
 			oids = [oids]
@@ -77,10 +77,18 @@ class SmartSNMPTestCmd:
 		elif version == "3":
 			user = user or self.user
 			level = level or self.level
+			auth_protocol = auth_protocol or self.auth_protocol
+			auth_key = auth_key or self.auth_key
+			priv_protocol = priv_protocol or self.priv_protocol
+			priv_key = priv_key or self.priv_key
+			snmp_req = "snmp%s -On -v%s -u%s" % (req, version, user)
+			if auth_protocol != None and auth_protocol != "":
+				snmp_req += " -a %s -A \"%s\"" % (auth_protocol, auth_key)
+			if priv_protocol != None and priv_protocol != "":
+				snmp_req += " -x %s -X \"%s\"" % (priv_protocol, priv_key)
+			snmp_req += " -l%s %s:%d %s" % (level, ip, port, oid_str)
 			if req == "set":
-				snmp_req = "snmp%s -On -v%s -u%s -l%s %s:%d %s %s %r" % (req, version, user, level, ip, port, oid_str, tag[0].lower(), value)
-			else:
-				snmp_req = "snmp%s -On -v%s -u%s -l%s %s:%d %s" % (req, version, user, level, ip, port, oid_str)
+				snmp_req += " %s %r" % (tag[0].lower(), value)
 		else:
 			snmp_req = ""
 		print(snmp_req)
@@ -200,6 +208,7 @@ class SmartSNMPTestCmd:
 
 	def snmp_teardown(self):
 		self.snmp.close(force = True)
+		time.sleep(1)
 
 	def agentx_setup(self, config_file):
 		print "Starting NET-SNMP Agent (Master Mode)..."
@@ -213,6 +222,7 @@ class SmartSNMPTestCmd:
 	def agentx_teardown(self):
 		self.agentx.close(force = True)
 		self.netsnmp.close(force = True)
+		time.sleep(1)
 
 def snmp_before_check(test_func):
 	@wraps(test_func)
