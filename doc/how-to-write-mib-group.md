@@ -174,20 +174,6 @@ indexes. The index cache that "indexes" refers to should be written as follows.
 
 More details on how-to is shown in mibs directory.
 
-Community String
-----------------
-
-In SmartSNMP mibs we can also set private community strings in each group which
-is independent of the global community strings like this. It should be matched
-with the one in the request command despite the global community string is
-matched.
-
-    local ipGroup = {
-        rocommunity = "public"
-        rwcommunity = "ipprivate"
-        ...
-    }
-
 OR Table Register
 -----------------
 
