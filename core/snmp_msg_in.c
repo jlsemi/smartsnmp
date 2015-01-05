@@ -126,12 +126,12 @@ mib_get(struct snmp_datagram *sdg, struct var_bind *vb_in, struct oid_search_res
   if (sdg->version >= 3) {
     user = mib_user_search(sdg->user_name);
     if (user == NULL) {
-      ret_oid->err_stat = SNMP_ERR_STAT_AUTHORIZATION;
+      ret_oid->err_stat = SNMP_ERR_STAT_NO_ACCESS;
     }
   } else {
     community = mib_community_search(sdg->context_name);
     if (community == NULL) {
-      ret_oid->err_stat = SNMP_ERR_STAT_AUTHORIZATION;
+      ret_oid->err_stat = SNMP_ERR_STAT_NO_ACCESS;
     }
   }
 
@@ -230,12 +230,12 @@ mib_getnext(struct snmp_datagram *sdg, struct var_bind *vb_in, struct oid_search
   if (sdg->version >= 3) {
     user = mib_user_search(sdg->user_name);
     if (user == NULL) {
-      ret_oid->err_stat = SNMP_ERR_STAT_AUTHORIZATION;
+      ret_oid->err_stat = SNMP_ERR_STAT_NO_ACCESS;
     }
   } else {
     community = mib_community_search(sdg->context_name);
     if (community == NULL) {
-      ret_oid->err_stat = SNMP_ERR_STAT_AUTHORIZATION;
+      ret_oid->err_stat = SNMP_ERR_STAT_NO_ACCESS;
     }
   }
 
@@ -336,22 +336,22 @@ mib_set(struct snmp_datagram *sdg, struct var_bind *vb_in, struct oid_search_res
     if (user != NULL) {
       /* Check mib write views */
       if (!mib_user_view_cover(user, MIB_ACES_WRITE, vb_in->oid, vb_in->oid_len)) {
-        ret_oid->err_stat = SNMP_ERR_STAT_AUTHORIZATION;
+        ret_oid->err_stat = SNMP_ERR_STAT_NO_ACCESS;
         user = NULL;
       }
     } else {
-      ret_oid->err_stat = SNMP_ERR_STAT_AUTHORIZATION;
+      ret_oid->err_stat = SNMP_ERR_STAT_NO_ACCESS;
     }
   } else {
     community = mib_community_search(sdg->context_name);
     if (community != NULL) {
       /* Check mib write views */
       if (!mib_community_view_cover(community, MIB_ACES_WRITE, vb_in->oid, vb_in->oid_len)) {
-        ret_oid->err_stat = SNMP_ERR_STAT_AUTHORIZATION;
+        ret_oid->err_stat = SNMP_ERR_STAT_NO_ACCESS;
         community = NULL;
       }
     } else {
-      ret_oid->err_stat = SNMP_ERR_STAT_AUTHORIZATION;
+      ret_oid->err_stat = SNMP_ERR_STAT_NO_ACCESS;
     }
   }
 
