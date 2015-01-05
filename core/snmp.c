@@ -65,7 +65,7 @@ snmpd_mib_node_unreg(const oid_t *grp_id, int id_len)
   return 0;
 }
 
-static void
+static int
 snmpd_init(int port)
 {
   INIT_LIST_HEAD(&snmp_datagram.vb_in_list);

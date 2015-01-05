@@ -27,7 +27,7 @@
 
 struct transport_operation {
   const char *name;
-  void (*init)(int port);
+  int (*init)(int port);
   void (*running)(void);
   void (*send)(uint8_t *buf, int len);
 };
