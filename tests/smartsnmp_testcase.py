@@ -27,3 +27,20 @@ class SmartSNMPCommonCase:
 
 	def test_snmpwalk(self):
 		self.snmpwalk_expect(".")
+
+class SmartSNMPV3SetCases:
+	def test_snmpv3set(self):
+		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPNoAccess())
+		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPWrongType())
+		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888))
+		self.snmpset_expect(".1.3.6.1.2.1.4.0", Integer(8888), SNMPNotWritable())
+		
+		self.user = self.user.replace('rw', 'ro')
+		self.auth_key = self.auth_key.replace('rw', 'ro')
+		self.priv_key = self.priv_key.replace('rw', 'ro')
+
+		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPNoAccess())
+		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPNoAccess())
+		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), SNMPNoAccess())
+		self.snmpset_expect(".1.3.6.1.2.1.4.0", Integer(8888), SNMPNoAccess())
+

@@ -1,11 +1,11 @@
 import unittest
 from smartsnmp_testcase import *
 
-class AgentXv3TestCase(unittest.TestCase, SmartSNMPTestCmd, SmartSNMPCommonCase):
+class AgentXv3TestCase(unittest.TestCase, SmartSNMPTestCmd, SmartSNMPCommonCase, SmartSNMPV3SetCases):
 	def setUp(self):
 		self.agentx_setup("config/agentx.conf")
 		self.version = "3"
-		self.user = "noAuthUser"
+		self.user = "rwNoAuthUser"
 		self.level = "noAuthNoPriv"
 		self.auth_protocol = ""
 		self.auth_key = ""
@@ -28,12 +28,6 @@ class AgentXv3TestCase(unittest.TestCase, SmartSNMPTestCmd, SmartSNMPCommonCase)
 			self.agentx.read()
 			raise Exception("AgentX daemon start error!")
 		self.agentx_teardown()
-
-	def test_snmpv3set(self):
-		self.snmpset_expect(".1.3.6.1.2.1.1.9.1.1", Integer(1), SNMPNoAccess())
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPWrongType())
-		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888))
-		self.snmpset_expect(".1.3.6.1.2.1.4.0", Integer(8888), SNMPNotWritable())
 
 if __name__ == '__main__':
     unittest.main()

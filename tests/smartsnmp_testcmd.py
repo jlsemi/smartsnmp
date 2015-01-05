@@ -91,7 +91,9 @@ class SmartSNMPTestCmd:
 				snmp_req += " %s %r" % (tag[0].lower(), value)
 		else:
 			snmp_req = ""
-		print(snmp_req)
+		print(">>> %s" % snmp_req)
+
+		logfile.write(">>> %s\n" % snmp_req)
 
 		# create client
 		client = pexpect.spawn(snmp_req, logfile = logfile, env = env)
