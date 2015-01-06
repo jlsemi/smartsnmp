@@ -1,11 +1,16 @@
 import unittest
 from smartsnmp_testcase import *
 
-class AgentXv2cTestCase(unittest.TestCase, SmartSNMPTestCmd, SmartSNMPTestCase):
+class AgentXv3TestCase(unittest.TestCase, SmartSNMPTestCmd, SmartSNMPTestCase):
 	def setUp(self):
 		self.agentx_setup("config/agentx.conf")
-		self.version = "2c"
-		self.community = "private"
+		self.version = "3"
+		self.user = "rwNoAuthUser"
+		self.level = "noAuthNoPriv"
+		self.auth_protocol = ""
+		self.auth_key = ""
+		self.priv_protocol = ""
+		self.priv_key = ""
 		self.ip = "127.0.0.1"
 		self.port = 161
 		if self.netsnmp.isalive() == False:
