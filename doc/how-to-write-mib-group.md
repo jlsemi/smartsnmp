@@ -1,4 +1,4 @@
-How to Write MIB Group for SmartSNMP
+how to write mib group for smartsnmp
 ====================================
 
 This document is a simple tutorial on how to write mib groups in Lua for the
@@ -237,6 +237,22 @@ written as below, note we have used a bool indicator called 'cascaded'.
         indexes = three_dim_entry_cache,
         ...
     }
+
+Indexes Verification
+--------------------
+
+After you have finished your private mibs, you may check if each group can be
+walked in lexicographical order correctly by using 'mib.group_index_table_check'
+method before it returns in the lua file. 
+
+    local udpGroup = {
+        ...
+    }
+    mib.group_index_table_check(udpGroup, 'udpGroup')
+    return udpGroup
+
+This method will print all the indexes of the group on terminal and help you
+roughly locate the invalid indexes of the group that you have constructured.
 
 OR Table Register
 -----------------
