@@ -89,6 +89,10 @@ snmp_get(struct snmp_datagram *sdg)
     vb_in = list_entry(curr, struct var_bind, link);
     vb_in_cnt++;
 
+    /* Decode vb_in value first */
+    tag(&ret_oid.var) = vb_in->value_type;
+    length(&ret_oid.var) = ber_value_dec(vb_in->value, vb_in->value_len, tag(&ret_oid.var), value(&ret_oid.var));
+
     /* Search at the input oid */
     mib_get(sdg, vb_in, &ret_oid);
 
@@ -191,6 +195,10 @@ snmp_getnext(struct snmp_datagram *sdg)
   list_for_each_safe(curr, next, &sdg->vb_in_list) {
     vb_in = list_entry(curr, struct var_bind, link);
     vb_in_cnt++;
+
+    /* Decode vb_in value first */
+    tag(&ret_oid.var) = vb_in->value_type;
+    length(&ret_oid.var) = ber_value_dec(vb_in->value, vb_in->value_len, tag(&ret_oid.var), value(&ret_oid.var));
 
     /* Search at the next input oid */
     mib_getnext(sdg, vb_in, &ret_oid);
@@ -308,7 +316,7 @@ snmp_set(struct snmp_datagram *sdg)
     vb_in = list_entry(curr, struct var_bind, link);
     vb_in_cnt++;
 
-    /* Decode the setting value ahead */
+    /* Decode vb_in value first */
     tag(&ret_oid.var) = vb_in->value_type;
     length(&ret_oid.var) = ber_value_dec(vb_in->value, vb_in->value_len, tag(&ret_oid.var), value(&ret_oid.var));
 
@@ -376,6 +384,10 @@ snmp_bulkget(struct snmp_datagram *sdg)
     list_for_each_safe(curr, next, &sdg->vb_in_list) {
       vb_in = list_entry(curr, struct var_bind, link);
       vb_in_cnt++;
+
+      /* Decode vb_in value first */
+      tag(&ret_oid.var) = vb_in->value_type;
+      length(&ret_oid.var) = ber_value_dec(vb_in->value, vb_in->value_len, tag(&ret_oid.var), value(&ret_oid.var));
 
       /* Search at the next input oid */
       mib_getnext(sdg, vb_in, &ret_oid);

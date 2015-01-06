@@ -32,15 +32,8 @@ class SmartSNMPTestCase:
 		self.snmpset_expect(".1.3.6.1.2.1.4.0", Integer(8888), SNMPNotWritable())
 		
 		if self.version == '3':
-			if 'rw' in self.user:
-				# No access error for AgentX
 				self.user = self.user.replace('rw', 'ro')
-			else:
-				# No access error for SNMPv3
-				self.user = 'none' + self.user
-			if 'rw' in self.auth_key:
 				self.auth_key = self.auth_key.replace('rw', 'ro')
-			if 'rw' in self.priv_key:
 				self.priv_key = self.priv_key.replace('rw', 'ro')
 		else:
 			self.community = "public"

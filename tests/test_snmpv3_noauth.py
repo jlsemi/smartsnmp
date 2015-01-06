@@ -5,7 +5,7 @@ class SNMPv3TestCase(unittest.TestCase, SmartSNMPTestFramework, SmartSNMPTestCas
 	def setUp(self):
 		self.snmp_setup("config/snmp.conf")
 		self.version = "3"
-		self.user = "noAuthUser"
+		self.user = "rwNoAuthUser"
 		self.level = "noAuthNoPriv"
 		self.auth_protocol = ""
 		self.auth_key = ""
