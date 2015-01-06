@@ -127,17 +127,14 @@ end
 if communities ~= nil then
     for _, t in ipairs(communities) do
         if t.views == nil or next(t.views) == nil then
-            if t.attribute == 'rw' then 
-                    snmpd.set_rw_community(t.community)
-            else
-                    snmpd.set_ro_community(t.community)
-            end
+            snmpd.set_rw_community(t.community)
+            snmpd.set_ro_community(t.community)
         else
-            for _, view in ipairs(t.views) do
-                if t.attribute == 'rw' then 
-                        snmpd.set_rw_community(t.community, view)
+            for view, attribute in pairs(t.views) do
+                if attribute == 'rw' then 
+                    snmpd.set_rw_community(t.community, utils.str2oid(view))
                 else
-                        snmpd.set_ro_community(t.community, view)
+                    snmpd.set_ro_community(t.community, utils.str2oid(view))
                 end
             end
         end
@@ -147,37 +144,33 @@ end
 if users ~= nil then
     for _, t in ipairs(users) do
         if t.views == nil or next(t.views) == nil then
-            if t.attribute == 'rw' then 
-                    snmpd.set_rw_user(t.user)
-            else
-                    snmpd.set_ro_user(t.user)
-            end
+            snmpd.set_rw_user(t.user)
+            snmpd.set_ro_user(t.user)
         else
-            for _, view in ipairs(t.views) do
-                if t.attribute == 'rw' then 
-                        snmpd.set_rw_user(t.user, view)
+            for view, attribute in pairs(t.views) do
+                if attribute == 'rw' then 
+                    snmpd.set_rw_user(t.user, utils.str2oid(view))
                 else
-                        snmpd.set_ro_user(t.user, view)
+                    snmpd.set_ro_user(t.user, utils.str2oid(view))
                 end
             end
         end
     end
 end
 
-local init = snmpd.init(protocol, port)
-if init == true then
-    local open = snmpd.open()
-    if open == true then
-        for i, v in ipairs(mib_mod_refs) do
-            status, err = register_mib_module(v['oid'], v['name'])
-            if status ~= true then
-                print("Failed to load MIB module: "..v['name'])
-                print(err)
-            end
-        end
-        snmpd.start()
+snmpd.init(protocol, port)
+
+snmpd.open()
+
+for i, v in ipairs(mib_mod_refs) do
+    status, err = register_mib_module(v['oid'], v['name'])
+    if status ~= true then
+        print("Failed to load MIB module: "..v['name'])
+        print(err)
     end
 end
 
 mib_modules = nil
 mib_mod_refs = nil
+
+snmpd.start()
