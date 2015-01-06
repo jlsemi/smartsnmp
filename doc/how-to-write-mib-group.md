@@ -1,5 +1,5 @@
-how to write mib group for smartsnmp
-====================================
+How To Write MIB Groups for SmartSNMP
+=====================================
 
 This document is a simple tutorial on how to write mib groups in Lua for the
 upper businesses of SmartSNMP.
