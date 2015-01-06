@@ -23,6 +23,9 @@
 #include <string.h>
 #include <assert.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
 #include "agentx.h"
 #include "util.h"
 
@@ -497,4 +500,16 @@ agentx_response_pdu(struct agentx_datagram *xdg)
   x_pdu.buf = pdu;
   x_pdu.len = len;
   return x_pdu;
+}
+
+/* Send AgentX response PDU */
+void
+agentx_response(struct agentx_datagram *xdg)
+{
+  /* Send response PDU */
+  struct x_pdu_buf x_pdu = agentx_response_pdu(xdg);
+  if (send(xdg->sock, x_pdu.buf, x_pdu.len, 0) == -1) {
+    SMARTSNMP_LOG(L_ERROR, "ERR: Send response PDU failure!\n");
+  }
+  free(x_pdu.buf);
 }

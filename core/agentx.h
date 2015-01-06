@@ -216,6 +216,10 @@ uint32_t agentx_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t
 uint32_t agentx_value_enc_try(uint32_t len, uint8_t type);
 
 int agentx_recv(uint8_t *buf, int len);
+void agentx_response(struct agentx_datagram *xdg);
+void agentx_get(struct agentx_datagram *xdg);
+void agentx_getnext(struct agentx_datagram *xdg);
+void agentx_set(struct agentx_datagram *xdg);
 
 struct x_pdu_buf agentx_open_pdu(struct agentx_datagram *xdg, const oid_t *oid, uint32_t oid_len, const char *descr, uint32_t descr_len);
 struct x_pdu_buf agentx_close_pdu(struct agentx_datagram *xdg, uint32_t reason);
