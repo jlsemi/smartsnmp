@@ -1,7 +1,7 @@
 import unittest
 from smartsnmp_testcase import *
 
-class AgentXv2cTestCase(unittest.TestCase, SmartSNMPTestCmd, SmartSNMPTestCase):
+class AgentXv2cTestCase(unittest.TestCase, SmartSNMPTestFramework, SmartSNMPTestCase):
 	def setUp(self):
 		self.agentx_setup("config/agentx.conf")
 		self.version = "2c"

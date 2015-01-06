@@ -1,7 +1,7 @@
 import unittest
 from smartsnmp_testcase import *
 
-class SNMPv2cTestCase(unittest.TestCase, SmartSNMPTestCmd, SmartSNMPTestCase):
+class SNMPv2cTestCase(unittest.TestCase, SmartSNMPTestFramework, SmartSNMPTestCase):
 	def setUp(self):
 		self.snmp_setup("config/snmp.conf")
 		self.version = "2c"

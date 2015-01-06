@@ -50,7 +50,7 @@ class SNMPUndoFail(SNMPErrorStatus): value = "undoFailed"
 class SNMPAuthErr(SNMPErrorStatus): value = "authorizationError (access denied to that object)"
 class SNMPNotWritable(SNMPErrorStatus): value = "notWritable (That object does not support modification)"
 
-class SmartSNMPTestCmd:
+class SmartSNMPTestFramework:
 	def snmp_request(self, req, oids = [], tag = None, value = None, version = None, community = None, user = None, level = None, auth_protocol = None, auth_key = None, priv_protocol = None, priv_key = None, ip = None, port = None):
 		# parse oid
 		if isinstance(oids, str):

@@ -1,4 +1,4 @@
-from smartsnmp_testcmd import *
+from smartsnmp_testframework import *
 
 class SmartSNMPTestCase:
 	def test_snmpget(self):
