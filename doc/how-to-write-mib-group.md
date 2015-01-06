@@ -36,8 +36,8 @@ string, and 'views' is the set of oid views to be allowed to be accessed (e.x.
     }
 
 
-To register mib modules, we provide an Lua table called 'mib_modules' containing
-the oid and name of mib groups:
+To register mib modules, we provide a Lua table called 'mib_modules' containing
+the oid and the name of mib groups:
 
     mib_modules = {
         [".1.3.6.1.2.1.1"] = 'system',
@@ -62,7 +62,7 @@ MIB Examples
 
 MIB group examples are shown in `mibs` directory. It is noted that each group
 should be the bottom node in the mib tree as convention. Nested groups are not
-allowed in our examples. A group is represented by a Lua table which is the first
+allowed in our examples. A group is represented by a Lua table as the first
 class data structure in Lua and will be returned by the mib file when loaded.
 
     local sysGroup = {
@@ -73,22 +73,23 @@ class data structure in Lua and will be returned by the mib file when loaded.
 
 In the group container, we can define four objects as mentioned in SNMP RFC:
 Scalar, Table, Entry and Variable. SmartSNMP also provides relevant constructor
-interfaces for each object.
+methods for each object.
 
 Variable Constructor
 --------------------
 
-The constructor interfaces of each group variable are defined in `init.lua`. The
+The constructor methods of each group variable are defined in `init.lua`. The
 signature of each constructor indicates the ASN.1 tags and the read/write access
-permission of each mib variable. The arguments of the constructor are get/set
-methods of the value data set by users. Before we start to write it, we shall
-require the `init.lua` to get access to these methods.
+permissions of each mib variable. The arguments of the constructor are get/set
+methods of the data value set by users since function is the first-class value
+in Lua. Before we start to write it, we shall require the `init.lua` to get
+access to these methods.
 
-Let us take `system.lua` as an example. In this file we have defined a table
+Let us take `system.lua` as an example. In this file we have defined a Lua table
 called 'sysGroup' representing the system mib group. In this group, we need to
-constructure a scalar variable named 'sysDesc' which can show the full name and
+constructure a scalar object named 'sysDesc' which can show the full name and
 version identification of the system hardware type, software OS and networking.
-So we can write the constructor like this.
+So we can write the variable constructor like this.
 
     local mib = require "smartsnmp"
     local sysDesc = 1
@@ -102,16 +103,16 @@ The 'sysDesc' is the group table indice and defined as a scalar object id.
 'mib.ConstString' shows that the variable is read-only and string type. And then
 we have defined a get method which returns 'mib.sh_call' method provided by
 `init.lua` as required before. When the method invoked, Lua VM will execute a
-shell command and return a string value. We do not write a set method because
-the scalar variable is read-only.
+shell command and return a string value. We do not need to write a set method
+because the scalar object is read-only.
 
 Table and Entry
 ---------------
 
 Next we will implement 'sysORTable' and 'sysOREntry'. In SmartSNMP Table and
-Entry are also represented by Lua table. However, the get/set methods are
-somewhat different from those in scalar variable because Table and Entry are
-sequence variables.
+Entry are also represented by Lua tables. However, the get/set methods are
+somewhat different from those in scalar object because Table and Entry are
+sequence objects.
 
     local function or_entry_get(i, name)
         assert(type(name) == 'string')
@@ -148,9 +149,9 @@ table through `init.lua`.
 
 Now there are four variables in 'sysOREntry'. The 'sysORIndex' is the index
 variable of 'sysOREntry'. Its get method would return [value, err_stat] pair so
-as to show that this variable is unaccessible (invisible in response).  The
-'err_stat' can be dummy as defaut which can be ignored in return. Other
-variables are stored in 'or_entry_cache' which can load value data from
+as to show that this variable is unaccessible (invisible in SNMP response).  The
+'err_stat' can be a dummy value as defaut which can be ignored in return. Other
+variables are stored in 'or_entry_cache' which can load data value from
 configuration files or other non-RAM places. The 'or_entry_cache' comprises
 several rows, each of them corresponds to the lexicographical sorted variable in
 'sysOREntry'.
@@ -165,12 +166,12 @@ several rows, each of them corresponds to the lexicographical sorted variable in
 Long Index
 ----------
 
-There are three styles of variable index referred by 'indexes' field in entry
-object: single index, long index, and cascaded index.
+There are three styles of variable indexes referred to by 'indexes' field in
+entry object: single index, long index, and cascaded index.
 
 Long index is a string of multiple continous oid numbers such as an IP address
 (maybe following a port number). In 'udpTable' we examplified that with two
-entry variables and the 'udp_entry_cache'. By the way, you would better check if
+entry objects and the 'udp_entry_cache'. By the way, you would better check if
 the type of 'sub_oid' argument is Lua table when it is passed down.
 
     local udp_entry_cache = {
@@ -263,6 +264,6 @@ of group oid and a piece of description:
 
     mib.module_methods.or_table_reg("1.3.6.1.2.1.4", "The MIB module for managing IP and ICMP inplementations")
 
-Then the registry of the new group including 'sysORID', 'sysORDesc' and
-'sysORUpTime' will be stored in 'sysORTable' and will be shown in SNMP request
-query later.
+Then the registry of the new group will be shown as three fields of 'sysORID',
+'sysORDesc' and 'sysORUpTime' stored in 'sysORTable' and shown in SNMP query
+response later.
