@@ -1,7 +1,6 @@
 # TODO
 
-- Access control.
-- SNMPv3.
-- Trap and notification.
-- Better configuration.
 - Installation script.
+- SNMPv3 encryption.
+- Trap for SNMP and notification for AgentX.
+- ASN.1 compiler or interpretor.
