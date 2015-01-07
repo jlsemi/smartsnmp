@@ -30,11 +30,11 @@ class SmartSNMPTestCase:
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", OctStr("SmartSNMP"), SNMPWrongType())
 		self.snmpset_expect(".1.3.6.1.2.1.4.1.0", Integer(8888), Integer(8888))
 		self.snmpset_expect(".1.3.6.1.2.1.4.0", Integer(8888), SNMPNotWritable())
-		
+
 		if self.version == '3':
-				self.user = self.user.replace('rw', 'ro')
-				self.auth_key = self.auth_key.replace('rw', 'ro')
-				self.priv_key = self.priv_key.replace('rw', 'ro')
+			self.user = self.user.replace('rw', 'ro')
+			self.auth_key = self.auth_key.replace('rw', 'ro')
+			self.priv_key = self.priv_key.replace('rw', 'ro')
 		else:
 			self.community = "public"
 
