@@ -32,6 +32,7 @@ static struct protocol_operation *prot_ops;
 int
 smartsnmp_init(lua_State *L)
 {
+  int ret;
   const char *protocol = luaL_checkstring(L, 1);
   int port = luaL_checkint(L, 2);
 
@@ -46,9 +47,13 @@ smartsnmp_init(lua_State *L)
     return 1;  
   }
 
-  prot_ops->init(port);
+  ret = prot_ops->init(port);
 
-  lua_pushboolean(L, 1);
+  if (ret < 0) {
+    lua_pushboolean(L, 0);
+  } else {
+    lua_pushboolean(L, 1);
+  }
   return 1;  
 }
 
@@ -69,8 +74,7 @@ int
 smartsnmp_run(lua_State *L)
 {
   prot_ops->run();
-  lua_pushboolean(L, 1);
-  return 1;  
+  return 0;  
 }
 
 /* Register mib nodes from Lua */
@@ -131,12 +135,7 @@ smartsnmp_mib_node_unreg(lua_State *L)
   free(grp_id);
 
   /* Return value */
-  if (i < 0) {
-    lua_pushboolean(L, 0);
-  } else {
-    lua_pushboolean(L, 1);
-  }
-
+  lua_pushnumber(L, i);
   return 1;
 }
 

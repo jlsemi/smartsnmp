@@ -66,7 +66,6 @@ ber_value_dec_try(const uint8_t *buf, uint32_t len, uint8_t type)
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
-    case ASN1_TAG_OPAQ:
       ret = len;
       break;
     case ASN1_TAG_SEQ:
@@ -181,7 +180,6 @@ ber_value_dec(const uint8_t *buf, uint32_t len, uint8_t type, void *value)
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
-    case ASN1_TAG_OPAQ:
       memcpy(value, buf, len);
       ret = len;
       break;

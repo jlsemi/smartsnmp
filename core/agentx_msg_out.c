@@ -23,6 +23,9 @@
 #include <string.h>
 #include <assert.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+
 #include "agentx.h"
 #include "util.h"
 
@@ -396,7 +399,6 @@ agentx_response_pdu(struct agentx_datagram *xdg)
         break;
       case ASN1_TAG_OCTSTR:
       case ASN1_TAG_IPADDR:
-      case ASN1_TAG_OPAQ:
         len += sizeof(uint32_t) + uint_sizeof(vb_out->val_len);
         break;
       case ASN1_TAG_OBJID:
@@ -470,7 +472,6 @@ agentx_response_pdu(struct agentx_datagram *xdg)
         break;
       case ASN1_TAG_OCTSTR:
       case ASN1_TAG_IPADDR:
-      case ASN1_TAG_OPAQ:
         octstr = (struct x_octstr_t *)buf;
         octstr->len = vb_out->val_len;
         memcpy(octstr->str, vb_out->value, vb_out->val_len);
@@ -499,4 +500,16 @@ agentx_response_pdu(struct agentx_datagram *xdg)
   x_pdu.buf = pdu;
   x_pdu.len = len;
   return x_pdu;
+}
+
+/* Send AgentX response PDU */
+void
+agentx_response(struct agentx_datagram *xdg)
+{
+  /* Send response PDU */
+  struct x_pdu_buf x_pdu = agentx_response_pdu(xdg);
+  if (send(xdg->sock, x_pdu.buf, x_pdu.len, 0) == -1) {
+    SMARTSNMP_LOG(L_ERROR, "ERR: Send response PDU failure!\n");
+  }
+  free(x_pdu.buf);
 }

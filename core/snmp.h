@@ -185,7 +185,11 @@ uint32_t ber_value_dec(const uint8_t *buf, uint32_t len, uint8_t type, void *val
 uint32_t ber_length_dec_try(const uint8_t *buf);
 uint32_t ber_length_dec(const uint8_t *buf, uint32_t *value);
 
-void snmpd_send_response(struct snmp_datagram *sdg);
 void snmpd_recv(uint8_t *buf, int len);
 
+void snmp_get(struct snmp_datagram *sdg);
+void snmp_getnext(struct snmp_datagram *sdg);
+void snmp_set(struct snmp_datagram *sdg);
+void snmp_bulkget(struct snmp_datagram *sdg);
+void snmp_response(struct snmp_datagram *sdg);
 #endif /* _SNMP_H_ */

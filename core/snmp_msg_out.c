@@ -279,7 +279,7 @@ asn1_encode(struct snmp_datagram *sdg)
 }
 
 void
-snmpd_send_response(struct snmp_datagram *sdg)
+snmp_response(struct snmp_datagram *sdg)
 {
   struct var_bind *vb_out;
   struct list_head *curr, *next;

@@ -187,7 +187,6 @@ ber_value_enc_try(const void *value, uint32_t len, uint8_t type)
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
-    case ASN1_TAG_OPAQ:
       ret = len;
       break;
     case ASN1_TAG_SEQ:
@@ -239,7 +238,6 @@ ber_int_enc(int value, uint8_t *buf)
     buf[j++] = a.buf[i--];
   }
 #else
-  /* Number zero counts one */
   i = 0;
 
   if (value >= 0) {
@@ -296,7 +294,6 @@ ber_uint_enc(int value, uint8_t *buf)
     buf[j++] = a.buf[i--];
   }
 #else
-  /* Number zero counts one */
   i = 0;
 
   while (i < sizeof(unsigned int) && !a.buf[i]) {
@@ -380,7 +377,6 @@ ber_value_enc(const void *value, uint32_t len, uint8_t type, uint8_t *buf)
       break;
     case ASN1_TAG_OCTSTR:
     case ASN1_TAG_IPADDR:
-    case ASN1_TAG_OPAQ:
       str = (const uint8_t *)value;
       memcpy(buf, str, len);
       ret = len;
@@ -412,22 +408,8 @@ ber_length_enc_try(uint32_t value)
   len = 0;
 
 #ifdef LITTLE_ENDIAN
-  /* Number zero counts one */
-  i = 0;
-  do {
-    i++;
-  } while (i < sizeof(uint32_t) && a.buf[i]);
-
-  if (a.tmp > 127) {
-    len += 1;
-  }
-
-  len += i;
-#else
-  /* Number zero counts one */
   i = sizeof(uint32_t) - 1;
-
-  while (i > 0 && a.buf[i - 1]) {
+  while (i > 0 && !a.buf[i]) {
     i--;
   }
 
@@ -435,7 +417,18 @@ ber_length_enc_try(uint32_t value)
     len += 1;
   }
 
-  len += (sizeof(uint32_t) - i);
+  len += i + 1;
+#else
+  i = 0;
+  while (i < sizeof(uint32_t) && !a.buf[i]) {
+    i++;
+  }
+
+  if (a.tmp > 127) {
+    len += 1;
+  }
+
+  len += sizeof(uint32_t) - i;
 #endif
 
   return len;
@@ -448,7 +441,7 @@ ber_length_enc_try(uint32_t value)
 uint32_t
 ber_length_enc(uint32_t value, uint8_t *buf)
 {
-  uint32_t i, j;
+  int i, j;
   union anonymous {
     uint8_t buf[sizeof(uint32_t)];
     uint32_t tmp;
@@ -458,24 +451,22 @@ ber_length_enc(uint32_t value, uint8_t *buf)
   j = 0;
 
 #ifdef LITTLE_ENDIAN
-  /* Number zero counts one */
-  i = 0;
-  do {
-    i++;
-  } while (i < sizeof(uint32_t) && a.buf[i]);
+  i = sizeof(uint32_t) - 1;
+  while (i > 0 && !a.buf[i]) {
+    i--;
+  }
 
   if (a.tmp > 127) {
-    buf[j++] = 0x80 | i;
+    buf[j++] = 0x80 | (i + 1);
   }
 
-  while (i) {
-    buf[j++] = a.buf[--i];
+  while (i >= 0) {
+    buf[j++] = a.buf[i--];
   }
 #else
-  /* Number zero counts one */
-  i = sizeof(uint32_t) - 1;
-  while (i > 0 && a.buf[i - 1]) {
-    i--;
+  i = 0;
+  while (i < sizeof(uint32_t) && !a.buf[i]) {
+    i++;
   }
 
   if (a.tmp > 127) {

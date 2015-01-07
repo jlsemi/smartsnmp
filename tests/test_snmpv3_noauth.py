@@ -1,11 +1,16 @@
 import unittest
 from smartsnmp_testcase import *
 
-class SNMPv2cTestCase(unittest.TestCase, SmartSNMPTestFramework, SmartSNMPTestCase):
+class SNMPv3TestCase(unittest.TestCase, SmartSNMPTestFramework, SmartSNMPTestCase):
 	def setUp(self):
 		self.snmp_setup("config/snmp.conf")
-		self.version = "2c"
-		self.community = "private"
+		self.version = "3"
+		self.user = "rwNoAuthUser"
+		self.level = "noAuthNoPriv"
+		self.auth_protocol = ""
+		self.auth_key = ""
+		self.priv_protocol = ""
+		self.priv_key = ""
 		self.ip = "127.0.0.1"
 		self.port = 161
 		if self.snmp.isalive() == False:

@@ -43,8 +43,6 @@ static struct err_msg_map agentx_err_msg[] = {
   { AGENTX_ERR_SR_OID_LEN, "AgentX search range oid length exceeds!" },
 };
 
-static oid_t agentx_dummy_view[] = { 1, 3, 6, 1 };
-
 static struct x_var_bind *
 vb_new(uint32_t oid_len, uint32_t val_len)
 {
@@ -122,224 +120,6 @@ agentx_datagram_clear(struct agentx_datagram *xdg)
   xdg->ctx_len = 0;
 }
 
-/* Make response packet */
-static void
-agentx_response(struct agentx_datagram *xdg)
-{
-  /* Send response PDU */
-  struct x_pdu_buf x_pdu = agentx_response_pdu(xdg);
-  if (send(xdg->sock, x_pdu.buf, x_pdu.len, 0) == -1) {
-    SMARTSNMP_LOG(L_ERROR, "ERR: Send response PDU failure!\n");
-  }
-  free(x_pdu.buf);
-}
-
-/* GET request function */
-static void
-agentx_get(struct agentx_datagram *xdg)
-{
-  uint32_t val_len, sr_in_cnt = 0;
-  struct list_head *curr, *next;
-  struct x_var_bind *vb_out;
-  struct x_search_range *sr_in;
-  struct oid_search_res ret_oid;
-  struct mib_view view;
-
-  memset(&ret_oid, 0, sizeof(ret_oid));
-  ret_oid.request = MIB_REQ_GET; 
-
-  view.oid = agentx_dummy_view;
-  view.id_len = elem_num(agentx_dummy_view);
-
-  list_for_each_safe(curr, next, &xdg->sr_in_list) {
-    sr_in = list_entry(curr, struct x_search_range, link);
-    sr_in_cnt++;
-
-    /* Search at the input oid */
-    mib_tree_search(&view, sr_in->start, sr_in->start_len, &ret_oid);
-
-    val_len = agentx_value_enc_try(length(&ret_oid.var), tag(&ret_oid.var));
-    vb_out = xmalloc(sizeof(*vb_out) + val_len);
-    vb_out->oid = ret_oid.oid;
-    vb_out->oid_len = ret_oid.id_len;
-    vb_out->val_type = tag(&ret_oid.var);
-    vb_out->val_len = agentx_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
-
-    /* Error status */
-    if (ret_oid.err_stat) {
-      if (!xdg->u.response.error) {
-        /* Report the first object error status in search range */
-        xdg->u.response.error = ret_oid.err_stat;
-        xdg->u.response.index = sr_in_cnt;
-      }
-    }
-
-    /* Add into list. */
-    list_add_tail(&vb_out->link, &xdg->vb_out_list);
-    xdg->vb_out_cnt++;
-  }
-
-  agentx_response(xdg);
-}
-
-/* GETNEXT request function */
-static void
-agentx_getnext(struct agentx_datagram *xdg)
-{
-  uint32_t val_len, sr_in_cnt = 0;
-  struct list_head *curr, *next;
-  struct x_var_bind *vb_out;
-  struct x_search_range *sr_in;
-  struct oid_search_res ret_oid;
-  struct mib_view view;
-
-  memset(&ret_oid, 0, sizeof(ret_oid));
-  ret_oid.request = MIB_REQ_GETNEXT;
-
-  view.oid = agentx_dummy_view;
-  view.id_len = elem_num(agentx_dummy_view);
-
-  list_for_each_safe(curr, next, &xdg->sr_in_list) {
-    sr_in = list_entry(curr, struct x_search_range, link);
-    sr_in_cnt++;
-
-    /* Search the included start oid */
-    if (sr_in->start_include) {
-      mib_tree_search(&view, sr_in->start, sr_in->start_len, &ret_oid);
-      if (ret_oid.err_stat || !MIB_TAG_VALID(tag(&ret_oid.var))) {
-        /* Invalid query */
-        free(ret_oid.oid);
-      }
-    }
-    
-    /* If start oid not included or not exist, search the next one */
-    if (!sr_in->start_include || ret_oid.err_stat || !MIB_TAG_VALID(tag(&ret_oid.var))) {
-      mib_tree_search_next(&view, sr_in->start, sr_in->start_len, &ret_oid);
-      if (!ret_oid.err_stat && MIB_TAG_VALID(tag(&ret_oid.var))) {
-        /* Check whether return oid exceeds end oid */
-        if ((sr_in->end_include && oid_cmp(ret_oid.oid, ret_oid.id_len, sr_in->end, sr_in->end_len) > 0) ||
-            (!sr_in->end_include && oid_cmp(ret_oid.oid, ret_oid.id_len, sr_in->end, sr_in->end_len) >= 0)) {
-          /* Oid exceeds, end_of_mib_view */
-          oid_cpy(ret_oid.oid, sr_in->start, sr_in->start_len);
-          ret_oid.id_len = sr_in->start_len;
-          ret_oid.inst_id = NULL;
-          ret_oid.inst_id_len = 0;
-          tag(&ret_oid.var) = ASN1_TAG_END_OF_MIB_VIEW;
-        }
-      }
-    }
-
-    val_len = agentx_value_enc_try(length(&ret_oid.var), tag(&ret_oid.var));
-    vb_out = xmalloc(sizeof(*vb_out) + val_len);
-    vb_out->oid = ret_oid.oid;
-    vb_out->oid_len = ret_oid.id_len;
-    vb_out->val_type = tag(&ret_oid.var);
-    vb_out->val_len = agentx_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
-
-    /* Error status */
-    if (ret_oid.err_stat) {
-      if (!xdg->u.response.error) {
-        /* Report the first object error status in search range */
-        xdg->u.response.error = ret_oid.err_stat;
-        xdg->u.response.index = sr_in_cnt;
-      }
-    }
-
-    /* Add into list. */
-    list_add_tail(&vb_out->link, &xdg->vb_out_list);
-    xdg->vb_out_cnt++;
-  }
-
-  agentx_response(xdg);
-}
-
-/* SET request function */
-static void
-agentx_set(struct agentx_datagram *xdg)
-{
-  uint32_t val_len, vb_in_cnt = 0;
-  struct list_head *curr, *next;
-  struct x_var_bind *vb_in, *vb_out;
-  struct oid_search_res ret_oid;
-  struct mib_view view;
-
-  memset(&ret_oid, 0, sizeof(ret_oid));
-  ret_oid.request = MIB_REQ_SET;
-
-  view.oid = agentx_dummy_view;
-  view.id_len = elem_num(agentx_dummy_view);
-
-  list_for_each_safe(curr, next, &xdg->vb_in_list) {
-    vb_in = list_entry(curr, struct x_var_bind, link);
-    vb_in_cnt++;
-
-    /* Decode the setting value ahead */
-    tag(&ret_oid.var) = vb_in->val_type;
-    length(&ret_oid.var) = vb_in->val_len;
-    val_len = agentx_value_enc_try(length(&ret_oid.var), tag(&ret_oid.var));
-    memcpy(value(&ret_oid.var), vb_in->value, val_len);
-
-    /* Search at the input oid and set it */
-    mib_tree_search(&view, vb_in->oid, vb_in->oid_len, &ret_oid);
-    
-    vb_out = xmalloc(sizeof(*vb_out) + vb_in->val_len);
-    vb_out->oid = ret_oid.oid;
-    vb_out->oid_len = ret_oid.id_len;
-    vb_out->val_type = vb_in->val_type;
-    vb_out->val_len = agentx_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
-
-    /* Invalid tags convert to error status for snmpset */
-    if (!ret_oid.err_stat && !MIB_TAG_VALID(tag(&ret_oid.var))) {
-      ret_oid.err_stat = AGENTX_ERR_STAT_NOT_WRITABLE;
-    }
-
-    if (ret_oid.err_stat) {
-      /* Something wrong */
-      if (!xdg->u.response.error) {
-        /* Report the first object error status in search range */
-        xdg->u.response.error = ret_oid.err_stat;
-        xdg->u.response.index = vb_in_cnt;
-      }
-    }
-
-    /* Add into list. */
-    list_add_tail(&vb_out->link, &xdg->vb_out_list);
-    xdg->vb_out_cnt++;
-  }
-
-  agentx_response(xdg);
-}
-
-/* Request dispatch */
-static void
-request_dispatch(struct agentx_datagram *xdg)
-{
-  switch (xdg->pdu_hdr.type) {
-    case AGENTX_PDU_GET:
-      agentx_get(xdg);
-      break;
-    case AGENTX_PDU_GETNEXT:
-    case AGENTX_PDU_GETBULK:
-      agentx_getnext(xdg);
-      break;
-    case AGENTX_PDU_TESTSET:
-      agentx_set(xdg);
-      break;
-    case AGENTX_PDU_COMMITSET:
-    case AGENTX_PDU_UNDOSET:
-    case AGENTX_PDU_CLEANUPSET:
-      agentx_response(xdg);
-      break;
-    case AGENTX_PDU_INDEXALLOC:
-    case AGENTX_PDU_INDEXDEALLOC:
-    case AGENTX_PDU_ADDAGENTCAP:
-    case AGENTX_PDU_REMOVEAGENTCAP:
-      break;
-    default:
-      break;
-  }
-}
-
 /* Alloc buffer for var bind decoding */
 static struct x_var_bind *
 var_bind_alloc(uint8_t **buffer, uint8_t flag, enum agentx_err_code *err)
@@ -352,7 +132,11 @@ var_bind_alloc(uint8_t **buffer, uint8_t flag, enum agentx_err_code *err)
   buf = *buffer;
 
   /* value type */
-  type = *(uint16_t *)buf;
+  if (flag & NETWORD_BYTE_ORDER) {
+    type = NTOH16(*(uint16_t *)buf);
+  } else {
+    type = *(uint16_t *)buf;
+  }
   buf += 4;
 
   /* oid length */
@@ -512,18 +296,33 @@ pdu_hdr_parse(struct agentx_datagram *xdg, uint8_t **buffer)
   xdg->pdu_hdr.type = *buf++;
   xdg->pdu_hdr.flags = *buf++;
   xdg->pdu_hdr.reserved = *buf++;
-  xdg->pdu_hdr.session_id = *(uint32_t *)buf;
-  buf += sizeof(uint32_t);
-  xdg->pdu_hdr.transaction_id = *(uint32_t *)buf;
-  buf += sizeof(uint32_t);
-  xdg->pdu_hdr.packet_id = *(uint32_t *)buf;
-  buf += sizeof(uint32_t);
-  xdg->pdu_hdr.payload_length = *(uint32_t *)buf;
-  buf += sizeof(uint32_t);
+  if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
+    xdg->pdu_hdr.session_id = NTOH32(*(uint32_t *)buf);
+    buf += sizeof(uint32_t);
+    xdg->pdu_hdr.transaction_id = NTOH32(*(uint32_t *)buf);
+    buf += sizeof(uint32_t);
+    xdg->pdu_hdr.packet_id = NTOH32(*(uint32_t *)buf);
+    buf += sizeof(uint32_t);
+    xdg->pdu_hdr.payload_length = NTOH32(*(uint32_t *)buf);
+    buf += sizeof(uint32_t);
+  } else {
+    xdg->pdu_hdr.session_id = *(uint32_t *)buf;
+    buf += sizeof(uint32_t);
+    xdg->pdu_hdr.transaction_id = *(uint32_t *)buf;
+    buf += sizeof(uint32_t);
+    xdg->pdu_hdr.packet_id = *(uint32_t *)buf;
+    buf += sizeof(uint32_t);
+    xdg->pdu_hdr.payload_length = *(uint32_t *)buf;
+    buf += sizeof(uint32_t);
+  }
 
   /* Optinal context */
   if (xdg->pdu_hdr.flags & NON_DEFAULT_CONTEXT) {
-    xdg->ctx_len = *(uint32_t *)buf;
+    if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
+      xdg->ctx_len = NTOH32(*(uint32_t *)buf);
+    } else {
+      xdg->ctx_len = *(uint32_t *)buf;
+    }
     if (xdg->ctx_len + 1 > sizeof(xdg->context)) {
       err = AGENTX_ERR_PDU_CTX_LEN;
       *buffer = buf;
@@ -543,19 +342,39 @@ pdu_hdr_parse(struct agentx_datagram *xdg, uint8_t **buffer)
       xdg->pdu_hdr.payload_length -= sizeof(uint32_t);
       break;
     case AGENTX_PDU_GETBULK:
-      xdg->u.getbulk.non_rep = *(uint16_t *)buf;
+      if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
+        xdg->u.getbulk.non_rep = NTOH16(*(uint16_t *)buf);
+      } else {
+        xdg->u.getbulk.non_rep = *(uint16_t *)buf;
+      }
       buf += sizeof(uint16_t);
-      xdg->u.getbulk.max_rep = *(uint16_t *)buf;
+      if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
+        xdg->u.getbulk.max_rep = NTOH16(*(uint16_t *)buf);
+      } else {
+        xdg->u.getbulk.max_rep = *(uint16_t *)buf;
+      }
       buf += sizeof(uint16_t);
       xdg->pdu_hdr.payload_length -= 2 * sizeof(uint16_t);
       break;
     case AGENTX_PDU_RESPONSE:
-      xdg->u.response.sys_up_time = *(uint32_t *)buf;
+      if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
+        xdg->u.response.sys_up_time = NTOH32(*(uint32_t *)buf);
+      } else {
+        xdg->u.response.sys_up_time = *(uint32_t *)buf;
+      }
       buf += sizeof(uint32_t);
-      xdg->u.response.error = *(uint16_t *)buf;
+      if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
+        xdg->u.response.error = NTOH16(*(uint16_t *)buf);
+      } else {
+        xdg->u.response.error = *(uint16_t *)buf;
+      }
       buf += sizeof(uint16_t);
       xdg->u.response.index = *(uint16_t *)buf;
-      xdg->u.response.index = *(uint16_t *)buf;
+      if (xdg->pdu_hdr.flags & NETWORD_BYTE_ORDER) {
+        xdg->u.response.index = NTOH16(*(uint16_t *)buf);
+      } else {
+        xdg->u.response.index = *(uint16_t *)buf;
+      }
       buf += sizeof(uint16_t);
       xdg->pdu_hdr.payload_length -= sizeof(uint32_t) + 2 * sizeof(uint16_t);
     default:
@@ -620,6 +439,36 @@ DECODE_FINISH:
   return err;
 }
 
+/* AgentX request dispatch */
+static void
+agentx_request_dispatch(struct agentx_datagram *xdg)
+{
+  switch (xdg->pdu_hdr.type) {
+    case AGENTX_PDU_GET:
+      agentx_get(xdg);
+      break;
+    case AGENTX_PDU_GETNEXT:
+    case AGENTX_PDU_GETBULK:
+      agentx_getnext(xdg);
+      break;
+    case AGENTX_PDU_TESTSET:
+      agentx_set(xdg);
+      break;
+    case AGENTX_PDU_COMMITSET:
+    case AGENTX_PDU_UNDOSET:
+    case AGENTX_PDU_CLEANUPSET:
+      agentx_response(xdg);
+      break;
+    case AGENTX_PDU_INDEXALLOC:
+    case AGENTX_PDU_INDEXDEALLOC:
+    case AGENTX_PDU_ADDAGENTCAP:
+    case AGENTX_PDU_REMOVEAGENTCAP:
+      break;
+    default:
+      break;
+  }
+}
+
 /* Receive agentx datagram from transport module */
 int
 agentx_recv(uint8_t *buffer, int len)
@@ -628,7 +477,7 @@ agentx_recv(uint8_t *buffer, int len)
 
   assert(buffer != NULL && len > 0);
 
-  /* Reset datagram */
+  /* Reset agentX datagram */
   agentx_datagram_clear(&agentx_datagram);
   agentx_datagram.recv_buf = buffer;
 
@@ -636,8 +485,8 @@ agentx_recv(uint8_t *buffer, int len)
   ret = agentx_decode(&agentx_datagram);
 
   if (!ret) {
-    /* Dispatch request */
-    request_dispatch(&agentx_datagram);
+    /* Dispatch agentX request */
+    agentx_request_dispatch(&agentx_datagram);
   }
 
   return ret;

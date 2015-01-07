@@ -22,6 +22,7 @@
 #include <netinet/in.h>
 
 #include <assert.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,6 +31,7 @@
 #include "transport.h"
 #include "protocol.h"
 #include "ev_loop.h"
+#include "util.h"
 
 struct agentx_data_entry {
   int sock;
@@ -60,11 +62,7 @@ agentx_read_handler(int sock, unsigned char flag, void *ud)
   uint8_t *buf;
   int len;
 
-  buf = malloc(TRANS_BUF_SIZ);
-  if (buf == NULL) {
-    perror("malloc()");
-    exit(EXIT_FAILURE);
-  }
+  buf = xmalloc(TRANS_BUF_SIZ);
 
   /* Receive agentx PDU */
   len = recv(sock, buf, TRANS_BUF_SIZ - 1, 0);
@@ -94,7 +92,7 @@ transport_running(void)
   snmp_event_run();
 }
 
-static void
+static int
 transport_init(int port)
 {
   struct sockaddr_in sin;
@@ -102,7 +100,7 @@ transport_init(int port)
   agentx_datagram.sock = agentx_entry.sock = socket(AF_INET, SOCK_STREAM, 0);
   if (agentx_entry.sock < 0) {
     perror("usock");
-    exit(EXIT_FAILURE);
+    return -1;
   }
 
   memset(&sin, 0, sizeof(sin));
@@ -112,8 +110,11 @@ transport_init(int port)
 
   if (connect(agentx_entry.sock, (struct sockaddr *)&sin, sizeof(sin)) == -1) {
     perror("connect()");
-    exit(EXIT_FAILURE);
+    close(agentx_datagram.sock);
+    return -1;
   }
+
+  return 0;
 }
 
 struct transport_operation agentx_trans_ops = {

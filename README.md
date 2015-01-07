@@ -4,8 +4,8 @@ SmartSNMP - A Smart SNMP Agent
 [![Build Status](https://travis-ci.org/credosemi/smartsnmp.svg?branch=master)](https://travis-ci.org/credosemi/smartsnmp)
 
 **SmartSNMP** is a minimal easy-config agent for network management supporting
-SNMPv2c and AgentX. It is written in C99 and Lua5.1. It can run both on PC platforms
-like Linux and embedded systems such as OpenWRT.
+SNMPv1/v2c/v3(non-encryption) and AgentX. It is written in C99 and Lua5.1. It
+can run both on PC platforms like Linux and embedded systems such as OpenWRT.
 
 License
 -------
@@ -101,7 +101,7 @@ Any SNMP daemon installed in you system should be closed before test.
 
     sudo /etc/init.d/snmpd stop
 
-In **SNMP** mode, we run the snmp daemon:
+In **SNMP** mode, we would run the SmartSNMP daemon:
 
     cd smartsnmp
     sudo ./tests/snmp_daemon.sh
@@ -111,17 +111,17 @@ Then run test cases at another terminal:
     cd smartsnmp
     ./tests/testcase.sh
 
-In **AgentX** mode, NET-SNMP will be tested as the master agent, so will download
-**NET-SNMP-5.7.2.1** source and build out the image in `tests` directory first:
+In **AgentX** mode, NET-SNMP will be tested as the master agent, so we will
+download **NET-SNMP-5.7.2.1** source and build out the image in `tests` directory:
 
     cd smartsnmp
     ./tests/netsnmp_build.sh
 
-Then run NET-SNMP master agent:
+Then run NET-SNMP as master agent:
 
     sudo ./tests/net-snmp-release/sbin/snmpd -f -Lo -m "" -C -c tests/snmpd.conf
 
-Then run the sub-agent at another terminal:
+Then run the SmartSNMP as sub-agent at another terminal:
 
     cd smartsnmp
     ./tests/agentx_daemon.sh
