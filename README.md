@@ -4,8 +4,8 @@ SmartSNMP - A Smart SNMP Agent
 [![Build Status](https://travis-ci.org/credosemi/smartsnmp.svg?branch=master)](https://travis-ci.org/credosemi/smartsnmp)
 
 **SmartSNMP** is a minimal easy-config agent for network management supporting
-SNMPv3 and AgentX. It is written in C99 and Lua5.1. It can run both on PC platforms
-like Linux and embedded systems such as OpenWRT.
+SNMPv1/v2c/v3(non-encryption) and AgentX. It is written in C99 and Lua5.1. It
+can run both on PC platforms like Linux and embedded systems such as OpenWRT.
 
 License
 -------
