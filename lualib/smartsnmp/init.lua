@@ -854,25 +854,46 @@ end
 -- print group index table through generator
 _M.group_index_table_check = function (group, name)
     local it = group_index_table_generator(group, name)
-    print(string.format("Group \'%s\' index table:", name))
+    local crashed = false
+
+    print(string.format("Checking \'%s\' indexes table...", name))
     for i, v in ipairs(it) do
+        local variable
         if #v == 2 then
+            variable = 'scalar'
             print("scalar indexes:")
         else
+            variable = 'table'
             print("table indexes:")
         end
         for i in ipairs(v) do
-            print(string.format("Dim%d:", i))
+            print(string.format("\tDim%d:", i))
             if next(v[i]) then
                 if type(v[i][1]) == 'number' then
-                    print(unpack(v[i]))
+                    if v[i] == nil or next(v[i]) == nil then
+                        crashed = true
+                        print(string.format("ERROR: \'%s\' %s indexes invalid!", name, variable))
+                    else
+                        print("\t", unpack(v[i]))
+                    end
                 else
                     for _, t in ipairs(v[i]) do
-                        print(unpack(t))
+                        if t == nil or next(t) == nil then
+                            crashed = true
+                            print(string.format("ERROR: \'%s\' %s indexes invalid!", name, variable))
+                        else
+                            print("\t", unpack(t))
+                        end
                     end
                 end
             end
         end
+    end
+
+    if crashed == true then
+        print(string.format("Oops! It seems something wrong in \'%s\' indexes!", name))
+    else
+        print(string.format("Group \'%s\' indexes are OK!", name))
     end
 end
 
