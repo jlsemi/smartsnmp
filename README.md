@@ -16,8 +16,8 @@ Configuration and Interfaces
 ----------------------------
 
 One of the biggest bonuses (aka smartest features) of this agent is that you can
-write your own private mibs and loaded by it only if you learn to write lua
-files as shown in `config` and `mibs` directory.
+write your own private mibs and load it only if you learn to write lua files as
+shown in `config` and `mibs` directory.
 
 Operation
 ---------
@@ -49,14 +49,10 @@ For expample, in libevent transport you need to install libevent, in uloop
 transport you need to install libubox. Especially, on Ubuntu you should install
 liblua5.1 while liblua is needed on other platforms.
 
-Assume **SmartSNMP** is running on Ubuntu in libevent transport, you shall install
-libraries such as:
+Assume **SmartSNMP** is running on Ubuntu, you shall install libraries such as:
 
     # lua5.1
     sudo apt-get install -y lua5.1 liblua5.1-0-dev
-
-    # for libevent transport
-    sudo apt-get install -y libevent-dev
 
     # scons & git
     sudo apt-get install -y scons git
@@ -117,11 +113,11 @@ download **NET-SNMP-5.7.2.1** source and build out the image in `tests` director
     cd smartsnmp
     ./tests/netsnmp_build.sh
 
-Then run NET-SNMP as master agent:
+Then run NET-SNMP as the master agent:
 
     sudo ./tests/net-snmp-release/sbin/snmpd -f -Lo -m "" -C -c tests/snmpd.conf
 
-Then run the SmartSNMP as sub-agent at another terminal:
+Then run the SmartSNMP as a sub-agent at another terminal:
 
     cd smartsnmp
     ./tests/agentx_daemon.sh
@@ -129,7 +125,7 @@ Then run the SmartSNMP as sub-agent at another terminal:
 Then run test cases at the third terminal:
 
     cd smartsnmp
-    ./tests/agentx_test.sh
+    ./tests/testcase.sh
 
 TODO
 ----
