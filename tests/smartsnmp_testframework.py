@@ -209,7 +209,7 @@ class SmartSNMPTestFramework:
 		time.sleep(1)
 
 	def snmp_teardown(self):
-		self.snmp.close(force = True)
+		self.snmp.close()
 		time.sleep(1)
 
 	def agentx_setup(self, config_file):
@@ -222,6 +222,6 @@ class SmartSNMPTestFramework:
 		time.sleep(1)
 
 	def agentx_teardown(self):
-		self.agentx.close(force = True)
+		self.agentx.close()
 		self.netsnmp.close(force = True)
 		time.sleep(1)

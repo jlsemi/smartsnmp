@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include "mib.h"
 #include "snmp.h"
 #include "agentx.h"
@@ -29,12 +30,19 @@
 
 static struct protocol_operation *prot_ops;
 
+void sig_int_handler(int dummy)
+{
+  prot_ops->close();
+}
+
 int
 smartsnmp_init(lua_State *L)
 {
   int ret;
   const char *protocol = luaL_checkstring(L, 1);
   int port = luaL_checkint(L, 2);
+
+  signal(SIGINT, sig_int_handler);
 
   mib_init();
 
@@ -75,6 +83,13 @@ smartsnmp_run(lua_State *L)
 {
   prot_ops->run();
   return 0;  
+}
+
+int
+smartsnmp_exit(lua_State *L)
+{
+  prot_ops->close();
+  return 0;
 }
 
 /* Register mib nodes from Lua */
@@ -229,6 +244,7 @@ static const luaL_Reg smartsnmp_func[] = {
   { "init", smartsnmp_init },
   { "open", smartsnmp_open },
   { "run", smartsnmp_run },
+  { "exit", smartsnmp_exit },
   { "mib_node_reg", smartsnmp_mib_node_reg },
   { "mib_node_unreg", smartsnmp_mib_node_unreg },
   { "mib_community_reg", smartsnmp_mib_community_reg },
