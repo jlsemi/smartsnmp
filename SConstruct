@@ -115,6 +115,17 @@ AddOption(
   help='use libevent in DIR (only for transport is libevent)'
 )
 
+AddOption(
+  '--gcov',
+  dest='gcov',
+  default = '',
+  type='string',
+  nargs=1,
+  action='store',
+  metavar='[yes|no]',
+  help='compile C source code with gcov support'
+)
+
 env = Environment(
   ENV = os.environ,
   LIBS = ['m', 'dl'],
@@ -207,6 +218,13 @@ if GetOption("transport") == 'built-in' or GetOption("transport") == '':
   else:
     print "Error: Not the right event driving type"
     Exit(1)
+
+# CFLAGS
+if GetOption("gcov") == "yes":
+  env.Append(
+    CFLAGS = ['-fprofile-arcs', '-ftest-coverage'],
+    LINKFLAGS = ['-fprofile-arcs', '-ftest-coverage'],
+  )
 
 # find liblua. On Ubuntu, liblua is named liblua5.1, so we need to check this.
 if conf.CheckLib('lua'):
