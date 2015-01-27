@@ -305,7 +305,7 @@ snmp_set(struct snmp_datagram *sdg)
   struct list_head *curr, *next;
   struct var_bind *vb_in, *vb_out;
   struct oid_search_res ret_oid;
-  uint32_t oid_len, len_len;
+  uint32_t oid_len, len_len, val_len;
   uint32_t vb_in_cnt = 0;
   const uint32_t tag_len = 1;
 
@@ -323,11 +323,12 @@ snmp_set(struct snmp_datagram *sdg)
     /* Search at the input oid and set it */
     mib_set(sdg, vb_in, &ret_oid);
 
-    vb_out = xmalloc(sizeof(*vb_out) + vb_in->value_len);
+    val_len = ber_value_enc_try(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var));
+    vb_out = xmalloc(sizeof(*vb_out) + val_len);
     vb_out->oid = ret_oid.oid;
     vb_out->oid_len = ret_oid.id_len;
     vb_out->value_type = vb_in->value_type;
-    vb_out->value_len = ber_value_enc(value(&ret_oid.var), length(&ret_oid.var), tag(&ret_oid.var), vb_out->value);
+    vb_out->value_len = ber_value_enc(value(&ret_oid.var), val_len, tag(&ret_oid.var), vb_out->value);
 
     /* Invalid tags convert to error status for snmpset */
     if (!ret_oid.err_stat && !MIB_TAG_VALID(tag(&ret_oid.var))) {
