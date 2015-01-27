@@ -92,6 +92,13 @@ transport_running(void)
   snmp_event_run();
 }
 
+static void
+transport_stop(void)
+{
+  snmp_event_done();
+  close(agentx_entry.sock);
+}
+
 static int
 transport_init(int port)
 {
@@ -121,5 +128,6 @@ struct transport_operation agentx_trans_ops = {
   "agentx_tcp",
   transport_init,
   transport_running,
+  transport_stop,
   transport_send,
 };

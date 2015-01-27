@@ -131,7 +131,15 @@ transport_running(void)
   /* Enter the event loop; does not return. */
   event_base_dispatch(event_base);
 
+  event_base_free(event_base);
+
   close(sock);
+}
+
+static void
+transport_stop(void)
+{
+  event_base_loopexit(event_base, 0);
 }
 
 static int
@@ -166,5 +174,6 @@ struct transport_operation snmp_trans_ops = {
   "snmp_libevent",
   transport_init,
   transport_running,
+  transport_stop,
   transport_send,
 };

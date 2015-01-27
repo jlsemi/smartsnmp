@@ -94,6 +94,12 @@ transport_running(void)
 }
 
 static void
+transport_stop(void)
+{
+  uloop_done();
+}
+
+static void
 transport_init(int port)
 {
   struct sockaddr_in sin;
@@ -122,5 +128,6 @@ struct transport_operation snmp_trans_ops = {
   "snmp_uloop",
   transport_init,
   transport_running,
+  transport_stop,
   transport_send,
 };

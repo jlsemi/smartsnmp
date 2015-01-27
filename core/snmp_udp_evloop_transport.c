@@ -95,6 +95,12 @@ transport_running(void)
   snmp_event_run();
 }
 
+static void
+transport_stop(void)
+{
+  snmp_event_done();
+}
+
 static int
 transport_init(int port)
 {
@@ -124,5 +130,6 @@ struct transport_operation snmp_trans_ops = {
   "snmp_udp",
   transport_init,
   transport_running,
+  transport_stop,
   transport_send,
 };
