@@ -1,7 +1,7 @@
 SmartSNMP - A Smart SNMP Agent
 ==============================
 
-[![Build Status](https://travis-ci.org/credosemi/smartsnmp.svg?branch=master)](https://travis-ci.org/credosemi/smartsnmp)
+[![Build Status](https://travis-ci.org/credosemi/smartsnmp.svg?branch=master)](https://travis-ci.org/credosemi/smartsnmp) [![Coverage Status](https://coveralls.io/repos/credosemi/smartsnmp/badge.svg?branch=master)](https://coveralls.io/r/credosemi/smartsnmp?branch=master)
 
 **SmartSNMP** is a minimal easy-config agent for network management supporting
 SNMPv1/v2c/v3(non-encryption) and AgentX. It is written in C99 and Lua5.1. It
@@ -85,6 +85,7 @@ You will get:
       --with-libubox=DIR          use libubox in DIR (only for transport is uloop)
       --with-libevent=DIR         use libevent in DIR (only for transport is
                                     libevent)
+      --gcov=[yes|no]             compile C source code with gcov support
 
 You can specify options above you need to build the project.
 
@@ -120,7 +121,7 @@ Then run NET-SNMP as the master agent:
 Then run the SmartSNMP as a sub-agent at another terminal:
 
     cd smartsnmp
-    ./tests/agentx_daemon.sh
+    sudo ./tests/agentx_daemon.sh
 
 Then run test cases at the third terminal:
 
