@@ -50,6 +50,15 @@ class SNMPUndoFail(SNMPErrorStatus): value = "undoFailed"
 class SNMPAuthErr(SNMPErrorStatus): value = "authorizationError (access denied to that object)"
 class SNMPNotWritable(SNMPErrorStatus): value = "notWritable (That object does not support modification)"
 
+def _fix_terminate_time(spawn_obj):
+	# this routine is trying to fix up the testing issue on travis-ci, 
+	# when closing a _pexpect.spawn_ object, it will need more time to
+	# wait it close or termination.
+	import os
+	if os.environ.has_key('TRAVIS_JOB_ID') is True:
+		spawn_obj.delayafterterminate = 1.0
+		spawn_obj.delayafterclose = 0.5
+
 class SmartSNMPTestFramework:
 	def snmp_request(self, req, oids = [], tag = None, value = None, version = None, community = None, user = None, level = None, auth_protocol = None, auth_key = None, priv_protocol = None, priv_key = None, ip = None, port = None):
 		# parse oid
@@ -209,6 +218,7 @@ class SmartSNMPTestFramework:
 		time.sleep(1)
 
 	def snmp_teardown(self):
+		_fix_terminate_time(self.snmp)
 		self.snmp.close()
 		time.sleep(1)
 
@@ -222,6 +232,9 @@ class SmartSNMPTestFramework:
 		time.sleep(1)
 
 	def agentx_teardown(self):
+		_fix_terminate_time(self.agentx)
 		self.agentx.close()
+
+		_fix_terminate_time(self.netsnmp)
 		self.netsnmp.close(force = True)
 		time.sleep(1)
