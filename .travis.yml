@@ -9,8 +9,10 @@ env:
 
 install:
   - "sudo apt-get install -y $LUA $lib$LUA-0-dev"
-  - "sudo apt-get install -y python-pexpect"
+  - "sudo apt-get install -y python-pexpect python-pip"
   - "sudo apt-get install -y snmp"
+  - "sudo pip install PyYAML"
+  - "sudo pip install cpp-coveralls"
   - "if [ $TRANSPORT = 'libevent' ]; then
         sudo apt-get install -y libevent-dev;
     fi"
@@ -41,10 +43,17 @@ script:
         export CFLAGS='-I.';
     fi"
   - "if [ $TRANSPORT = 'built-in' ]; then
-        scons --transport=$TRANSPORT --evloop=$EVLOOP;
+        scons --transport=$TRANSPORT --evloop=$EVLOOP --gcov=yes;
     else
-        scons --transport=$TRANSPORT;
+        scons --transport=$TRANSPORT --gcov=yes;
     fi"
   - "sudo python ./tests/test_all.py"
 
+after_success:
+  - "cpp-coveralls -b . -e. -e .sconf_temp `ls core/*.gcno | sed 's/\\.gcno$/.c/' | sed 's/^/-i /'`"
+
+after_failure:
+  - "cat tests/test.log"
+
 after_script: cat config.log
+
