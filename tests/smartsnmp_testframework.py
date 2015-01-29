@@ -9,6 +9,17 @@ env = {
 	'LUA_CPATH': "build/?.so",
 }
 
+lua_exe = "lua5.1"
+if os.environ.has_key('LUA') is True:
+	lua_exe = os.getenv('LUA')
+
+luacov = ""
+if os.environ.has_key('LUACOV') is True:
+	luacov = "-lluacov"
+	
+	# luacov is installed in system, so we need it in *LUA_PATH*
+	env['LUA_PATH'] = ";".join([env['LUA_PATH'], os.environ['SYS_LUA_PATH']])
+
 # ASN.1 tag
 class SNMPASN1Tag:
 	def __init__(self, value):
@@ -204,7 +215,7 @@ class SmartSNMPTestFramework:
 
 	def snmp_setup(self, config_file):
 		print "Starting Smart-SNMP Agent (Master Mode)..."
-		self.snmp = pexpect.spawn(r"./bin/smartsnmpd -c " + config_file, env = env)
+		self.snmp = pexpect.spawn(r"%s %s ./bin/smartsnmpd -c %s" % (lua_exe, luacov, config_file), env = env)
 		self.snmp.logfile_read = sys.stderr
 		time.sleep(1)
 
@@ -217,7 +228,7 @@ class SmartSNMPTestFramework:
 		self.netsnmp = pexpect.spawn(r"./tests/net-snmp-release/sbin/snmpd -f -Lo -m "" -C -c tests/snmpd.conf", env = env)
 		time.sleep(1)
 		print "Starting SmartSNMP SubAgent (AgentX Mode)..."
-		self.agentx = pexpect.spawn(r"./bin/smartsnmpd -c " + config_file, env = env)
+		self.agentx = pexpect.spawn(r"%s %s ./bin/smartsnmpd -c %s" % (lua_exe, luacov, config_file), env = env)
 		self.agentx.logfile_read = sys.stderr
 		time.sleep(1)
 
