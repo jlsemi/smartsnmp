@@ -96,7 +96,7 @@ transport_running(void)
 static void
 transport_stop(void)
 {
-  uloop_done();
+  uloop_end();
 }
 
 static void
