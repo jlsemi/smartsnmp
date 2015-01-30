@@ -38,7 +38,8 @@ install:
          cp libubox.so ..
        );
     fi"
-  - ./tests/netsnmp_build.sh
+  - "wget https://raw.githubusercontent.com/credosemi/pub/master/net-snmp-pre-built.tar.gz"
+  - "tar xzf net-snmp-pre-built.tar.gz"
 
 script:
   - "if [ $TRANSPORT = 'uloop' ]; then
