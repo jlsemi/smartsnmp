@@ -177,4 +177,10 @@ end
 mib_modules = nil
 mib_mod_refs = nil
 
+if protocol == 'snmp' then
+	print("SmartSNMP (Mode: SNMP Agent)")
+else
+	print("SmartSNMP (Mode: AgentX Sub-Agent)")
+end
+
 snmpd.start()
