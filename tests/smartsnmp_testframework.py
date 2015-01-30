@@ -209,30 +209,66 @@ class SmartSNMPTestFramework:
 
 	def snmpwalk_expect(self, oid, **kwargs):
 		results = self.snmpwalk(oid, **kwargs)
+		print('Checking walk results (total = %d) ...' % len(results)),
 		for i in range(len(results)):
-			print(results[i])
 			self.snmpwalk_result_check(results[i], len(results), i)
+		print('Done.')
 
 	def snmp_setup(self, config_file):
 		print "Starting Smart-SNMP Agent (Master Mode)..."
 		self.snmp = pexpect.spawn(r"%s %s ./bin/smartsnmpd -c %s" % (lua_exe, luacov, config_file), env = env)
 		self.snmp.logfile_read = sys.stderr
-		time.sleep(1)
+		self.snmp.expect("SmartSNMP .+\r\n")
 
 	def snmp_teardown(self):
-		self.snmp.close()
-		time.sleep(1)
+		import signal
+
+		wait_time = 60 * 60 * 3 # 3 hours
+
+		for i in range(wait_time):
+			print 'Try to kill SmartSNMP Agent (%d)...' % i
+			self.snmp.kill(signal.SIGINT)
+			time.sleep(0.1)
+			if self.snmp.isalive() is True:
+				time.sleep(0.9)
+			else:
+				break
+		
+		if i == wait_time - 1:
+			raise Exception("Can't Stop SmartSNMP Agent")
 
 	def agentx_setup(self, config_file):
 		print "Starting NET-SNMP Agent (Master Mode)..."
 		self.netsnmp = pexpect.spawn(r"./tests/net-snmp-release/sbin/snmpd -f -Lo -m "" -C -c tests/snmpd.conf", env = env)
-		time.sleep(1)
+		self.netsnmp.expect("NET-SNMP version [\d\.]+\r\n")
+
 		print "Starting SmartSNMP SubAgent (AgentX Mode)..."
 		self.agentx = pexpect.spawn(r"%s %s ./bin/smartsnmpd -c %s" % (lua_exe, luacov, config_file), env = env)
 		self.agentx.logfile_read = sys.stderr
-		time.sleep(1)
+		self.agentx.expect("SmartSNMP .+\r\n")
 
 	def agentx_teardown(self):
-		self.agentx.close()
-		self.netsnmp.close(force = True)
-		time.sleep(1)
+		import signal
+		wait_time = 60 * 60 * 3 # 3 hours
+
+		for i in range(wait_time):
+			print 'Try to kill SmartSNMP Sub-Agent (%d)...' % i
+			self.agentx.kill(signal.SIGINT)
+			time.sleep(0.1)
+			if self.agentx.isalive() is True:
+				time.sleep(0.9)
+			else:
+				break
+		if i == wait_time - 1:
+			raise Exception("Can't Stop SmartSNMP Sub-Agent")
+		
+		for i in range(wait_time):
+			print 'Try to kill Net-SNMP Agent (%d)...' % i
+			self.netsnmp.kill(signal.SIGKILL)
+			time.sleep(0.1)
+			if self.netsnmp.isalive() is True:
+				time.sleep(0.9)
+			else:
+				break
+		if i == wait_time - 1:
+			raise Exception("Can't Stop Net-SNMP Agent")
