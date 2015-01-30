@@ -8,16 +8,12 @@ env:
     - "LUA=lua5.1 TRANSPORT=uloop"
 
 install:
-  - "sudo apt-get install -y $LUA $lib$LUA-0-dev"
-  - "sudo apt-get install -y python-pexpect python-pip"
-  - "sudo apt-get install -y snmp"
-  - "sudo apt-get install -y luarocks"
-  - "sudo pip install PyYAML"
-  - "sudo pip install cpp-coveralls"
+  - "sudo apt-get install -yq $LUA $lib$LUA-0-dev python-pexpect snmp luarocks"
+  - "sudo pip -q install PyYAML cpp-coveralls"
   - "sudo luarocks install Lua-cURL"
   - "sudo luarocks install luacov-coveralls"
   - "if [ $TRANSPORT = 'libevent' ]; then
-        sudo apt-get install -y libevent-dev;
+        sudo apt-get install -yq libevent-dev;
     fi"
   - "if [ $TRANSPORT = 'uloop' ]; then
        (
@@ -38,7 +34,7 @@ install:
          cp libubox.so ..
        );
     fi"
-  - "wget https://raw.githubusercontent.com/credosemi/pub/master/net-snmp-pre-built.tar.gz"
+  - "wget -q https://raw.githubusercontent.com/credosemi/pub/master/net-snmp-pre-built.tar.gz"
   - "tar xzf net-snmp-pre-built.tar.gz"
 
 script:
