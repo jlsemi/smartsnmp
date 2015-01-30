@@ -209,9 +209,10 @@ class SmartSNMPTestFramework:
 
 	def snmpwalk_expect(self, oid, **kwargs):
 		results = self.snmpwalk(oid, **kwargs)
+		print('Checking walk results (total = %d) ...' % len(results)),
 		for i in range(len(results)):
-			print(results[i])
 			self.snmpwalk_result_check(results[i], len(results), i)
+		print('Done.')
 
 	def snmp_setup(self, config_file):
 		print "Starting Smart-SNMP Agent (Master Mode)..."
