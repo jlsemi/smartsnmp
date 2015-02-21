@@ -45,8 +45,8 @@ local ip_RouteIf_cache = {
 }
 
 local ip_NetToMedia_cache = {
-    ["2.10.2.12.1"] = { phyaddr = utils.mac2str("0C826842A0A5"), type = 3 },
-    ["2.10.2.12.164"] = { phyaddr = utils.mac2str("001B777CE57C"), type = 3 },
+    ["2.10.2.12.1"] = { phyaddr = utils.mac2oct("0C:82:68:42:A0:A5"), type = 3 },
+    ["2.10.2.12.164"] = { phyaddr = utils.mac2oct("00:1B:77:7C:E5:7C"), type = 3 },
 }
 
 local function __load_config()

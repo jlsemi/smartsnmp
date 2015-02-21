@@ -52,35 +52,161 @@ end
 -- convert oid string to oid lua table
 -----------------------------------------
 utils.str2oid = function (s)
-    local oid = {}
-    for n in string.gmatch(s, '%d+') do
-        table.insert(oid, tonumber(n))
-    end
-    return oid
+	local oid = {}
+	for n in string.gmatch(s, '%d+') do
+		table.insert(oid, tonumber(n))
+	end
+	return oid
 end
 
-local hexval = function(x)
-    if x >= string.byte('0') and x <= string.byte('9') then
-        return x - string.byte('0')
-    elseif x >= string.byte('a') and x <= string.byte('f') then
-        return x - string.byte('a') + 10
-    elseif x >= string.byte('A') and x <= string.byte('F') then
-        return x - string.byte('A') + 10
-    else
-        assert(0)
-    end
+--------------------------------------------------------------------------------
+-- iter
+--
+-- Return an iterable function. If _o_ is an array table, it will return a
+-- function that return the table element one by one. If _o_ is a function,
+-- the _o_ will be return directly.
+--------------------------------------------------------------------------------
+utils.iter = function(o)
+	if type(o) == 'function' then
+		return o
+	else
+		local i = 0
+		local n = table.getn(o)
+		return function ()
+			i = i + 1
+			if i <= n then return o[i] end
+		end
+	end
 end
 
-------------------------------------------
--- convert physical address to string 
-------------------------------------------
-utils.mac2str = function(mac)
-    assert(type(mac) == 'string')
-    local s = {}
-    for i = 1, #mac, 2 do
-        table.insert(s, string.char(hexval(string.byte(mac, i)) * 16 + hexval(string.byte(mac, i + 1))))
-    end
-    return table.concat(s)
+-------------------------------------------------------------------------------
+-- map
+--
+-- Apply function to every item of iterable and return an array of the results.
+-------------------------------------------------------------------------------
+utils.map = function(fun, iter)
+	local mapped_list = {}
+
+	iter = utils.iter(iter)
+	
+	for v in iter do
+		table.insert(mapped_list, fun(v))
+	end
+
+	return mapped_list
+end
+
+-------------------------------------------------------------------------------
+-- reduce
+--
+-- Apply function of two arguments cumulatively to the items of iterable,
+-- from left to right, so as to reduce the iterable to a single value.
+--
+-- iter could be a table or iterable function.
+-------------------------------------------------------------------------------
+utils.reduce = function(fun, iter, init)
+	local accum_val
+
+	iter = utils.iter(iter)
+
+	if init == nil then
+		init = iter()
+		if init == nil then
+			error('reduce() of empty sequence with no initial value')
+		end
+	end
+	
+	accum_val = init
+	for v in iter do
+		accum_val = fun(accum_val, v)
+	end
+
+	return accum_val
+end
+
+-------------------------------------------------------------------------------
+-- filter
+--
+-- Construct an array table from those elements of array table or iterable
+-- function for which function returns true.
+-------------------------------------------------------------------------------
+utils.filter = function(fun, iter)
+	local filtered_list = {}
+
+	iter = utils.iter(iter)
+	
+	for v in iter do
+		if fun(v) then
+			table.insert(filtered_list, v)
+		end
+	end
+
+	return filtered_list
+end
+
+--------------------------------------------------------------------------------
+-- str2mac
+--
+-- convert MAC address string to table of number
+--------------------------------------------------------------------------------
+utils.str2mac = function(mac)
+	assert(type(mac) == 'string')
+	local mtab = {mac:match("(%x%x):(%x%x):(%x%x):(%x%x):(%x%x):(%x%x)")}
+	if #mtab ~= 6 then
+		error("invaild MAC address.")
+	end
+	return utils.map(function(x) return tonumber(x, 16) end, mtab)
+end
+
+--------------------------------------------------------------------------------
+-- mac2oct
+--
+-- convert MAC address array table or mac string to encoded octstring
+--------------------------------------------------------------------------------
+utils.mac2oct = function(mac)
+	if type(mac) == 'string' then
+		mac = utils.str2mac(mac)
+	end
+
+	return utils.reduce(
+		function(s, n)
+			return s..string.char(n)
+			end,
+			mac,
+			''
+		)
+end
+
+--------------------------------------------------------------------------------
+-- print_table
+--
+-- pretty print lua table, php print_r like.
+-- based on https://gist.github.com/nrk/31175
+--------------------------------------------------------------------------------
+utils.print_table = function(t)
+	local print_r_cache = {}
+	local sub_print_r = function(t, indent)
+		if print_r_cache[tostring(t)] then
+			print(indent.."*"..tostring(t))
+		else
+			print_r_cache[tostring(t)]=true
+			if type(t) == "table" then
+				pos = tostring(pos)
+				for pos,val in pairs(t) do
+					if type(val) == "table" then
+						print(indent.."["..pos.."] => "..tostring(t).." {")
+						sub_print_r(val,indent..string.rep(" ",string.len(pos)+8))
+						print(indent..string.rep(" ",string.len(pos)+6).."}")
+					else
+						print(indent.."["..pos.."] => "..tostring(val))
+					end
+				end
+			else
+				print(indent..tostring(t))
+			end
+		end
+	end
+	sub_print_r(t,"\t")
 end
 
 return utils

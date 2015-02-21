@@ -9,9 +9,10 @@ env:
 
 install:
   - "sudo apt-get install -yq $LUA $lib$LUA-0-dev python-pexpect snmp luarocks"
-  - "sudo pip -q install PyYAML cpp-coveralls"
+  - "sudo -H pip -q install PyYAML cpp-coveralls"
   - "sudo luarocks install Lua-cURL"
   - "sudo luarocks install luacov-coveralls"
+  - "sudo luarocks install lunitx"
   - "if [ $TRANSPORT = 'libevent' ]; then
         sudo apt-get install -yq libevent-dev;
     fi"
@@ -48,9 +49,11 @@ script:
         scons --transport=$TRANSPORT --gcov=yes;
     fi"
   - "sudo LUACOV=1 SYS_LUA_PATH=`$LUA -e 'print(package.path)'` LUA=$LUA python ./tests/test_all.py"
+  - "sudo chmod 666 luacov.stats.out"
+  - "$LUA -lluacov tests/test_utils.lua"
 
 after_success:
-  - "cpp-coveralls -b . -e. -e .sconf_temp `ls core/*.gcno | sed 's/\\.gcno$/.c/' | sed 's/^/-i /'` --dump c.report.json"
+  - "cpp-coveralls -b . -e .sconf_temp `ls core/*.gcno | sed 's/\\.gcno$/.c/' | sed 's/^/-i /'` --dump c.report.json"
   - "luacov-coveralls -j c.report.json -i bin/smartsnmpd -i lualib/smartsnmp/init.lua -i lualib/smartsnmp/utils.lua"
 
 after_failure:
